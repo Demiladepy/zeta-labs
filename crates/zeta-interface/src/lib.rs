@@ -3,6 +3,7 @@
 //! Bump [`INTERFACE_VERSION`] only in a PR that all three owners ack.
 
 pub mod accounts;
+pub mod builders;
 pub mod denial;
 pub mod evaluate;
 pub mod ids;
@@ -13,6 +14,11 @@ pub mod seeds;
 pub use accounts::{
     AuditRecord, CreditLine, Policy, Pool, ACCOUNT_DISCRIMINATOR_LINE, ACCOUNT_DISCRIMINATOR_POLICY,
     ACCOUNT_DISCRIMINATOR_POOL, AUDIT_RECORD_LEN, CREDIT_LINE_LEN, POLICY_LEN, POOL_LEN,
+};
+pub use builders::{
+    build_create_pool, build_deposit, build_deposit_with_transfer, build_draw,
+    build_draw_with_channel_open, build_evaluate, build_open_line, build_register_policy,
+    build_repay, build_revoke, IxShell,
 };
 pub use denial::Denial;
 pub use evaluate::{evaluate, EvaluateInput};

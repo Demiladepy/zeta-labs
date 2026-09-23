@@ -16,6 +16,8 @@ export {
   VAULT_IX,
 } from "./types.js";
 
+export { ACCOUNT_ORDER, PDA_ALLOC } from "./accountOrder.js";
+
 export type {
   AuditRecord,
   CreditLine,

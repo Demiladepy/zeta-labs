@@ -12,14 +12,14 @@ pub const VAULT_IX_OPEN_LINE: u8 = 2;
 pub const VAULT_IX_DRAW: u8 = 3;
 pub const VAULT_IX_REPAY: u8 = 4;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PolicyRegistryIx {
     RegisterPolicy(RegisterPolicyArgs),
     Evaluate(EvaluateArgs),
     Revoke,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CreditVaultIx {
     CreatePool,
     Deposit { amount: u64 },
