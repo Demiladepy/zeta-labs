@@ -13,19 +13,21 @@ Do not claim anything in the "Not done" column in demos, Builder Feed, or the su
 | Deny does not reserve | processor tests |
 | Payment Channels `open` encoding + 14 account metas | `encode_payment_channels_open` |
 | Client ix builders (account order) | `zeta-interface::builders` + `packages/sdk/src/accountOrder.ts` |
+| Program keypairs (local, undeployed) | `.keys/*.json` → pubkeys in `ids.rs` |
+| Colosseum Copilot local config | `scripts/colosseum.env` (gitignored), skill installed |
 
 ## Not done (do not claim)
 
 | Piece | Why |
 | --- | --- |
 | BPF `.so` / `cargo build-sbf` | platform-tools incomplete on this Windows box |
-| Devnet deploy + explorer links | needs `.so` + real program IDs |
-| Live CPI into Payment Channels | needs deployed vault + channels accounts on a cluster |
+| Devnet deploy + explorer links | needs `.so` |
+| Live CPI into Payment Channels | needs deployed vault + channels accounts |
 | LiteSVM / Mollusk loading `.so` | blocked on BPF |
 | P4 category allowlist / Token ACL | Phase 2 |
 | P5 rolling + total caps | Phase 2 (audit emit exists; full P5 ACL/rolling does not) |
 | Swig delegated authority | Phase 2 (Anurag) |
-| SDK that submits txs | stubs only (`createPool` etc. throw) |
+| SDK that submits txs | stubs only |
 | Dashboard | Phase 2 (Joshna) |
 | Formally verified LTL policy | roadmap only — enforced + tested, not proven |
 | Real x402 endpoint demo | needs Anurag pay-kit + deploy |

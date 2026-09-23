@@ -8,3 +8,7 @@ node_modules
 .anchor
 .idea
 .vscode
+.env
+.env.local
+.env.*.local
+scripts/colosseum.env

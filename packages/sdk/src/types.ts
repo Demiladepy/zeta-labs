@@ -46,6 +46,13 @@ export enum Denial {
 export const PAYMENT_CHANNELS_PROGRAM_ID =
   "CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX";
 
+/** Local keypair pubkeys — not deployed yet. See `.keys/README.md`. */
+export const POLICY_REGISTRY_PROGRAM_ID =
+  "G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk";
+
+export const CREDIT_VAULT_PROGRAM_ID =
+  "4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi";
+
 export const DEVNET_USDC = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
 
 export type Pool = {

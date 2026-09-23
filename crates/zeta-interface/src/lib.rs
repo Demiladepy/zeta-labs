@@ -3,6 +3,7 @@
 //! Bump [`INTERFACE_VERSION`] only in a PR that all three owners ack.
 
 pub mod accounts;
+pub mod alloc;
 pub mod builders;
 pub mod denial;
 pub mod evaluate;
@@ -14,6 +15,10 @@ pub mod seeds;
 pub use accounts::{
     AuditRecord, CreditLine, Policy, Pool, ACCOUNT_DISCRIMINATOR_LINE, ACCOUNT_DISCRIMINATOR_POLICY,
     ACCOUNT_DISCRIMINATOR_POOL, AUDIT_RECORD_LEN, CREDIT_LINE_LEN, POLICY_LEN, POOL_LEN,
+};
+pub use alloc::{
+    line_alloc_bytes, policy_alloc_bytes, pool_alloc_bytes, PdaAlloc, LINE_ALLOC, POLICY_ALLOC,
+    POOL_ALLOC,
 };
 pub use builders::{
     build_create_pool, build_deposit, build_deposit_with_transfer, build_draw,
