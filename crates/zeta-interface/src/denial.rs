@@ -32,4 +32,11 @@ impl Denial {
     pub const fn is_allow(self) -> bool {
         matches!(self, Self::Allow)
     }
+
+    /// On-chain custom error = `100 + denial`. Allow is never returned as an error.
+    pub const PROGRAM_ERROR_BASE: u32 = 100;
+
+    pub const fn program_error_code(self) -> u32 {
+        Self::PROGRAM_ERROR_BASE + self.as_u8() as u32
+    }
 }

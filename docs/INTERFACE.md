@@ -135,7 +135,7 @@ not change in Phase 2. v1 ignores them.
 - `create_pool()`
 - `deposit(amount)`
 - `open_line(limit)` — line points at an existing policy
-- `draw(amount, salt, grace_period, open_slot)` — CPI `evaluate` then CPI Payment Channels `open`
+- `draw(amount, salt, grace_period, open_slot)` — frozen `evaluate` first (audit always), then reserve + Payment Channels `open` CPI
 - `repay(settled, reserved)` — books actual spend, releases unused reservation
 
 `draw` reserves `amount` on the line (`reserved += amount`,
@@ -144,6 +144,54 @@ not change in Phase 2. v1 ignores them.
 `repay` after `distribute`: `reserved -= reserved_this_draw`,
 `drawn += settled`, `outstanding -= reserved_this_draw`,
 `deposited -= settled`.
+
+### Instruction accounts (v1, layouts unchanged)
+
+Little-endian. First byte is the tag (`crates/zeta-interface` encode/decode).
+Client **pre-allocates** PDA accounts (`POOL_LEN` / `CREDIT_LINE_LEN` /
+`POLICY_LEN`) owned by the program; processors refuse a non-zero
+discriminator.
+
+**Policy `register_policy`** — `0` issuer (signer) · `1` policy PDA (writable)
+
+**Policy `evaluate`** — `0` policy · `1` line (audit) · `2` agent (audit) · `3` clock
+
+**Policy `revoke`** — `0` issuer (signer) · `1` policy (writable)
+
+**Vault `create_pool`** — `0` authority (signer) · `1` mint · `2` pool PDA (writable) · `3` vault ATA
+
+**Vault `deposit`** — `0` authority (signer) · `1` pool (writable). Optional token CPI: `2` source ATA · `3` vault ATA · `4` token program.
+
+**Vault `open_line`** — `0` authority (signer) · `1` pool · `2` policy · `3` agent · `4` line PDA (writable)
+
+**Vault `draw`** — `0` agent (signer) · `1` pool (writable) · `2` line (writable) · `3` policy · `4` payee · `5` rent_payer (signer) · `6` clock. Optional CPI: `7` Payment Channels program + the 14 `open` accounts below. Trailing ix bytes after the 29-byte draw header are the distribution preimage.
+
+**Vault `repay`** — `0` signer (agent or pool authority) · `1` pool (writable) · `2` line (writable)
+
+`evaluate` / `draw` always `sol_log_data` a packed 136-byte `AuditRecord` (allow or deny). Deny custom error = `100 + Denial`. `draw` return data on allow is the encoded Payment Channels `open` ix (disc `1` + 28-byte header + extra).
+
+### Payment Channels `open` CPI (Anurag)
+
+Account order (pay-kit Codama client):
+
+0. payer (writable, signer via vault PDA)  
+1. rent_payer (writable, signer)  
+2. payee  
+3. mint  
+4. authorized_signer  
+5. channel (writable)  
+6. payer_token_account (writable)  
+7. channel_token_account (writable)  
+8. token_program  
+9. system_program  
+10. rent  
+11. associated_token_program  
+12. event_authority  
+13. self_program  
+
+Ix data: `1u8` ‖ `salt u64` ‖ `deposit u64` ‖ `grace_period u32` ‖ `open_slot u64` ‖ extra.  
+`open_slot` must be current-or-recent (`OPEN_SLOT_WINDOW = 1500`).  
+PDA seeds (frozen): `["channel", payer, payee, mint, authorized_signer, salt, open_slot]`.
 
 ---
 

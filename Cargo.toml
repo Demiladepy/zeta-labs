@@ -14,3 +14,4 @@ repository = "https://github.com/Demiladepy/zeta-labbs"
 
 [workspace.dependencies]
 zeta-interface = { path = "crates/zeta-interface" }
+solana-program = "2.2"

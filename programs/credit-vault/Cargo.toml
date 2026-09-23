@@ -9,6 +9,10 @@ description = "Zeta Credit Vault. Escrow is program-held. draw CPIs Payment Chan
 name = "credit_vault"
 crate-type = ["cdylib", "lib"]
 
+[features]
+default = []
+no-entrypoint = []
+
 [dependencies]
 zeta-interface.workspace = true
-policy-registry = { path = "../policy-registry" }
+solana-program.workspace = true

@@ -9,5 +9,10 @@ description = "Zeta Policy Registry. evaluate is the only gate on a spend."
 name = "policy_registry"
 crate-type = ["cdylib", "lib"]
 
+[features]
+default = []
+no-entrypoint = []
+
 [dependencies]
 zeta-interface.workspace = true
+solana-program.workspace = true

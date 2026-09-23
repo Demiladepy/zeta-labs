@@ -1,4 +1,5 @@
 //! Policy Registry v1. On-chain entrypoint lands on this state machine.
+#![allow(unexpected_cfgs)]
 //!
 //! Instructions: `register_policy`, `evaluate`, `revoke`.
 
@@ -56,6 +57,19 @@ pub fn evaluate(
     now_unix: i64,
     slot: u64,
 ) -> (Denial, AuditRecord) {
+    evaluate_at(policy, policy.issuer, line, agent, args, now_unix, slot)
+}
+
+/// On-chain path stamps the policy PDA, not the issuer, into the audit.
+pub fn evaluate_at(
+    policy: &Policy,
+    policy_key: [u8; 32],
+    line: [u8; 32],
+    agent: [u8; 32],
+    args: EvaluateArgs,
+    now_unix: i64,
+    slot: u64,
+) -> (Denial, AuditRecord) {
     let denial = eval(
         policy,
         EvaluateInput {
@@ -65,9 +79,12 @@ pub fn evaluate(
             category: args.category,
         },
     );
-    let audit = AuditRecord::new(policy.issuer, line, agent, args.amount, denial, slot, now_unix);
+    let audit = AuditRecord::new(policy_key, line, agent, args.amount, denial, slot, now_unix);
     (denial, audit)
 }
+
+pub mod processor;
+pub use processor::process_instruction;
 
 #[cfg(test)]
 mod tests {

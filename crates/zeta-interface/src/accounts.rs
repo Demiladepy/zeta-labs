@@ -111,8 +111,158 @@ pub struct AuditRecord {
     pub unix_ts: i64,
 }
 
+impl Pool {
+    pub fn pack(&self) -> [u8; POOL_LEN] {
+        let mut out = [0u8; POOL_LEN];
+        out[0..8].copy_from_slice(&self.discriminator.to_le_bytes());
+        out[8..40].copy_from_slice(&self.authority);
+        out[40..72].copy_from_slice(&self.mint);
+        out[72..104].copy_from_slice(&self.vault_ata);
+        out[104..112].copy_from_slice(&self.deposited.to_le_bytes());
+        out[112..120].copy_from_slice(&self.outstanding.to_le_bytes());
+        out[120] = self.bump;
+        out[121..128].copy_from_slice(&self._pad);
+        out
+    }
+
+    pub fn unpack(data: &[u8]) -> Option<Self> {
+        if data.len() < POOL_LEN {
+            return None;
+        }
+        let discriminator = u64::from_le_bytes(data[0..8].try_into().ok()?);
+        if discriminator != ACCOUNT_DISCRIMINATOR_POOL {
+            return None;
+        }
+        Some(Self {
+            discriminator,
+            authority: data[8..40].try_into().ok()?,
+            mint: data[40..72].try_into().ok()?,
+            vault_ata: data[72..104].try_into().ok()?,
+            deposited: u64::from_le_bytes(data[104..112].try_into().ok()?),
+            outstanding: u64::from_le_bytes(data[112..120].try_into().ok()?),
+            bump: data[120],
+            _pad: data[121..128].try_into().ok()?,
+        })
+    }
+}
+
+impl CreditLine {
+    pub fn pack(&self) -> [u8; CREDIT_LINE_LEN] {
+        let mut out = [0u8; CREDIT_LINE_LEN];
+        out[0..8].copy_from_slice(&self.discriminator.to_le_bytes());
+        out[8..40].copy_from_slice(&self.pool);
+        out[40..72].copy_from_slice(&self.agent);
+        out[72..104].copy_from_slice(&self.policy);
+        out[104..112].copy_from_slice(&self.limit.to_le_bytes());
+        out[112..120].copy_from_slice(&self.drawn.to_le_bytes());
+        out[120..128].copy_from_slice(&self.reserved.to_le_bytes());
+        out[128] = self.bump;
+        out[129..136].copy_from_slice(&self._pad);
+        out
+    }
+
+    pub fn unpack(data: &[u8]) -> Option<Self> {
+        if data.len() < CREDIT_LINE_LEN {
+            return None;
+        }
+        let discriminator = u64::from_le_bytes(data[0..8].try_into().ok()?);
+        if discriminator != ACCOUNT_DISCRIMINATOR_LINE {
+            return None;
+        }
+        Some(Self {
+            discriminator,
+            pool: data[8..40].try_into().ok()?,
+            agent: data[40..72].try_into().ok()?,
+            policy: data[72..104].try_into().ok()?,
+            limit: u64::from_le_bytes(data[104..112].try_into().ok()?),
+            drawn: u64::from_le_bytes(data[112..120].try_into().ok()?),
+            reserved: u64::from_le_bytes(data[120..128].try_into().ok()?),
+            bump: data[128],
+            _pad: data[129..136].try_into().ok()?,
+        })
+    }
+}
+
+impl Policy {
+    pub fn pack(&self) -> [u8; POLICY_LEN] {
+        let mut out = [0u8; POLICY_LEN];
+        out[0..8].copy_from_slice(&self.discriminator.to_le_bytes());
+        out[8..40].copy_from_slice(&self.issuer);
+        out[40..48].copy_from_slice(&self.seed.to_le_bytes());
+        out[48..56].copy_from_slice(&self.per_call_cap.to_le_bytes());
+        out[56..64].copy_from_slice(&self.expires_at.to_le_bytes());
+        out[64..72].copy_from_slice(&self.rolling_cap.to_le_bytes());
+        out[72..80].copy_from_slice(&self.total_cap.to_le_bytes());
+        out[80..82].copy_from_slice(&self.acl_version.to_le_bytes());
+        out[82] = if self.revoked { 1 } else { 0 };
+        out[83] = self.bump;
+        out[84..96].copy_from_slice(&self._pad);
+        out
+    }
+
+    pub fn unpack(data: &[u8]) -> Option<Self> {
+        if data.len() < POLICY_LEN {
+            return None;
+        }
+        let discriminator = u64::from_le_bytes(data[0..8].try_into().ok()?);
+        if discriminator != ACCOUNT_DISCRIMINATOR_POLICY {
+            return None;
+        }
+        Some(Self {
+            discriminator,
+            issuer: data[8..40].try_into().ok()?,
+            seed: u64::from_le_bytes(data[40..48].try_into().ok()?),
+            per_call_cap: u64::from_le_bytes(data[48..56].try_into().ok()?),
+            expires_at: i64::from_le_bytes(data[56..64].try_into().ok()?),
+            rolling_cap: u64::from_le_bytes(data[64..72].try_into().ok()?),
+            total_cap: u64::from_le_bytes(data[72..80].try_into().ok()?),
+            acl_version: u16::from_le_bytes(data[80..82].try_into().ok()?),
+            revoked: data[82] != 0,
+            bump: data[83],
+            _pad: data[84..96].try_into().ok()?,
+        })
+    }
+}
+
 impl AuditRecord {
     pub const DISCRIMINATOR: u64 = 0x5A455441_41554454; // "ZETA" "AUDT"
+
+    pub fn pack(&self) -> [u8; AUDIT_RECORD_LEN] {
+        let mut out = [0u8; AUDIT_RECORD_LEN];
+        out[0..8].copy_from_slice(&self.discriminator.to_le_bytes());
+        out[8..40].copy_from_slice(&self.policy);
+        out[40..72].copy_from_slice(&self.line);
+        out[72..104].copy_from_slice(&self.agent);
+        out[104..112].copy_from_slice(&self.amount.to_le_bytes());
+        out[112] = if self.allowed { 1 } else { 0 };
+        out[113] = self.denial;
+        out[114..120].copy_from_slice(&self._pad);
+        out[120..128].copy_from_slice(&self.slot.to_le_bytes());
+        out[128..136].copy_from_slice(&self.unix_ts.to_le_bytes());
+        out
+    }
+
+    pub fn unpack(data: &[u8]) -> Option<Self> {
+        if data.len() < AUDIT_RECORD_LEN {
+            return None;
+        }
+        let discriminator = u64::from_le_bytes(data[0..8].try_into().ok()?);
+        if discriminator != Self::DISCRIMINATOR {
+            return None;
+        }
+        Some(Self {
+            discriminator,
+            policy: data[8..40].try_into().ok()?,
+            line: data[40..72].try_into().ok()?,
+            agent: data[72..104].try_into().ok()?,
+            amount: u64::from_le_bytes(data[104..112].try_into().ok()?),
+            allowed: data[112] != 0,
+            denial: data[113],
+            _pad: data[114..120].try_into().ok()?,
+            slot: u64::from_le_bytes(data[120..128].try_into().ok()?),
+            unix_ts: i64::from_le_bytes(data[128..136].try_into().ok()?),
+        })
+    }
 
     pub fn new(
         policy: [u8; 32],
