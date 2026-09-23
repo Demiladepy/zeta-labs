@@ -1,0 +1,10 @@
+/target
+**/*.rs.bk
+Cargo.lock
+node_modules
+.DS_Store
+.keys
+*.so
+.anchor
+.idea
+.vscode

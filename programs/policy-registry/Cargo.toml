@@ -1,0 +1,13 @@
+[package]
+name = "policy-registry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Zeta Policy Registry. evaluate is the only gate on a spend."
+
+[lib]
+name = "policy_registry"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+zeta-interface.workspace = true

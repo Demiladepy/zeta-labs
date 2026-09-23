@@ -1,0 +1,12 @@
+{
+  "name": "@zeta/sdk",
+  "version": "0.1.0",
+  "description": "Zeta Labs agent credit SDK. Types mirror crates/zeta-interface.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts"
+  },
+  "license": "MIT"
+}

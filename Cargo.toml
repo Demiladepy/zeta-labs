@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/zeta-interface",
+    "programs/policy-registry",
+    "programs/credit-vault",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Demiladepy/zeta-labbs"
+
+[workspace.dependencies]
+zeta-interface = { path = "crates/zeta-interface" }

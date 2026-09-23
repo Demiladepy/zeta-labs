@@ -1,0 +1,11 @@
+[package]
+name = "zeta-interface"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Frozen shared types for Zeta Vault + Policy. Change only by agreement."
+
+[lib]
+name = "zeta_interface"
+
+[dependencies]
