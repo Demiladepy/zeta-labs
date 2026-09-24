@@ -43,10 +43,9 @@ export type PdaAccountRequest = {
 };
 
 /**
- * The current v1 programs expect their PDA accounts to be provisioned before
- * their initialise instructions run. A client cannot create a PDA itself, so
- * deploy tooling must supply a program-side provisioner after that interface
- * issue is resolved.
+ * Optional hook kept for tests / custom tooling. Production path: the vault
+ * and policy programs allocate PDAs themselves when `systemProgram` is passed
+ * on create_pool / register_policy / open_line (see docs/PDA.md).
  */
 export type PdaAccountProvisioner = (
   request: PdaAccountRequest,
@@ -55,8 +54,8 @@ export type PdaAccountProvisioner = (
 export class PdaAccountProvisioningRequiredError extends Error {
   constructor(address: PublicKey) {
     super(
-      `Cannot initialise ${address.toBase58()}: the current programs require a pre-provisioned PDA account. ` +
-        "Use an approved program-side PDA provisioner before submitting this instruction.",
+      `Cannot initialise ${address.toBase58()}: pass systemProgram on the create/register/open ix ` +
+        "(builders already append it), or supply a custom provision callback. See docs/PDA.md.",
     );
     this.name = "PdaAccountProvisioningRequiredError";
   }
@@ -252,7 +251,10 @@ export class ZetaClient {
       }
       return [];
     }
-    if (!provisioner) throw new PdaAccountProvisioningRequiredError(address);
+    if (!provisioner) {
+      // Program-side allocation: builders already append SystemProgram.
+      return [];
+    }
     const result = await provisioner({ address, owner, space });
     return result instanceof TransactionInstruction ? [result] : result;
   }

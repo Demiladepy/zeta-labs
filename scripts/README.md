@@ -18,7 +18,6 @@ Available now:
 
 ## Current deployment gate
 
-Do not run the seven-step demo yet. In addition to the missing BPF artifacts,
-the current v1 programs require a PDA account to exist before they initialise
-it. A wallet cannot create that PDA account, so the program owners must add a
-program-side allocation instruction/path under an agreed interface update.
+Programs are on Devnet (see `docs/PROGRAM_IDS.md`). Init path:
+`docs/PDA.md` — vault/policy allocate pool/policy/line PDAs via
+`SystemProgram` CPI. Seven-step demo needs funded ATAs + Anurag channel accounts.

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Keypair, SystemProgram } from "@solana/web3.js";
 import {
   ACCOUNT_DISCRIMINATOR,
   Denial,
@@ -18,7 +19,6 @@ import {
   findPolicyPda,
   findPoolPda,
 } from "../src/index.js";
-import { Keypair } from "@solana/web3.js";
 
 function bytes(length: number): Uint8Array {
   return new Uint8Array(length);
@@ -140,8 +140,9 @@ test("builders match the frozen instruction tags, widths, and account order", ()
   assert.equal(create.data[0], 0);
   assert.deepEqual(
     create.keys.map((key) => [key.isSigner, key.isWritable]),
-    [[true, true], [false, false], [false, true], [false, false]],
+    [[true, true], [false, false], [false, true], [false, false], [false, false]],
   );
+  assert.equal(create.keys[4]?.pubkey.toBase58(), SystemProgram.programId.toBase58());
 
   const register = buildRegisterPolicyInstruction({
     issuer: authority,
@@ -154,6 +155,8 @@ test("builders match the frozen instruction tags, widths, and account order", ()
   assert.equal(register.data.readBigUInt64LE(1), 7n);
   assert.equal(register.data.readBigUInt64LE(9), 50n);
   assert.equal(register.data.readBigInt64LE(17), -9n);
+  assert.equal(register.keys.length, 3);
+  assert.equal(register.keys[2]?.pubkey.toBase58(), SystemProgram.programId.toBase58());
 
   const line = buildOpenLineInstruction({
     authority,
@@ -167,7 +170,9 @@ test("builders match the frozen instruction tags, widths, and account order", ()
   assert.equal(line.data.readBigUInt64LE(1), 1_000n);
   assert.deepEqual(
     line.keys.map((key) => key.pubkey.toBase58()),
-    [authority, pool, policy, agent, findLinePda(pool, agent)].map((key) => key.toBase58()),
+    [authority, pool, policy, agent, findLinePda(pool, agent), SystemProgram.programId].map((key) =>
+      key.toBase58(),
+    ),
   );
 
   const revoke = buildRevokeInstruction({ issuer: authority, policy });

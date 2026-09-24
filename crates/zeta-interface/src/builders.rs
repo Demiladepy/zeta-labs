@@ -9,6 +9,9 @@ use crate::instructions::{
 };
 use crate::paykit::OpenAccountMeta;
 
+/// System Program id (`11111111111111111111111111111111`).
+pub const SYSTEM_PROGRAM_ID: [u8; 32] = [0u8; 32];
+
 /// Built instruction: program id + metas + data.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IxShell {
@@ -25,7 +28,10 @@ fn meta(pubkey: [u8; 32], is_signer: bool, is_writable: bool) -> OpenAccountMeta
     }
 }
 
-/// Accounts: `[issuer (s), policy_pda (w)]`
+/// Accounts: `[issuer (s,w), policy_pda (w), system_program]`
+///
+/// Trailing `system_program` lets the policy program `create_account` the PDA
+/// via `invoke_signed`. Not needed if the PDA is already allocated.
 pub fn build_register_policy(
     program_id: [u8; 32],
     issuer: [u8; 32],
@@ -34,7 +40,11 @@ pub fn build_register_policy(
 ) -> IxShell {
     IxShell {
         program_id,
-        accounts: vec![meta(issuer, true, true), meta(policy_pda, false, true)],
+        accounts: vec![
+            meta(issuer, true, true),
+            meta(policy_pda, false, true),
+            meta(SYSTEM_PROGRAM_ID, false, false),
+        ],
         data: PolicyRegistryIx::RegisterPolicy(args).encode(),
     }
 }
@@ -69,7 +79,7 @@ pub fn build_revoke(program_id: [u8; 32], issuer: [u8; 32], policy: [u8; 32]) ->
     }
 }
 
-/// Accounts: `[authority (s), mint, pool_pda (w), vault_ata]`
+/// Accounts: `[authority (s,w), mint, pool_pda (w), vault_ata, system_program]`
 pub fn build_create_pool(
     program_id: [u8; 32],
     authority: [u8; 32],
@@ -84,6 +94,7 @@ pub fn build_create_pool(
             meta(mint, false, false),
             meta(pool_pda, false, true),
             meta(vault_ata, false, false),
+            meta(SYSTEM_PROGRAM_ID, false, false),
         ],
         data: CreditVaultIx::CreatePool.encode(),
     }
@@ -128,7 +139,7 @@ pub fn build_deposit_with_transfer(
     }
 }
 
-/// Accounts: `[authority (s), pool, policy, agent, line_pda (w)]`
+/// Accounts: `[authority (s,w), pool, policy, agent, line_pda (w), system_program]`
 pub fn build_open_line(
     program_id: [u8; 32],
     authority: [u8; 32],
@@ -141,11 +152,12 @@ pub fn build_open_line(
     IxShell {
         program_id,
         accounts: vec![
-            meta(authority, true, false),
+            meta(authority, true, true),
             meta(pool, false, false),
             meta(policy, false, false),
             meta(agent, false, false),
             meta(line_pda, false, true),
+            meta(SYSTEM_PROGRAM_ID, false, false),
         ],
         data: CreditVaultIx::OpenLine(args).encode(),
     }
@@ -259,9 +271,10 @@ mod tests {
                 expires_at: 0,
             },
         );
-        assert_eq!(ix.accounts.len(), 2);
+        assert_eq!(ix.accounts.len(), 3);
         assert!(ix.accounts[0].is_signer);
         assert!(ix.accounts[1].is_writable);
+        assert_eq!(ix.accounts[2].pubkey, SYSTEM_PROGRAM_ID);
         assert_eq!(ix.data[0], 0);
         assert_eq!(
             PolicyRegistryIx::decode(&ix.data),

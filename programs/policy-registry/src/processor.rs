@@ -12,7 +12,7 @@ use zeta_interface::{
     policy_seeds, AuditRecord, POLICY_LEN, Policy, PolicyRegistryIx,
 };
 
-use crate::{evaluate_at, register_policy, revoke, PolicyError};
+use crate::{evaluate_at, pda::ensure_pda_account, register_policy, revoke, PolicyError};
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_program::entrypoint!(process_instruction);
@@ -74,6 +74,7 @@ fn process_register(
     let iter = &mut accounts.iter();
     let issuer = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let policy_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    let system_ai = next_account_info(iter).ok();
     if !issuer.is_signer {
         return Err(from_policy(PolicyError::Unauthorized));
     }
@@ -87,6 +88,15 @@ fn process_register(
     if expected != *policy_ai.key {
         return Err(err(ERR_PDA));
     }
+    ensure_pda_account(
+        program_id,
+        issuer,
+        policy_ai,
+        system_ai,
+        POLICY_LEN,
+        &seeds,
+        bump,
+    )?;
     let mut data = policy_ai.try_borrow_mut_data()?;
     if data.len() < POLICY_LEN {
         return Err(err(ERR_ACCOUNTS));

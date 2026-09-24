@@ -1,6 +1,11 @@
 /** Builders for every Phase-1 Zeta instruction outside the pay-kit hot path. */
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { PublicKey, TransactionInstruction, type AccountMeta } from "@solana/web3.js";
+import {
+  PublicKey,
+  SystemProgram,
+  TransactionInstruction,
+  type AccountMeta,
+} from "@solana/web3.js";
 import {
   CREDIT_VAULT_PROGRAM_ID,
   POLICY_REGISTRY_PROGRAM_ID,
@@ -59,6 +64,7 @@ export function buildCreatePoolInstruction(args: {
       { pubkey: args.mint, isSigner: false, isWritable: false },
       { pubkey: pool, isSigner: false, isWritable: true },
       { pubkey: vaultAta, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from([VAULT_IX.createPool]),
   });
@@ -112,11 +118,12 @@ export function buildOpenLineInstruction(args: {
   return new TransactionInstruction({
     programId,
     keys: [
-      { pubkey: args.authority, isSigner: true, isWritable: false },
+      { pubkey: args.authority, isSigner: true, isWritable: true },
       { pubkey: args.pool, isSigner: false, isWritable: false },
       { pubkey: args.policy, isSigner: false, isWritable: false },
       { pubkey: args.agent, isSigner: false, isWritable: false },
       { pubkey: line, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: u64Instruction(VAULT_IX.openLine, args.limit),
   });
@@ -146,6 +153,7 @@ export function buildRegisterPolicyInstruction(args: {
     keys: [
       { pubkey: args.issuer, isSigner: true, isWritable: true },
       { pubkey: policy, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: Buffer.from(data),
   });

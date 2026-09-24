@@ -23,7 +23,7 @@ pub use alloc::{
 pub use builders::{
     build_create_pool, build_deposit, build_deposit_with_transfer, build_draw,
     build_draw_with_channel_open, build_evaluate, build_open_line, build_register_policy,
-    build_repay, build_revoke, IxShell,
+    build_repay, build_revoke, IxShell, SYSTEM_PROGRAM_ID,
 };
 pub use denial::Denial;
 pub use evaluate::{evaluate, EvaluateInput};

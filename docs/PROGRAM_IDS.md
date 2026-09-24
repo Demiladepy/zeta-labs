@@ -24,4 +24,6 @@ DEVNET_USDC_MINT=4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
 
 **Status:** both programs deployed + verified with `solana program show` on Devnet. Upgrade authority: `7QuNW1WLy58oYUfbXLboDMpyqzwfmKyYFU58q2bJ1uVX`.
 
+**PDA path for Anurag:** see [`docs/PDA.md`](./PDA.md) — seeds, spaces, account order, program-side `create_account`. Devnet programs upgraded with this path (2026-09-24).
+
 Do **not** commit private keypair JSON (`.keys/` stays local/gitignored).

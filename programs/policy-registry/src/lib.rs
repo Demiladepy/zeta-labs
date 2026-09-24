@@ -83,6 +83,7 @@ pub fn evaluate_at(
     (denial, audit)
 }
 
+pub mod pda;
 pub mod processor;
 pub use processor::process_instruction;
 

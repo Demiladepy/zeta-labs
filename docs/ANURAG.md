@@ -38,6 +38,12 @@ Do not have the agent hold the draw USDC. If pay-kit's client assumes
 the signer is the token payer, wrap it: the agent signs `draw`, the
 vault PDA signs `open`.
 
+## PDA provisioning (required for create_pool / register / open_line)
+
+Read **`docs/PDA.md`**. Programs allocate pool / policy / line PDAs themselves
+when you pass trailing `SystemProgram` (SDK builders already do this). You do
+not need a separate client provisioner.
+
 ## Demo endpoints
 
 Phase 1: any live pay-kit / playground `upto` route on devnet is

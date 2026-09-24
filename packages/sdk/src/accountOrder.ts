@@ -4,10 +4,10 @@
  */
 
 export const ACCOUNT_ORDER = {
-  registerPolicy: ["issuer(s)", "policyPda(w)"] as const,
+  registerPolicy: ["issuer(s,w)", "policyPda(w)", "systemProgram"] as const,
   evaluate: ["policy", "line", "agent", "clock"] as const,
   revoke: ["issuer(s)", "policy(w)"] as const,
-  createPool: ["authority(s)", "mint", "poolPda(w)", "vaultAta"] as const,
+  createPool: ["authority(s,w)", "mint", "poolPda(w)", "vaultAta", "systemProgram"] as const,
   deposit: ["authority(s)", "pool(w)"] as const,
   depositWithTransfer: [
     "authority(s)",
@@ -16,7 +16,7 @@ export const ACCOUNT_ORDER = {
     "vaultAta(w)",
     "tokenProgram",
   ] as const,
-  openLine: ["authority(s)", "pool", "policy", "agent", "linePda(w)"] as const,
+  openLine: ["authority(s,w)", "pool", "policy", "agent", "linePda(w)", "systemProgram"] as const,
   draw: [
     "agent(s)",
     "pool(w)",
@@ -31,7 +31,7 @@ export const ACCOUNT_ORDER = {
   repay: ["signer(s)", "pool(w)", "line(w)"] as const,
 } as const;
 
-/** PDA pre-alloc sizes Joshna must createAccount before register/create/open. */
+/** PDA data lengths (program allocates via SystemProgram CPI). */
 export const PDA_ALLOC = {
   pool: 128,
   policy: 96,

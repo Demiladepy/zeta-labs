@@ -17,7 +17,8 @@ use zeta_interface::{
 };
 
 use crate::{
-    create_pool, deposit, evaluate_draw, open_line_with_keys, repay, reserve_draw, VaultError,
+    create_pool, deposit, evaluate_draw, open_line_with_keys, pda::ensure_pda_account, repay,
+    reserve_draw, VaultError,
 };
 
 #[cfg(not(feature = "no-entrypoint"))]
@@ -76,15 +77,26 @@ fn process_create_pool(program_id: &Pubkey, accounts: &[AccountInfo]) -> Program
     let mint = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let pool_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let vault_ata = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    let system_ai = next_account_info(iter).ok();
     if !authority.is_signer {
         return Err(from_vault(VaultError::Unauthorized));
     }
     let authority_bytes = pubkey_bytes(authority.key);
     let mint_bytes = pubkey_bytes(mint.key);
-    let (expected, bump) = Pubkey::find_program_address(&pool_seeds(&authority_bytes, &mint_bytes), program_id);
+    let seeds = pool_seeds(&authority_bytes, &mint_bytes);
+    let (expected, bump) = Pubkey::find_program_address(&seeds, program_id);
     if expected != *pool_ai.key {
         return Err(err(ERR_PDA));
     }
+    ensure_pda_account(
+        program_id,
+        authority,
+        pool_ai,
+        system_ai,
+        POOL_LEN,
+        &seeds,
+        bump,
+    )?;
     let mut data = pool_ai.try_borrow_mut_data()?;
     if data.len() < POOL_LEN {
         return Err(err(ERR_ACCOUNTS));
@@ -149,6 +161,7 @@ fn process_open_line(
     let policy_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let agent = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let line_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    let system_ai = next_account_info(iter).ok();
     if !authority.is_signer {
         return Err(from_vault(VaultError::Unauthorized));
     }
@@ -159,10 +172,20 @@ fn process_open_line(
     let _policy = Policy::unpack(&policy_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
     let pool_key = pubkey_bytes(pool_ai.key);
     let agent_key = pubkey_bytes(agent.key);
-    let (expected, bump) = Pubkey::find_program_address(&line_seeds(&pool_key, &agent_key), program_id);
+    let seeds = line_seeds(&pool_key, &agent_key);
+    let (expected, bump) = Pubkey::find_program_address(&seeds, program_id);
     if expected != *line_ai.key {
         return Err(err(ERR_PDA));
     }
+    ensure_pda_account(
+        program_id,
+        authority,
+        line_ai,
+        system_ai,
+        CREDIT_LINE_LEN,
+        &seeds,
+        bump,
+    )?;
     let mut data = line_ai.try_borrow_mut_data()?;
     if data.len() < CREDIT_LINE_LEN {
         return Err(err(ERR_ACCOUNTS));

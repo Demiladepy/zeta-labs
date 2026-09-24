@@ -158,6 +158,7 @@ pub fn repay(pool: &mut Pool, line: &mut CreditLine, args: RepayArgs) -> Result<
     Ok(())
 }
 
+pub mod pda;
 pub mod processor;
 pub use processor::process_instruction;
 

@@ -148,21 +148,22 @@ not change in Phase 2. v1 ignores them.
 ### Instruction accounts (v1, layouts unchanged)
 
 Little-endian. First byte is the tag (`crates/zeta-interface` encode/decode).
-Client **pre-allocates** PDA accounts (`POOL_LEN` / `CREDIT_LINE_LEN` /
-`POLICY_LEN`) owned by the program; processors refuse a non-zero
-discriminator.
+Client **does not** pre-create PDA accounts. Init instructions take a trailing
+`SystemProgram` account; the program `create_account`s the PDA via
+`invoke_signed` (see `docs/PDA.md`). Processors refuse a non-zero discriminator
+on already-owned accounts.
 
-**Policy `register_policy`** — `0` issuer (signer) · `1` policy PDA (writable)
+**Policy `register_policy`** — `0` issuer (signer, writable) · `1` policy PDA (writable) · `2` system program
 
 **Policy `evaluate`** — `0` policy · `1` line (audit) · `2` agent (audit) · `3` clock
 
 **Policy `revoke`** — `0` issuer (signer) · `1` policy (writable)
 
-**Vault `create_pool`** — `0` authority (signer) · `1` mint · `2` pool PDA (writable) · `3` vault ATA
+**Vault `create_pool`** — `0` authority (signer, writable) · `1` mint · `2` pool PDA (writable) · `3` vault ATA · `4` system program
 
 **Vault `deposit`** — `0` authority (signer) · `1` pool (writable). Optional token CPI: `2` source ATA · `3` vault ATA · `4` token program.
 
-**Vault `open_line`** — `0` authority (signer) · `1` pool · `2` policy · `3` agent · `4` line PDA (writable)
+**Vault `open_line`** — `0` authority (signer, writable) · `1` pool · `2` policy · `3` agent · `4` line PDA (writable) · `5` system program
 
 **Vault `draw`** — `0` agent (signer) · `1` pool (writable) · `2` line (writable) · `3` policy · `4` payee · `5` rent_payer (signer) · `6` clock. Optional CPI: `7` Payment Channels program + the 14 `open` accounts below. Trailing ix bytes after the 29-byte draw header are the distribution preimage.
 
