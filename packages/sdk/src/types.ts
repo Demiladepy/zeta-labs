@@ -33,15 +33,16 @@ export const VAULT_IX = {
 } as const;
 
 /** u8. 0 = allow. First failure wins. */
-export enum Denial {
-  Allow = 0,
-  Revoked = 1,
-  Expired = 2,
-  PerCallCap = 3,
-  RollingCap = 4,
-  TotalCap = 5,
-  NotAllowlisted = 6,
-}
+export const Denial = {
+  Allow: 0,
+  Revoked: 1,
+  Expired: 2,
+  PerCallCap: 3,
+  RollingCap: 4,
+  TotalCap: 5,
+  NotAllowlisted: 6,
+} as const;
+export type Denial = (typeof Denial)[keyof typeof Denial];
 
 export const PAYMENT_CHANNELS_PROGRAM_ID =
   "CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX";

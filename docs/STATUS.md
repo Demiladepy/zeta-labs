@@ -18,6 +18,8 @@ Do not claim anything in the "Not done" column in demos, Builder Feed, or the su
 | Joshna dashboard foundation | lender / agent / audit panels, shared SDK decoder, demo fallback, live devnet connection settings |
 | Program keypairs (local, undeployed) | `.keys/*.json` → pubkeys in `ids.rs` |
 | Colosseum Copilot local config | `scripts/colosseum.env` (gitignored), skill installed |
+| Seven-step processor e2e | `programs/credit-vault/tests/seven_step_e2e.rs` (host only) |
+| Pack fixtures helper | `packages/sdk/src/decode.ts` (`packPool` / `packPolicy`) — reads use Anurag `decoder.ts` |
 
 ## Not done (do not claim)
 
@@ -37,6 +39,6 @@ Do not claim anything in the "Not done" column in demos, Builder Feed, or the su
 
 ## Next bit (Demilade)
 
-1. Generate program keypairs when ready to deploy (still placeholders in `ids.rs`).
-2. Build `.so` on a machine with a complete SBF SDK.
-3. Then LiteSVM against that `.so`.
+1. Build `.so` on a machine with a complete SBF SDK (keypairs already generated).
+2. Then LiteSVM against that `.so`.
+3. Anurag: wire `build_draw_with_channel_open` remaining accounts.

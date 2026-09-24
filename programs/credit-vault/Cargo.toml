@@ -16,3 +16,6 @@ no-entrypoint = []
 [dependencies]
 zeta-interface.workspace = true
 solana-program.workspace = true
+
+[dev-dependencies]
+policy-registry = { path = "../policy-registry", features = ["no-entrypoint"] }
