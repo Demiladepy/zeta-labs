@@ -108,6 +108,11 @@ export type DrawArgs = {
   openSlot: bigint;
 };
 
+export type RepayArgs = {
+  reservedThisDraw: bigint;
+  settled: bigint;
+};
+
 export type EvaluateArgs = {
   amount: bigint;
   recipient: Uint8Array;

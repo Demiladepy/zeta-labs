@@ -6,7 +6,25 @@
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./types": "./src/types.ts"
+    "./types": "./src/types.ts",
+    "./paykit": "./src/paykit/index.ts"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "paykit:smoke": "tsx scripts/paykit-smoke.ts",
+    "x402:smoke": "tsx scripts/x402-devnet-smoke.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@solana/kit": "^6.10.0",
+    "@solana/pay-kit": "^0.12.0",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0"
+  }
 }

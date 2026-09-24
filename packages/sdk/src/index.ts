@@ -20,6 +20,8 @@ export {
 
 export { ACCOUNT_ORDER, PDA_ALLOC } from "./accountOrder.js";
 
+export * from "./paykit/index.js";
+
 export type {
   AuditRecord,
   CreditLine,
