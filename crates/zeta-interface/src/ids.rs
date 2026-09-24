@@ -4,10 +4,10 @@
 /// Base58 of the live Payment Channels program.
 pub const PAYMENT_CHANNELS_ID_STR: &str = "CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX";
 
-/// From `.keys/policy-registry-keypair.json` (generated locally; not yet deployed).
+/// From `.keys/policy-registry-keypair.json` — live on Devnet.
 pub const POLICY_REGISTRY_ID_STR: &str = "G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk";
 
-/// From `.keys/credit-vault-keypair.json` (generated locally; not yet deployed).
+/// From `.keys/credit-vault-keypair.json` — live on Devnet.
 pub const CREDIT_VAULT_ID_STR: &str = "4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi";
 
 pub const TOKEN_PROGRAM_ID_STR: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";

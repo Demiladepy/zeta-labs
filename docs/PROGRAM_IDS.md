@@ -1,24 +1,27 @@
 # Devnet program IDs (share with Anurag)
 
-Frozen IDs — same as `.keys/*.json` and `crates/zeta-interface/src/ids.rs`.
+**LIVE on Solana Devnet** (deployed 2026-09-24). Same as `.keys/*.json` and `crates/zeta-interface/src/ids.rs`.
 
-| Program | Program ID |
-| --- | --- |
-| **Policy Registry** | `G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk` |
-| **Credit Vault** | `4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi` |
-| Payment Channels (SF, already live) | `CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX` |
-| Devnet USDC | `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` |
+| Program | Program ID | Explorer |
+| --- | --- | --- |
+| **Policy Registry** | `G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk` | [view](https://explorer.solana.com/address/G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk?cluster=devnet) |
+| **Credit Vault** | `4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi` | [view](https://explorer.solana.com/address/4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi?cluster=devnet) |
+| Payment Channels (SF, already live) | `CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX` | [view](https://explorer.solana.com/address/CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX?cluster=devnet) |
+| Devnet USDC | `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` | — |
 
 **Anurag — paste these into Phase 1:**
 
 ```
 POLICY_REGISTRY_PROGRAM_ID=G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk
 CREDIT_VAULT_PROGRAM_ID=4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi
+PAYMENT_CHANNELS_PROGRAM_ID=CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX
+DEVNET_USDC_MINT=4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
 ```
 
-**Status (2026-09-24):**
-- BPF `.so` built in WSL: `target/deploy/policy_registry.so`, `target/deploy/credit_vault.so`
-- Pubkeys frozen; deploy uses `.keys/*-keypair.json` (gitignored), **not** auto keypairs under `target/deploy/`
-- Live Devnet deploy pending SOL on wallet `7QuNW1WLy58oYUfbXLboDMpyqzwfmKyYFU58q2bJ1uVX` (CLI airdrop rate-limited — fund via https://faucet.solana.com)
+**Deploy tx signatures:**
+- Policy Registry: `3Y26WJsv3RGTPU5HSJH1DRzNWFCH4sY7QSvAfanv1CjSnkMmsL7t53YGv6JySQhfD1cKxmV95SqpzhsuBr5ufAuH`
+- Credit Vault: `GTQZDUD2HNZKWhPt8DtELyoqazxSzSv8qGarMTvLPx5nPgUaNqDZLHoG1sQvBePu6FzrNjhaacsiE422t2TRNuL`
 
-Do **not** commit private keypair JSON.
+**Status:** both programs deployed + verified with `solana program show` on Devnet. Upgrade authority: `7QuNW1WLy58oYUfbXLboDMpyqzwfmKyYFU58q2bJ1uVX`.
+
+Do **not** commit private keypair JSON (`.keys/` stays local/gitignored).
