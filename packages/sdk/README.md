@@ -51,8 +51,21 @@ npm run typecheck
 npm test
 npm run paykit:smoke
 npm run devnet:spend-plan
+npm run devnet:spend-submit
 npm run devnet:preflight
 ```
+
+Submit on devnet after deploy:
+
+```powershell
+npm run devnet:preflight
+npm run devnet:spend-submit -- --submit
+npm run devnet:spend-submit -- --submit --skip-x402
+```
+
+Dry-run is the default for `devnet:spend-submit` (no `--submit` flag).
+PDA provisioning must be resolved before `create_pool` succeeds — the script
+surfaces `PdaAccountProvisioningRequiredError` instead of failing silently.
 
 For demo infrastructure, copy `scripts/devnet.env.example` to
 `scripts/devnet.env`, then use `npm run devnet:fund` and

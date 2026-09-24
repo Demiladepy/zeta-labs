@@ -37,7 +37,8 @@
     "devnet:fund": "tsx scripts/fund-devnet.ts",
     "paykit:smoke": "tsx scripts/paykit-smoke.ts",
     "x402:smoke": "tsx scripts/x402-devnet-smoke.ts",
-    "devnet:spend-plan": "tsx scripts/devnet-spend-plan.ts"
+    "devnet:spend-plan": "tsx scripts/devnet-spend-plan.ts",
+    "devnet:spend-submit": "tsx scripts/devnet-spend-submit.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

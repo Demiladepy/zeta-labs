@@ -49,6 +49,14 @@ export {
   planSevenStepSpend,
 } from "./spend-plan.js";
 
+export {
+  PDA_SPACES,
+  submitSevenStepSpend,
+  systemPdaProvisioner,
+} from "./spend-submit.js";
+
+export type { SpendSubmitConfig, SpendSubmitResult, StepResult } from "./spend-submit.js";
+
 export type {
   PlanSevenStepSpendParams,
   PlannedStep,
