@@ -6,8 +6,9 @@ Developer toolkit for Zeta's policy-bounded Solana-agent credit flow.
 
 - Decodes Pool, CreditLine, Policy, and on-chain AuditRecord bytes using the
   frozen Rust layout.
-- Derives every Zeta PDA and builds Phase-1 pool, policy, line, deposit, revoke,
-  draw, Payment Channels, settlement, and repay instructions.
+- Derives every Zeta PDA and builds Phase-1 pool, policy, line, deposit, evaluate,
+  revoke, draw, Payment Channels, settlement, and repay instructions.
+- Plans the full seven-step spend path offline with `planSevenStepSpend` (no RPC).
 - Fetches account state and decodes audit records from a transaction through
   `ZetaClient`.
 
@@ -49,6 +50,8 @@ npm ci
 npm run typecheck
 npm test
 npm run paykit:smoke
+npm run devnet:spend-plan
+npm run devnet:preflight
 ```
 
 For demo infrastructure, copy `scripts/devnet.env.example` to

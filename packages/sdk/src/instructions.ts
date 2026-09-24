@@ -7,7 +7,7 @@ import {
   POLICY_IX,
   VAULT_IX,
 } from "./types.js";
-import { assertI64, assertU64, writeU64LE } from "./paykit/bytes.js";
+import { assertI64, assertU16, assertU64, writeU64LE } from "./paykit/bytes.js";
 
 const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 
@@ -146,6 +146,43 @@ export function buildRegisterPolicyInstruction(args: {
     keys: [
       { pubkey: args.issuer, isSigner: true, isWritable: true },
       { pubkey: policy, isSigner: false, isWritable: true },
+    ],
+    data: Buffer.from(data),
+  });
+}
+
+export function buildEvaluateInstruction(args: {
+  policy: PublicKey;
+  line: PublicKey;
+  agent: PublicKey;
+  amount: bigint;
+  recipient: PublicKey;
+  category?: number;
+  clock?: PublicKey;
+  programId?: PublicKey;
+}): TransactionInstruction {
+  assertU64("evaluate amount", args.amount);
+  if (args.amount === 0n) throw new Error("evaluate amount must be positive");
+  const category = args.category ?? 0;
+  assertU16("category", category);
+  const data = new Uint8Array(43);
+  data[0] = POLICY_IX.evaluate;
+  writeU64LE(data, 1, args.amount);
+  data.set(args.recipient.toBytes(), 9);
+  new DataView(data.buffer).setUint16(41, category, true);
+  return new TransactionInstruction({
+    programId: args.programId ?? new PublicKey(POLICY_REGISTRY_PROGRAM_ID),
+    keys: [
+      { pubkey: args.policy, isSigner: false, isWritable: false },
+      { pubkey: args.line, isSigner: false, isWritable: false },
+      { pubkey: args.agent, isSigner: false, isWritable: false },
+      {
+        pubkey:
+          args.clock ??
+          new PublicKey("SysvarC1ock11111111111111111111111111111111"),
+        isSigner: false,
+        isWritable: false,
+      },
     ],
     data: Buffer.from(data),
   });

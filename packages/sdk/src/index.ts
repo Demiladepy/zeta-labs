@@ -34,6 +34,7 @@ export {
 export {
   buildCreatePoolInstruction,
   buildDepositInstruction,
+  buildEvaluateInstruction,
   buildOpenLineInstruction,
   buildRegisterPolicyInstruction,
   buildRevokeInstruction,
@@ -41,6 +42,18 @@ export {
   findPolicyPda,
   findPoolPda,
 } from "./instructions.js";
+
+export {
+  formatSpendPlan,
+  planSevenStepSpend,
+} from "./spend-plan.js";
+
+export type {
+  PlanSevenStepSpendParams,
+  PlannedStep,
+  SevenStepSpendPlan,
+  SpendPlanAccounts,
+} from "./spend-plan.js";
 
 export {
   createZetaClient,
