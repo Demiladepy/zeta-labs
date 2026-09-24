@@ -17,7 +17,7 @@ import {
   type Policy,
   type Pool,
 } from "./types.js";
-import { decodeAudit, decodeLine, decodePolicy, decodePool } from "./decoder.js";
+import { decodeAuditLogs, decodeLine, decodePolicy, decodePool } from "./decoder.js";
 import {
   buildCreatePoolInstruction,
   buildDepositInstruction,
@@ -73,22 +73,6 @@ function asKey(value: string | PublicKey): PublicKey {
   return value instanceof PublicKey ? value : new PublicKey(value);
 }
 
-function auditRecords(logs: readonly string[] | null | undefined): AuditRecord[] {
-  if (!logs) return [];
-  const prefix = "Program data: ";
-  const records: AuditRecord[] = [];
-  for (const log of logs) {
-    if (!log.startsWith(prefix)) continue;
-    try {
-      const data = new Uint8Array(Buffer.from(log.slice(prefix.length), "base64"));
-      if (data.length === 136) records.push(decodeAudit(data));
-    } catch {
-      // Other programs may emit data in the same transaction; ignore it.
-    }
-  }
-  return records;
-}
-
 export class ZetaClient {
   readonly connection: Connection;
   readonly payer: Keypair;
@@ -141,7 +125,7 @@ export class ZetaClient {
       maxSupportedTransactionVersion: 0,
     });
     if (!transaction) throw new Error(`transaction not found: ${signature}`);
-    const audits = auditRecords(transaction.meta?.logMessages);
+    const audits = decodeAuditLogs(transaction.meta?.logMessages);
     if (audits.length === 0) {
       throw new Error(`transaction ${signature} contains no Zeta audit record`);
     }

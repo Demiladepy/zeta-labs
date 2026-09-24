@@ -124,3 +124,31 @@ export function decodeAudit(data: Uint8Array): AuditRecord {
   }
   return result;
 }
+
+function decodeBase64(value: string): Uint8Array {
+  const browserAtob = (globalThis as typeof globalThis & {
+    atob?: (input: string) => string;
+  }).atob;
+  if (!browserAtob) throw new Error("This runtime does not provide base64 decoding");
+  const binary = browserAtob(value);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+/** Decode every Zeta AuditRecord emitted in a transaction's log messages. */
+export function decodeAuditLogs(
+  logs: readonly string[] | null | undefined,
+): AuditRecord[] {
+  if (!logs) return [];
+  const prefix = "Program data: ";
+  const records: AuditRecord[] = [];
+  for (const log of logs) {
+    if (!log.startsWith(prefix)) continue;
+    try {
+      const data = decodeBase64(log.slice(prefix.length));
+      if (data.length === AUDIT_RECORD_LEN) records.push(decodeAudit(data));
+    } catch {
+      // Other programs may emit data in the same transaction; ignore it.
+    }
+  }
+  return records;
+}

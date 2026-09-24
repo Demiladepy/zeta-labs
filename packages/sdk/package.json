@@ -17,6 +17,10 @@
     "./paykit": {
       "types": "./dist/paykit/index.d.ts",
       "import": "./dist/paykit/index.js"
+    },
+    "./dashboard": {
+      "types": "./dist/dashboard.d.ts",
+      "import": "./dist/dashboard.js"
     }
   },
   "files": [

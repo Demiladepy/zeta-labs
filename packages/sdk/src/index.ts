@@ -25,6 +25,7 @@ export { ACCOUNT_ORDER, PDA_ALLOC } from "./accountOrder.js";
 
 export {
   decodeAudit,
+  decodeAuditLogs,
   decodeLine,
   decodePolicy,
   decodePool,

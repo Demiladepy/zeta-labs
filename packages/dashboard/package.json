@@ -1,0 +1,29 @@
+{
+  "name": "@zeta/dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --configLoader runner",
+    "build": "npm run typecheck && vite build --configLoader runner",
+    "preview": "vite preview --configLoader runner",
+    "typecheck": "tsc --noEmit --pretty false -p tsconfig.json && tsc --noEmit --pretty false -p tsconfig.node.json",
+    "test": "vitest run --configLoader runner"
+  },
+  "dependencies": {
+    "@fluentui/react-components": "^9.72.5",
+    "@fluentui/react-icons": "^2.0.320",
+    "@solana/web3.js": "^1.99.0",
+    "@zeta/sdk": "file:../sdk",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^7.0.2",
+    "vite": "^7.1.12",
+    "vitest": "^3.2.4"
+  }
+}

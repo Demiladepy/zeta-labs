@@ -18,6 +18,7 @@ devnet path with explorer links.
 | `programs/credit-vault` | Demilade | `create_pool`, `deposit`, `open_line`, `draw`, `repay` |
 | `programs/policy-registry` | Demilade | `register_policy`, `evaluate`, `revoke` |
 | `packages/sdk` | Joshna | `createPool`, `openLine`, `spend`, `revoke`, `proof` |
+| `packages/dashboard` | Joshna | Read-only lender, agent, and policy-audit views |
 | `docs/INTERFACE.md` | all | The merge-safety contract. Change only by agreement. |
 
 ## Standing rules

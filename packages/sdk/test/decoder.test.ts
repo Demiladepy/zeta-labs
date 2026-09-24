@@ -10,6 +10,7 @@ import {
   buildRevokeInstruction,
   planVaultDrawOpen,
   decodeAudit,
+  decodeAuditLogs,
   decodeLine,
   decodePolicy,
   decodePool,
@@ -87,6 +88,26 @@ test("decodes AuditRecord and rejects contradictory flags", () => {
 
   data[112] = 1;
   assert.throws(() => decodeAudit(data), /disagrees/);
+});
+
+test("extracts audit records from Solana data logs", () => {
+  const data = bytes(136);
+  const view = discriminator(data, ACCOUNT_DISCRIMINATOR.audit);
+  view.setBigUint64(104, 77n, true);
+  data[112] = 1;
+  data[113] = Denial.Allow;
+  view.setBigUint64(120, 123n, true);
+  view.setBigInt64(128, 456n, true);
+
+  const records = decodeAuditLogs([
+    "Program log: unrelated",
+    "Program data: not-valid-base64",
+    `Program data: ${Buffer.from(data).toString("base64")}`,
+  ]);
+
+  assert.equal(records.length, 1);
+  assert.equal(records[0]?.amount, 77n);
+  assert.equal(records[0]?.slot, 123n);
 });
 
 test("rejects a bad discriminator and malformed boolean", () => {
