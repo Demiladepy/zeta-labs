@@ -82,9 +82,23 @@ export function buildDrawWithChannelOpenInstruction(
   if (openAccounts.length !== 14) {
     throw new Error(`expected 14 open accounts, got ${openAccounts.length}`);
   }
+  const expectedOpenKeys: Array<[number, PublicKey, string]> = [
+    [0, pool, "payer/pool"],
+    [1, rentPayer, "rent payer"],
+    [2, payee, "payee"],
+    [4, payee, "authorized signer"],
+    [13, paymentChannelsProgramId, "self program"],
+  ];
+  for (const [index, expected, role] of expectedOpenKeys) {
+    if (!openAccounts[index]!.equals(expected)) {
+      throw new Error(`Payment Channels open account ${index} must match ${role}`);
+    }
+  }
 
   const signerFlags = [
-    true,
+    // Outer instruction must not demand a pool-PDA signature. The vault's
+    // invoke_signed supplies payer signer privilege only for the inner CPI.
+    false,
     true,
     false,
     false,

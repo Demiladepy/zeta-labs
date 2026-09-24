@@ -18,8 +18,12 @@ export type DistributionRecipient = {
 export function encodeDistributionPreimage(
   recipients: readonly DistributionRecipient[],
 ): Uint8Array {
-  if (recipients.some((r) => r.bps < 0 || r.bps > 10_000)) {
-    throw new Error("distribution bps must be in [0, 10000]");
+  if (recipients.some((r) => !Number.isInteger(r.bps) || r.bps < 0 || r.bps > 10_000)) {
+    throw new Error("distribution bps must be an integer in [0, 10000]");
+  }
+  const totalBps = recipients.reduce((total, entry) => total + entry.bps, 0);
+  if (totalBps > 10_000) {
+    throw new Error("distribution bps total must not exceed 10000");
   }
   const out = new Uint8Array(4 + recipients.length * 34);
   writeU32LE(out, 0, recipients.length);

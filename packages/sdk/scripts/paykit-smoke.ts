@@ -61,6 +61,8 @@ console.log(
   ) === 0,
 );
 console.log("draw ix accounts:", instruction.keys.length, "(expect 22)");
+console.log("outer pool PDA signer:", instruction.keys[8]?.isSigner, "(expect false)");
+console.log("outer rent payer signer:", instruction.keys[9]?.isSigner, "(expect true)");
 console.log("draw ix data bytes:", instruction.data.length);
 console.log("open ix header+extra bytes:", openIxData.length);
 console.log("deposit == x402 maxAmount:", layout.spec.deposit === draw.amount);

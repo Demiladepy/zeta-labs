@@ -24,13 +24,16 @@ export type VaultDrawOpenPlan = {
  * Phase 1 hot path: agent signs `draw`, vault PDA CPI-signs Payment Channels `open`.
  */
 export function planVaultDrawOpen(params: VaultDrawOpenParams): VaultDrawOpenPlan {
+  if (!params.pool.equals(params.payer)) {
+    throw new Error("vault draw requires payer to equal the pool PDA");
+  }
   const layout = buildChannelOpenLayout(params);
   const instruction = buildDrawWithChannelOpenInstruction({
     creditVaultProgramId:
       params.creditVaultProgramId ?? new PublicKey(CREDIT_VAULT_PROGRAM_ID),
     paymentChannelsProgramId: layout.accounts.selfProgram,
     agent: params.agent,
-    pool: params.payer,
+    pool: params.pool,
     line: params.line,
     policy: params.policy,
     payee: params.payee,

@@ -1,10 +1,13 @@
 /**
- * SDK skeleton. Joshna: fill these against the deployed programs.
+ * Public SDK surface. Transaction submission requires a configured RPC/signer.
  * Names are frozen. Types come from ./types — do not fork layouts.
  */
+import { PublicKey } from "@solana/web3.js";
+import { createZetaClient, type ZetaClient, type ZetaClientConfig } from "./client.js";
 
 export {
   ACCOUNT_DISCRIMINATOR,
+  AUDIT_RECORD_LEN,
   CREDIT_LINE_LEN,
   CREDIT_VAULT_PROGRAM_ID,
   Denial,
@@ -19,6 +22,38 @@ export {
 } from "./types.js";
 
 export { ACCOUNT_ORDER, PDA_ALLOC } from "./accountOrder.js";
+
+export {
+  decodeAudit,
+  decodeLine,
+  decodePolicy,
+  decodePool,
+  ZetaDecodeError,
+} from "./decoder.js";
+
+export {
+  buildCreatePoolInstruction,
+  buildDepositInstruction,
+  buildOpenLineInstruction,
+  buildRegisterPolicyInstruction,
+  buildRevokeInstruction,
+  findLinePda,
+  findPolicyPda,
+  findPoolPda,
+} from "./instructions.js";
+
+export {
+  createZetaClient,
+  PdaAccountProvisioningRequiredError,
+  ZetaClient,
+} from "./client.js";
+
+export type {
+  PdaAccountRequest,
+  PdaAccountProvisioner,
+  TransactionProof,
+  ZetaClientConfig,
+} from "./client.js";
 
 export * from "./paykit/index.js";
 
@@ -60,25 +95,68 @@ export type ProofParams = {
   signature: string;
 };
 
-export async function createPool(_params: CreatePoolParams): Promise<{ pool: Address }> {
-  throw new Error("createPool: waiting on deployed Credit Vault (Demilade)");
+/**
+ * Configure a signer and RPC once, then use the frozen top-level methods. The
+ * client form (`createZetaClient`) is preferred when an app has more than one
+ * wallet or cluster connection.
+ */
+let defaultClient: ZetaClient | undefined;
+
+export function configureZetaClient(config: ZetaClientConfig): ZetaClient {
+  defaultClient = createZetaClient(config);
+  return defaultClient;
 }
 
-export async function openLine(_params: OpenLineParams): Promise<{ line: Address }> {
-  throw new Error("openLine: waiting on deployed Credit Vault (Demilade)");
+function client(): ZetaClient {
+  if (!defaultClient) {
+    throw new Error("Zeta SDK is not configured. Call configureZetaClient({ connection, payer }) first.");
+  }
+  return defaultClient;
 }
 
+function signedByConfiguredPayer(address: Address, action: string): void {
+  if (client().payer.publicKey.toBase58() !== address) {
+    throw new Error(`${action} requires authority ${address} to be the configured payer`);
+  }
+}
+
+export async function createPool(params: CreatePoolParams): Promise<{ pool: Address }> {
+  signedByConfiguredPayer(params.authority, "createPool");
+  const result = await client().createPool({ mint: new PublicKey(params.mint) });
+  return { pool: result.pool.toBase58() };
+}
+
+export async function openLine(params: OpenLineParams): Promise<{ line: Address }> {
+  const result = await client().openLine({
+    pool: new PublicKey(params.pool),
+    agent: new PublicKey(params.agent),
+    policy: new PublicKey(params.policy),
+    limit: params.limit,
+  });
+  return { line: result.line.toBase58() };
+}
+
+/**
+ * A live spend cannot be safely sent until Anurag supplies the x402 challenge
+ * adapter and the program-side PDA provisioning path is approved. The exported
+ * `planVaultDrawOpen` helper already builds the frozen draw instruction.
+ */
 export async function spend(_params: SpendParams): Promise<{ signature: string; denial: number }> {
-  throw new Error("spend: waiting on draw + pay-kit (Demilade / Anurag)");
+  throw new Error(
+    "spend requires the live x402 operator adapter and PDA account provisioning. " +
+      "Use planVaultDrawOpen for the validated draw instruction until those deployment dependencies land.",
+  );
 }
 
-export async function revoke(_params: RevokeParams): Promise<{ signature: string }> {
-  throw new Error("revoke: waiting on deployed Policy Registry (Demilade)");
+export async function revoke(params: RevokeParams): Promise<{ signature: string }> {
+  const result = await client().revoke(new PublicKey(params.policy));
+  return result;
 }
 
-export async function proof(_params: ProofParams): Promise<{
+export async function proof(params: ProofParams): Promise<{
   explorerUrl: string;
   allowed: boolean;
 }> {
-  throw new Error("proof: decode AuditRecord from the tx (Joshna)");
+  const result = await client().proof(params.signature);
+  return { explorerUrl: result.explorerUrl, allowed: result.allowed };
 }

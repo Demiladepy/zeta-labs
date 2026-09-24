@@ -13,6 +13,10 @@ export type DevnetEnv = {
   playgroundFaucetUrl?: string;
 };
 
+export type DevnetPreflightEnv = Omit<DevnetEnv, "agentKeypairPath"> & {
+  agentKeypairPath?: string;
+};
+
 function parseEnvFile(contents: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of contents.split(/\r?\n/)) {
@@ -27,12 +31,17 @@ function parseEnvFile(contents: string): Record<string, string> {
   return out;
 }
 
-export function loadDevnetEnv(): DevnetEnv {
+export function loadDevnetEnv(): DevnetEnv;
+export function loadDevnetEnv(options: { requireAgent: false }): DevnetPreflightEnv;
+export function loadDevnetEnv(
+  options: { requireAgent?: boolean } = {},
+): DevnetEnv | DevnetPreflightEnv {
   const envPath = resolve(import.meta.dirname, "../../../scripts/devnet.env");
   if (!existsSync(envPath)) {
     throw new Error(
       `Missing ${envPath}\n` +
-        "Copy scripts/devnet.env.example → scripts/devnet.env and set AGENT_KEYPAIR_PATH.",
+        "Copy scripts/devnet.env.example → scripts/devnet.env" +
+        ((options.requireAgent ?? true) ? " and set AGENT_KEYPAIR_PATH." : "."),
     );
   }
 
@@ -44,7 +53,7 @@ export function loadDevnetEnv(): DevnetEnv {
   const rpcUrl = process.env.RPC_URL;
   const agentKeypairPath = process.env.AGENT_KEYPAIR_PATH;
   if (!rpcUrl) throw new Error("RPC_URL missing in scripts/devnet.env");
-  if (!agentKeypairPath) {
+  if ((options.requireAgent ?? true) && !agentKeypairPath) {
     throw new Error("AGENT_KEYPAIR_PATH missing in scripts/devnet.env");
   }
 
@@ -53,7 +62,7 @@ export function loadDevnetEnv(): DevnetEnv {
   return {
     rpcUrl,
     network,
-    agentKeypairPath,
+    ...(agentKeypairPath ? { agentKeypairPath } : {}),
     operatorKeypairPath: process.env.OPERATOR_KEYPAIR_PATH,
     x402Endpoint: process.env.X402_ENDPOINT,
     playgroundFaucetUrl: process.env.PLAYGROUND_FAUCET_URL,

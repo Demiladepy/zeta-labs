@@ -47,6 +47,12 @@ export type OperatorSettleParams = {
  * Voucher signing / Ed25519 precompile bundling is operator-side (pay-kit server).
  */
 export function planOperatorSettle(params: OperatorSettleParams): OperatorSettlePlan {
+  if (params.reservedThisDraw <= 0n) {
+    throw new Error("reservedThisDraw must be positive");
+  }
+  if (params.settled < 0n || params.settled > params.reservedThisDraw) {
+    throw new Error("settled must be between zero and reservedThisDraw");
+  }
   const tokenProgram = params.tokenProgram ?? defaultTokenProgram();
   const eventAuthority = findEventAuthorityPda(params.paymentChannelsProgramId);
   const distribution = params.distribution ?? [];

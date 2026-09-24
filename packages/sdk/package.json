@@ -3,16 +3,34 @@
   "version": "0.1.0",
   "description": "Zeta Labs agent credit SDK. Types mirror crates/zeta-interface.",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./types": "./src/types.ts",
-    "./paykit": "./src/paykit/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./paykit": {
+      "types": "./dist/paykit/index.d.ts",
+      "import": "./dist/paykit/index.js"
+    }
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build",
+    "typecheck": "tsc -p tsconfig.check.json",
+    "test": "tsx --test test/**/*.test.ts",
+    "devnet:preflight": "tsx scripts/devnet-preflight.ts",
+    "devnet:fund": "tsx scripts/fund-devnet.ts",
     "paykit:smoke": "tsx scripts/paykit-smoke.ts",
     "x402:smoke": "tsx scripts/x402-devnet-smoke.ts"
   },

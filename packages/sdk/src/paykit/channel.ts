@@ -3,6 +3,7 @@ import { PublicKey } from "@solana/web3.js";
 import type { DrawArgs, DrawChannelSpec } from "../types.js";
 import { PAYKIT_DEFAULTS } from "./constants.js";
 import { encodeDistributionPreimage, type DistributionRecipient } from "./distribution.js";
+import { writeU64LE } from "./bytes.js";
 
 export type ChannelOpenParams = {
   /** Pool PDA — vault token payer. */
@@ -44,7 +45,7 @@ export type PaymentChannelsOpenLayout = {
   };
   /** 14 account pubkeys in Payment Channels `open` order. */
   openAccountPubkeys: PublicKey[];
-  /** Matching signer flags for `buildDrawWithChannelOpen`. */
+  /** Outer vault-instruction signer flags; payer is elevated only inside CPI. */
   openSigners: boolean[];
   /** Matching writable flags for `buildDrawWithChannelOpen`. */
   openWritable: boolean[];
@@ -52,8 +53,7 @@ export type PaymentChannelsOpenLayout = {
 
 function u64Seed(value: bigint): Uint8Array {
   const out = new Uint8Array(8);
-  const view = new DataView(out.buffer);
-  view.setBigUint64(0, value, true);
+  writeU64LE(out, 0, value);
   return out;
 }
 
@@ -179,7 +179,9 @@ export function buildChannelOpenLayout(
   ];
 
   const openSigners = [
-    true, // payer — vault PDA signs via CPI
+    // Outer vault instruction: the pool PDA is not a transaction signer.
+    // Credit Vault marks it as an inner signer through invoke_signed.
+    false,
     true, // rent_payer
     false,
     false,
