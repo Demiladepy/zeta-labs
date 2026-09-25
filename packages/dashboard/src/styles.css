@@ -25,11 +25,21 @@ button { white-space: nowrap; }
 .theme-root { min-height: 100dvh; background: var(--bg); }
 
 .app-shell { min-height: 100dvh; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
-.sidebar { position: sticky; top: 0; height: 100dvh; padding: 24px 16px 18px; border-right: 1px solid var(--line-soft); display: flex; flex-direction: column; background: #0d100e; z-index: 10; }
+.sidebar { position: sticky; top: 0; height: 100dvh; padding: 24px 16px 18px; border-right: 1px solid var(--line-soft); display: flex; flex-direction: column; background: linear-gradient(180deg, #0f1310 0%, #0d100e 48%, #0b0e0c 100%); z-index: 10; }
 .brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 28px; }
-.brand-mark { width: 34px; height: 34px; display: grid; place-items: center; color: #061008; background: var(--accent); border-radius: 9px; font-weight: 800; font-size: 18px; }
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  display: block;
+  flex: none;
+  background: transparent;
+  border-radius: 0;
+  /* Provided mark is black; invert for dark chrome */
+  filter: invert(1);
+}
 .brand div { display: grid; gap: 1px; }
-.brand strong { font-size: 16px; letter-spacing: -0.02em; }
+.brand strong { font-size: 15px; letter-spacing: -0.03em; font-weight: 650; }
 .brand span:last-child { color: var(--dim); font-size: 12px; }
 .sidebar nav { display: grid; gap: 5px; }
 .sidebar nav button { border: 0; color: var(--muted); background: transparent; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 9px; cursor: pointer; text-align: left; transition: background 140ms ease, color 140ms ease, transform 100ms ease; }
@@ -51,7 +61,7 @@ main { min-width: 0; }
 .topbar { height: 64px; padding: 0 34px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-soft); background: rgba(11, 13, 12, 0.88); backdrop-filter: blur(16px); position: sticky; top: 0; z-index: 8; }
 .topbar > div { display: flex; align-items: center; gap: 12px; }
 .topbar-actions { margin-left: auto; }
-.workspace-label { font-weight: 650; font-size: 14px; }
+.workspace-label { font-weight: 650; font-size: 14px; letter-spacing: -0.02em; }
 .network-label { color: var(--muted); font-size: 12px; padding-left: 12px; border-left: 1px solid var(--line); }
 .main-content { max-width: 1440px; margin: 0 auto; padding: 34px; }
 .panel-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; margin-bottom: 32px; }

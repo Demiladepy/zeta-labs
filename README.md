@@ -120,7 +120,7 @@ npm run devnet:policy-demos -- --submit
 ### Dashboard
 
 Live ops UI (Devnet discovery + demo fallback):
-**https://dist-dusky-ten-99.vercel.app**
+**https://zetalabsx.vercel.app**
 
 ```powershell
 cd packages/dashboard

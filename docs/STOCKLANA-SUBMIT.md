@@ -24,7 +24,7 @@ week — our Fair focus is agent credit rails on Solana.
 | Field | URL |
 | --- | --- |
 | GitHub | https://github.com/Demiladepy/zeta-labs |
-| Live demo | https://dist-dusky-ten-99.vercel.app |
+| Live demo | https://zetalabsx.vercel.app |
 | Pitch / demo video | _optional — record locally (checklist below)_ |
 
 ## Bounties
