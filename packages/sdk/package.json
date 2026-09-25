@@ -39,7 +39,8 @@
     "x402:smoke": "tsx scripts/x402-devnet-smoke.ts",
     "devnet:spend-plan": "tsx scripts/devnet-spend-plan.ts",
     "devnet:spend-submit": "tsx scripts/devnet-spend-submit.ts",
-    "devnet:policy-demos": "tsx scripts/devnet-policy-demos.ts"
+    "devnet:policy-demos": "tsx scripts/devnet-policy-demos.ts",
+    "clawpump:smoke": "tsx scripts/clawpump-smoke.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

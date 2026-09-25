@@ -48,4 +48,5 @@ Invite on the form: Demilade · Anurag (DubeyJi03) · Joshna (Joshna907)
 
 ## After submit
 
-Keep shipping for Colosseum World's Fair (final submit **12 Oct 2026**).
+If the form also offers **ClawPump**, use [`docs/CLAWPUMP-SUBMIT.md`](./CLAWPUMP-SUBMIT.md)
+instead of claiming equity tracks. Keep shipping for Colosseum World's Fair (final submit **12 Oct 2026**).

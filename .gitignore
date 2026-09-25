@@ -13,7 +13,9 @@ dist
 .env
 .env.local
 .env.*.local
+packages/sdk/.env.local
 scripts/colosseum.env
 scripts/devnet.env
+scripts/clawpump.env
 .keys/
 .keys/*.json
