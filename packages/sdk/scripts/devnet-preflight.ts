@@ -18,6 +18,7 @@ async function main() {
 
   console.log("=== Zeta devnet preflight ===");
   console.log("RPC:", env.rpcUrl);
+  console.log("Network:", env.network ?? "devnet");
   let ready = true;
   for (const [name, programId] of targets) {
     const account = await connection.getAccountInfo(new PublicKey(programId));
@@ -26,9 +27,8 @@ async function main() {
     ready &&= executable;
   }
 
-  console.log("PDA initialization: BLOCKED until the programs provide account allocation.");
-  const pdaInitializationReady = false;
-  if (!ready || !pdaInitializationReady) process.exitCode = 1;
+  console.log("PDA initialization: program-side (see docs/PDA.md)");
+  if (!ready) process.exitCode = 1;
 }
 
 main().catch((error) => {

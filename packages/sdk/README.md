@@ -31,17 +31,11 @@ const receipt = await zeta.proof("TRANSACTION_SIGNATURE");
 console.log(receipt.explorerUrl, receipt.audits);
 ```
 
-## Important devnet prerequisite
+## Devnet prerequisite
 
-The present v1 on-chain programs require pool, policy, and line PDA accounts
-to already exist before their initialise instructions execute. A normal wallet
-cannot create a PDA account by itself. `ZetaClient.createPool`,
-`registerPolicy`, and `openLine` therefore require a `provision` callback until
-the program owners add an approved program-side account-allocation path.
-
-The SDK fails with `PdaAccountProvisioningRequiredError` instead of pretending
-that it can complete an impossible transaction. This must be resolved before a
-real devnet deployment and seven-step demo can run.
+Pool, policy, and line PDAs are allocated **by the programs** on first init.
+Instruction builders append `SystemProgram` automatically — see `docs/PDA.md`.
+You do not need a client-side `provision` callback for Phase 1.
 
 ## Local checks
 
@@ -55,17 +49,19 @@ npm run devnet:spend-submit
 npm run devnet:preflight
 ```
 
-Submit on devnet after deploy:
+Submit on devnet:
 
 ```powershell
 npm run devnet:preflight
-npm run devnet:spend-submit -- --submit
+npm run devnet:fund
 npm run devnet:spend-submit -- --submit --skip-x402
+npm run devnet:spend-submit -- --submit
+npm run devnet:policy-demos -- --submit
 ```
 
 Dry-run is the default for `devnet:spend-submit` (no `--submit` flag).
-PDA provisioning must be resolved before `create_pool` succeeds — the script
-surfaces `PdaAccountProvisioningRequiredError` instead of failing silently.
+Use `--skip-x402` first to validate the on-chain path before starting the
+local pay-kit playground for HTTP metering.
 
 For demo infrastructure, copy `scripts/devnet.env.example` to
 `scripts/devnet.env`, then use `npm run devnet:fund` and

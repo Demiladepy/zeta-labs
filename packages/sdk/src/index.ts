@@ -4,6 +4,8 @@
  */
 import { PublicKey } from "@solana/web3.js";
 import { createZetaClient, type ZetaClient, type ZetaClientConfig } from "./client.js";
+import { Denial } from "./types.js";
+import { submitAgentSpend } from "./spend-submit.js";
 
 export {
   ACCOUNT_DISCRIMINATOR,
@@ -54,11 +56,17 @@ export {
 
 export {
   PDA_SPACES,
+  submitAgentSpend,
   submitSevenStepSpend,
   systemPdaProvisioner,
 } from "./spend-submit.js";
 
-export type { SpendSubmitConfig, SpendSubmitResult, StepResult } from "./spend-submit.js";
+export type {
+  AgentSpendConfig,
+  SpendSubmitConfig,
+  SpendSubmitResult,
+  StepResult,
+} from "./spend-submit.js";
 
 export type {
   PlanSevenStepSpendParams,
@@ -110,6 +118,9 @@ export type SpendParams = {
   line: Address;
   amount: bigint;
   endpoint: string;
+  /** Defaults to draw/4 when omitted. */
+  settledEstimate?: bigint;
+  skipX402?: boolean;
 };
 
 export type RevokeParams = {
@@ -161,16 +172,35 @@ export async function openLine(params: OpenLineParams): Promise<{ line: Address 
   return { line: result.line.toBase58() };
 }
 
-/**
- * A live spend cannot be safely sent until Anurag supplies the x402 challenge
- * adapter and the program-side PDA provisioning path is approved. The exported
- * `planVaultDrawOpen` helper already builds the frozen draw instruction.
- */
-export async function spend(_params: SpendParams): Promise<{ signature: string; denial: number }> {
-  throw new Error(
-    "spend requires the live x402 operator adapter and PDA account provisioning. " +
-      "Use planVaultDrawOpen for the validated draw instruction until those deployment dependencies land.",
-  );
+/** Agent spend on an existing line: draw → x402 → settle → repay. */
+export async function spend(params: SpendParams): Promise<{ signature: string; denial: number }> {
+  const zeta = client();
+  const operator = zeta.operator;
+  if (!operator) {
+    throw new Error(
+      "spend requires configureZetaClient({ ..., operator }) with the settle keypair.",
+    );
+  }
+
+  const result = await submitAgentSpend({
+    connection: zeta.connection,
+    agent: zeta.payer,
+    operator,
+    line: new PublicKey(params.line),
+    amount: params.amount,
+    endpoint: params.endpoint,
+    settledEstimate: params.settledEstimate,
+    skipX402: params.skipX402,
+    cluster: zeta.cluster,
+    network: zeta.cluster === "mainnet-beta" ? "mainnet" : "devnet",
+  });
+
+  const signatures = result.steps.filter((step) => step.signature);
+  const last = signatures[signatures.length - 1];
+  if (!last?.signature) {
+    throw new Error("spend completed without an on-chain signature");
+  }
+  return { signature: last.signature, denial: Denial.Allow };
 }
 
 export async function revoke(params: RevokeParams): Promise<{ signature: string }> {

@@ -88,6 +88,8 @@ export type PlanSevenStepSpendParams = {
   gracePeriod?: number;
   /** Operator-reported metered amount for repay planning. */
   settledEstimate: bigint;
+  /** When false, settle uses hasVoucher=false (on-chain-only / skip-x402 path). */
+  metered?: boolean;
   x402Endpoint: string;
   creditVaultProgramId?: PublicKey;
   policyRegistryProgramId?: PublicKey;
@@ -172,6 +174,7 @@ export function planSevenStepSpend(params: PlanSevenStepSpendParams): SevenStepS
     repaySigner: params.agent,
     reservedThisDraw: params.drawAmount,
     settled: params.settledEstimate,
+    hasVoucher: params.metered ?? true,
   });
 
   const steps: PlannedStep[] = [
@@ -186,7 +189,7 @@ export function planSevenStepSpend(params: PlanSevenStepSpendParams): SevenStepS
         vaultAta,
         programId: creditVault,
       }),
-      "Requires PDA provisioning before submit (see ZetaClient.provision).",
+      "Program allocates pool PDA via trailing SystemProgram (docs/PDA.md).",
     ),
     ixStep(
       2,
@@ -213,7 +216,7 @@ export function planSevenStepSpend(params: PlanSevenStepSpendParams): SevenStepS
         policy,
         programId: policyRegistry,
       }),
-      "Requires PDA provisioning before submit.",
+      "Program allocates policy PDA via trailing SystemProgram (docs/PDA.md).",
     ),
     ixStep(
       4,
@@ -228,7 +231,7 @@ export function planSevenStepSpend(params: PlanSevenStepSpendParams): SevenStepS
         line,
         programId: creditVault,
       }),
-      "Requires PDA provisioning before submit.",
+      "Program allocates line PDA via trailing SystemProgram (docs/PDA.md).",
     ),
     ixStep(
       5,
@@ -353,6 +356,6 @@ export function formatSpendPlan(plan: SevenStepSpendPlan): string {
   }
 
   lines.push("");
-  lines.push("Submit on-chain steps after devnet deploy + PDA provisioning.");
+  lines.push("Submit with: npm run devnet:spend-submit -- --submit");
   return lines.join("\n");
 }

@@ -1,6 +1,12 @@
 /** Fund the configured demo agent with devnet SOL and optional playground USDC. */
 import { readFileSync } from "node:fs";
-import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
 
 async function main() {
@@ -18,7 +24,31 @@ async function main() {
   console.log("Funded 1 devnet SOL:", agent.publicKey.toBase58());
   console.log("Airdrop signature:", signature);
 
+  if (env.operatorKeypairPath) {
+    const operatorSecret = JSON.parse(readFileSync(env.operatorKeypairPath, "utf8")) as number[];
+    const operator = Keypair.fromSecretKey(Uint8Array.from(operatorSecret));
+    const transferSig = await connection.sendTransaction(
+      new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: agent.publicKey,
+          toPubkey: operator.publicKey,
+          lamports: 200_000_000,
+        }),
+      ),
+      [agent],
+    );
+    await connection.confirmTransaction(transferSig, "confirmed");
+    console.log("Funded operator 0.2 SOL:", operator.publicKey.toBase58());
+  }
+
+  console.log("");
+  console.log("Devnet USDC (required for deposit):");
+  console.log("  https://faucet.circle.com/ → Solana Devnet → paste", agent.publicKey.toBase58());
+  console.log("  Mint:", "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+  console.log("  Need ≥10 USDC for the default seven-step demo deposit.");
+
   if (!env.playgroundFaucetUrl) {
+    console.log("");
     console.log("PLAYGROUND_FAUCET_URL is unset; skipped sandbox USDC funding.");
     return;
   }

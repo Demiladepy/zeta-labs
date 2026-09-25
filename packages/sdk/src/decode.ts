@@ -7,6 +7,7 @@ import {
   ACCOUNT_DISCRIMINATOR,
   AUDIT_RECORD_LEN,
   CREDIT_LINE_LEN,
+  Denial,
   POLICY_LEN,
   POOL_LEN,
   type AuditRecord,
@@ -102,7 +103,7 @@ export function decodeAuditRecord(data: Uint8Array): AuditRecord {
     agent: bytes(data, 72, 32),
     amount: u64le(view, 104),
     allowed: data[112] !== 0,
-    denial: denialByte,
+    denial: denialByte as Denial,
     slot: u64le(view, 120),
     unixTs: i64le(view, 128),
   };

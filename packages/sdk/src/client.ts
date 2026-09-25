@@ -32,6 +32,8 @@ import {
 export type ZetaClientConfig = {
   connection: Connection | string;
   payer: Keypair;
+  /** Operator keypair for settle_and_seal after metering. */
+  operator?: Keypair;
   commitment?: "processed" | "confirmed" | "finalized";
   cluster?: "devnet" | "testnet" | "mainnet-beta";
 };
@@ -75,6 +77,7 @@ function asKey(value: string | PublicKey): PublicKey {
 export class ZetaClient {
   readonly connection: Connection;
   readonly payer: Keypair;
+  readonly operator?: Keypair;
   readonly commitment: "processed" | "confirmed" | "finalized";
   readonly cluster: "devnet" | "testnet" | "mainnet-beta";
 
@@ -84,6 +87,7 @@ export class ZetaClient {
         ? new Connection(config.connection, config.commitment ?? "confirmed")
         : config.connection;
     this.payer = config.payer;
+    this.operator = config.operator;
     this.commitment = config.commitment ?? "confirmed";
     this.cluster = config.cluster ?? "devnet";
   }
