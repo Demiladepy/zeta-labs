@@ -606,7 +606,7 @@ export default function App() {
       <aside className="sidebar">
         <div className="brand">
           <img className="brand-mark" src="/logo-zeta.png" width={34} height={34} alt="" />
-          <div><strong>zetalabsx</strong><span>Credit control</span></div>
+          <div><strong>Zeta</strong><span>Credit control</span></div>
         </div>
         <nav aria-label="Dashboard sections">
           {navItems.map((item) => (
@@ -623,7 +623,7 @@ export default function App() {
 
       <main>
         <header className="topbar">
-          <div><span className="workspace-label">zetalabsx</span><span className="network-label">Credit operations · Solana devnet</span></div>
+          <div><span className="workspace-label">Zeta Labs</span><span className="network-label">Credit operations · Solana devnet</span></div>
           <div className="topbar-actions">
             <Tooltip content="Refresh live data" relationship="label">
               <Button appearance="subtle" icon={<ArrowSyncRegular />} aria-label="Refresh live data" onClick={refresh} disabled={loading} />
