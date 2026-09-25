@@ -27,6 +27,7 @@ async function main() {
   const plan = planSevenStepSpend({ ...planParams, openSlot });
 
   console.log("=== Zeta policy demos (deny + revoke) ===");
+  console.log("warning: revoke will block the default lender line until spend-submit rotates spend-agent.");
   console.log("mode:", submit ? "SUBMIT" : "dry-run");
   console.log("policy:", plan.accounts.policy.toBase58());
   console.log("line:", plan.accounts.line.toBase58());

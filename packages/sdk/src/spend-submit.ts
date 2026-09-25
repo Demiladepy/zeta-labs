@@ -228,6 +228,9 @@ export async function submitSevenStepSpend(
     await ensureAta(connection, lender, plan.accounts.mint, plan.accounts.operator, true, true);
     await ensureAta(connection, lender, plan.accounts.mint, plan.accounts.pool, true, true);
     await ensureSol(connection, lender, plan.accounts.operator);
+    if (!agent.publicKey.equals(lender.publicKey)) {
+      await ensureSol(connection, lender, agent.publicKey);
+    }
 
     const poolInfo = await connection.getAccountInfo(plan.accounts.pool);
     if (!poolInfo) {
@@ -264,6 +267,14 @@ export async function submitSevenStepSpend(
       });
       record("register_policy", signature);
     } else {
+      const { decodePolicy } = await import("./decoder.js");
+      const policyState = decodePolicy(policyInfo.data);
+      if (policyState.revoked) {
+        throw new Error(
+          `policy ${plan.accounts.policy.toBase58()} is revoked. ` +
+            "Re-run submit to auto-provision spend-agent + fresh policy seed.",
+        );
+      }
       recordSkip("register_policy", "policy already exists");
     }
 

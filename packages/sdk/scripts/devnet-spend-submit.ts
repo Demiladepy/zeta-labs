@@ -9,8 +9,9 @@
 
 import { Connection } from "@solana/web3.js";
 import { submitSevenStepSpend } from "../src/spend-submit.js";
-import { buildDemoSpendParams } from "./spend-config.js";
+import { buildDemoSpendParams, loadKeypair } from "./spend-config.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
+import { resolveActiveSpendParams } from "./resolve-spend-context.js";
 
 function hasFlag(flag: string): boolean {
   return process.argv.includes(flag);
@@ -30,8 +31,17 @@ async function main() {
   const network = env.network ?? "devnet";
   const cluster = network === "mainnet" ? "mainnet-beta" : network === "localnet" ? "devnet" : "devnet";
 
-  const { lender, agent, operator, planParams } = buildDemoSpendParams(env);
   const connection = new Connection(env.rpcUrl, "confirmed");
+  const submitMode = hasFlag("--submit");
+  const { lender, agent, operator, planParams } = submitMode
+    ? await resolveActiveSpendParams(
+        connection,
+        env,
+        env.operatorKeypairPath
+          ? loadKeypair(env.operatorKeypairPath)
+          : buildDemoSpendParams(env).operator,
+      )
+    : buildDemoSpendParams(env);
 
   if (settledRaw) {
     planParams.settledEstimate = BigInt(settledRaw);
@@ -42,6 +52,7 @@ async function main() {
   console.log("rpc:", env.rpcUrl);
   console.log("network:", network);
   console.log("lender:", lender.publicKey.toBase58());
+  console.log("agent:", agent.publicKey.toBase58());
   console.log("operator:", operator.publicKey.toBase58());
   if (!env.operatorKeypairPath) {
     console.warn("warn: OPERATOR_KEYPAIR_PATH unset — generated ephemeral operator for planning only");
