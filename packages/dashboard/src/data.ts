@@ -1,9 +1,12 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import {
   ACCOUNT_DISCRIMINATOR,
+  CREDIT_LINE_LEN,
   CREDIT_VAULT_PROGRAM_ID,
   Denial,
+  POLICY_LEN,
   POLICY_REGISTRY_PROGRAM_ID,
+  POOL_LEN,
   decodeAuditLogs,
   decodeLine,
   decodePolicy,
@@ -36,6 +39,7 @@ export type DashboardSnapshot = {
   line: CreditLine;
   policy: Policy;
   audits: AuditEntry[];
+  auditError?: string;
 };
 
 export const DEFAULT_CONFIG: DashboardConfig = {
@@ -43,6 +47,11 @@ export const DEFAULT_CONFIG: DashboardConfig = {
   poolAddress: "",
   lineAddress: "",
   policyAddress: "",
+};
+
+type AccountState<T> = {
+  address: string;
+  state: T;
 };
 
 function bytes(fill: number): Uint8Array {
@@ -136,6 +145,68 @@ function assertOwner(actual: PublicKey, expected: string, label: string): void {
   }
 }
 
+export function matchLiveConfigurations(
+  rpcUrl: string,
+  pools: AccountState<Pool>[],
+  lines: AccountState<CreditLine>[],
+  policies: AccountState<Policy>[],
+): DashboardConfig[] {
+  const poolAddresses = new Set(pools.map(({ address: value }) => value));
+  const policyAddresses = new Set(policies.map(({ address: value }) => value));
+
+  return lines.flatMap(({ address: lineAddress, state: line }) => {
+    const poolAddress = publicKeyAddress(line.pool);
+    const policyAddress = publicKeyAddress(line.policy);
+    if (!poolAddresses.has(poolAddress) || !policyAddresses.has(policyAddress)) return [];
+    return [{ rpcUrl, poolAddress, lineAddress, policyAddress }];
+  });
+}
+
+function decodeProgramAccounts<T>(
+  accounts: Awaited<ReturnType<Connection["getProgramAccounts"]>>,
+  decode: (data: Uint8Array) => T,
+): AccountState<T>[] {
+  return accounts.flatMap(({ pubkey, account }) => {
+    try {
+      return [{ address: pubkey.toBase58(), state: decode(account.data) }];
+    } catch {
+      return [];
+    }
+  });
+}
+
+/** Find the most recently used connected pool, line, and policy on devnet. */
+export async function discoverDashboardConfig(rpcUrl: string): Promise<DashboardConfig> {
+  const connection = new Connection(rpcUrl, "confirmed");
+  const vaultProgram = new PublicKey(CREDIT_VAULT_PROGRAM_ID);
+  const policyProgram = new PublicKey(POLICY_REGISTRY_PROGRAM_ID);
+  const [poolAccounts, lineAccounts, policyAccounts] = await Promise.all([
+    connection.getProgramAccounts(vaultProgram, { filters: [{ dataSize: POOL_LEN }] }),
+    connection.getProgramAccounts(vaultProgram, { filters: [{ dataSize: CREDIT_LINE_LEN }] }),
+    connection.getProgramAccounts(policyProgram, { filters: [{ dataSize: POLICY_LEN }] }),
+  ]);
+
+  const candidates = matchLiveConfigurations(
+    rpcUrl,
+    decodeProgramAccounts(poolAccounts, decodePool),
+    decodeProgramAccounts(lineAccounts, decodeLine),
+    decodeProgramAccounts(policyAccounts, decodePolicy),
+  );
+  if (candidates.length === 0) {
+    throw new Error("No connected Zeta pool, credit line, and policy accounts were found on devnet");
+  }
+
+  const ranked = await Promise.all(candidates.map(async (config) => {
+    const [latest] = await connection.getSignaturesForAddress(
+      new PublicKey(config.lineAddress),
+      { limit: 1 },
+    );
+    return { config, slot: latest?.slot ?? 0 };
+  }));
+  ranked.sort((a, b) => b.slot - a.slot);
+  return ranked[0]!.config;
+}
+
 export async function loadLiveSnapshot(config: DashboardConfig): Promise<DashboardSnapshot> {
   const poolKey = new PublicKey(config.poolAddress);
   const lineKey = new PublicKey(config.lineAddress);
@@ -161,23 +232,25 @@ export async function loadLiveSnapshot(config: DashboardConfig): Promise<Dashboa
     decodePolicy(policyAccount.data),
   ];
 
-  const signatures = await connection.getSignaturesForAddress(lineKey, { limit: 50 });
-  const transactions = await Promise.all(
-    signatures.map(({ signature }) =>
-      connection.getTransaction(signature, {
-        commitment: "confirmed",
-        maxSupportedTransactionVersion: 0,
-      }),
-    ),
-  );
-  const audits = transactions.flatMap((transaction, transactionIndex) => {
-    const signature = signatures[transactionIndex]!.signature;
-    return decodeAuditLogs(transaction?.meta?.logMessages).map((record) => ({
-      ...record,
-      signature,
-      explorerUrl: `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
-    }));
-  });
+  let audits: AuditEntry[] = [];
+  let auditError: string | undefined;
+  try {
+    const signatures = await connection.getSignaturesForAddress(lineKey, { limit: 8 });
+    const transactions = await connection.getTransactions(
+      signatures.map(({ signature }) => signature),
+      { commitment: "confirmed", maxSupportedTransactionVersion: 0 },
+    );
+    audits = transactions.flatMap((transaction, transactionIndex) => {
+      const signature = signatures[transactionIndex]!.signature;
+      return decodeAuditLogs(transaction?.meta?.logMessages).map((record) => ({
+        ...record,
+        signature,
+        explorerUrl: `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
+      }));
+    });
+  } catch {
+    auditError = "The public devnet RPC rate-limited audit history. Live balances and policy state are still current.";
+  }
 
   return {
     source: "live",
@@ -189,6 +262,7 @@ export async function loadLiveSnapshot(config: DashboardConfig): Promise<Dashboa
     line,
     policy,
     audits: audits.sort((a, b) => Number(b.slot - a.slot)),
+    auditError,
   };
 }
 

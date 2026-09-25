@@ -47,7 +47,7 @@ export type Denial = (typeof Denial)[keyof typeof Denial];
 export const PAYMENT_CHANNELS_PROGRAM_ID =
   "CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX";
 
-/** Local keypair pubkeys — not deployed yet. See `.keys/README.md`. */
+/** Zeta program IDs deployed on Solana devnet. See docs/PROGRAM_IDS.md. */
 export const POLICY_REGISTRY_PROGRAM_ID =
   "G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk";
 

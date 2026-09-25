@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { Denial } from "@zeta/sdk/dashboard";
-import { demoSnapshot, denialLabels, formatUsdc, shortAddress } from "./data.js";
+import {
+  demoSnapshot,
+  denialLabels,
+  formatUsdc,
+  matchLiveConfigurations,
+  shortAddress,
+} from "./data.js";
 
 describe("dashboard data", () => {
   it("keeps the demo credit line within its limit", () => {
@@ -22,5 +28,23 @@ describe("dashboard data", () => {
   it("formats USDC amounts and addresses for people", () => {
     expect(formatUsdc(12_345_678n)).toBe("12.34");
     expect(shortAddress("1234567890abcdefghij")).toBe("123456...fghij");
+  });
+
+  it("only discovers lines connected to an existing pool and policy", () => {
+    const snapshot = demoSnapshot();
+    const configs = matchLiveConfigurations(
+      "https://api.devnet.solana.com",
+      [{ address: snapshot.poolAddress, state: snapshot.pool }],
+      [{ address: snapshot.lineAddress, state: snapshot.line }],
+      [{ address: snapshot.policyAddress, state: snapshot.policy }],
+    );
+
+    expect(configs).toEqual([{
+      rpcUrl: "https://api.devnet.solana.com",
+      poolAddress: snapshot.poolAddress,
+      lineAddress: snapshot.lineAddress,
+      policyAddress: snapshot.policyAddress,
+    }]);
+    expect(matchLiveConfigurations("rpc", [], [{ address: snapshot.lineAddress, state: snapshot.line }], [])).toEqual([]);
   });
 });

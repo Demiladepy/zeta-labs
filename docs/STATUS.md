@@ -16,7 +16,7 @@ Do not claim anything in the "Not done" column in demos, Builder Feed, or the su
 | Client ix builders (account order) | `zeta-interface::builders` + `packages/sdk/src/accountOrder.ts` |
 | Shared TypeScript decoder + SDK builders | `decodePool` / `decodeLine` / `decodePolicy` / `decodeAudit` |
 | SDK/devnet tooling foundation | typed client, proof decoding, funding/preflight scripts |
-| Joshna dashboard foundation | lender / agent / audit panels |
+| Joshna dashboard | lender / agent / audit panels + automatic live-account discovery, verified against Devnet state |
 | Program IDs live on Devnet | `docs/PROGRAM_IDS.md` |
 | Seven-step processor e2e | `programs/credit-vault/tests/seven_step_e2e.rs` (host only) |
 | Pack fixtures helper | `packages/sdk/src/decode.ts` |
@@ -30,7 +30,6 @@ Do not claim anything in the "Not done" column in demos, Builder Feed, or the su
 | P4 category allowlist / Token ACL | Phase 2 |
 | P5 rolling + total caps | Phase 2 |
 | Swig delegated authority | Phase 2 (Anurag) |
-| Dashboard populated with live pool/line accounts | needs seven-step submit after PDA path |
 | Formally verified LTL policy | roadmap only |
 | Real x402 endpoint demo | Anurag pay-kit |
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Button,
   Dialog,
@@ -28,6 +28,7 @@ import {
   DEFAULT_CONFIG,
   demoSnapshot,
   denialLabels,
+  discoverDashboardConfig,
   formatTime,
   formatUsdc,
   loadLiveSnapshot,
@@ -85,16 +86,21 @@ function AddressValue({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SourceNotice({ snapshot }: { snapshot: DashboardSnapshot }) {
+function SourceNotice({ snapshot, loading }: { snapshot: DashboardSnapshot | null; loading: boolean }) {
+  const isLive = snapshot?.source === "live";
   return (
-    <div className={`source-notice source-${snapshot.source}`} role="status">
+    <div className={`source-notice source-${snapshot?.source ?? "pending"}`} role="status">
       <DatabaseRegular />
       <div>
-        <strong>{snapshot.source === "live" ? "Live devnet data" : "Demo data"}</strong>
+        <strong>{loading ? "Finding live data" : isLive ? "Live devnet data" : snapshot ? "Demo data" : "Live data unavailable"}</strong>
         <span>
-          {snapshot.source === "live"
+          {loading
+            ? "Scanning Zeta accounts on Solana"
+            : isLive && snapshot
             ? `Synced ${new Date(snapshot.fetchedAt).toLocaleTimeString()}`
-            : "Connect deployed account addresses to read from chain"}
+            : snapshot
+              ? "Sample values, not on-chain activity"
+              : "Retry or choose a specific account set"}
         </span>
       </div>
     </div>
@@ -328,11 +334,18 @@ function AuditPanel({ snapshot }: { snapshot: DashboardSnapshot }) {
         ))}
       </div>
 
+      {snapshot.auditError ? (
+        <div className="audit-warning" role="status">
+          <DatabaseRegular />
+          <span>{snapshot.auditError}</span>
+        </div>
+      ) : null}
+
       {filtered.length === 0 ? (
         <div className="empty-state">
           <ShieldCheckmarkRegular />
           <h2>No matching evaluations</h2>
-          <p>Change the filter or refresh after a new agent spend request.</p>
+          <p>{snapshot.auditError ? "Refresh later or use a dedicated RPC to load audit transactions." : "Change the filter or refresh after a new agent spend request."}</p>
         </div>
       ) : (
         <div className="audit-layout">
@@ -372,6 +385,7 @@ function SettingsDialog(props: {
   config: DashboardConfig;
   onClose: () => void;
   onConnect: (config: DashboardConfig) => void;
+  onDiscover: (rpcUrl: string) => void;
   onDemo: () => void;
 }) {
   const [draft, setDraft] = useState(props.config);
@@ -385,15 +399,16 @@ function SettingsDialog(props: {
         <DialogBody>
           <DialogTitle>Chain connection</DialogTitle>
           <DialogContent className="settings-fields">
-            <p>Use deployed devnet addresses to replace the sample view with live account state.</p>
+            <p>Live accounts are found automatically. You can also paste a specific pool, credit line, and policy.</p>
             <Field label="Solana RPC URL" required><Input value={draft.rpcUrl} onChange={(_, data) => setDraft({ ...draft, rpcUrl: data.value })} /></Field>
-            <Field label="Pool address" required><Input value={draft.poolAddress} onChange={(_, data) => setDraft({ ...draft, poolAddress: data.value })} /></Field>
-            <Field label="Credit line address" required><Input value={draft.lineAddress} onChange={(_, data) => setDraft({ ...draft, lineAddress: data.value })} /></Field>
-            <Field label="Policy address" required><Input value={draft.policyAddress} onChange={(_, data) => setDraft({ ...draft, policyAddress: data.value })} /></Field>
+            <Field label="Pool address"><Input value={draft.poolAddress} onChange={(_, data) => setDraft({ ...draft, poolAddress: data.value })} /></Field>
+            <Field label="Credit line address"><Input value={draft.lineAddress} onChange={(_, data) => setDraft({ ...draft, lineAddress: data.value })} /></Field>
+            <Field label="Policy address"><Input value={draft.policyAddress} onChange={(_, data) => setDraft({ ...draft, policyAddress: data.value })} /></Field>
           </DialogContent>
           <DialogActions>
             <Button appearance="secondary" onClick={props.onDemo}>Use demo data</Button>
-            <Button appearance="primary" disabled={!complete} onClick={() => props.onConnect(draft)}>Connect devnet</Button>
+            <Button appearance="secondary" disabled={!draft.rpcUrl} onClick={() => props.onDiscover(draft.rpcUrl)}>Find live accounts</Button>
+            <Button appearance="primary" disabled={!complete} onClick={() => props.onConnect(draft)}>Use these addresses</Button>
           </DialogActions>
         </DialogBody>
       </DialogSurface>
@@ -403,11 +418,12 @@ function SettingsDialog(props: {
 
 export default function App() {
   const [view, setView] = useState<View>("lender");
-  const [snapshot, setSnapshot] = useState<DashboardSnapshot>(() => demoSnapshot());
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [config, setConfig] = useState<DashboardConfig>(() => loadSavedConfig());
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const autoLoadStarted = useRef(false);
 
   const connect = useCallback(async (nextConfig: DashboardConfig) => {
     setSettingsOpen(false);
@@ -425,6 +441,31 @@ export default function App() {
     }
   }, []);
 
+  const discover = useCallback(async (rpcUrl: string) => {
+    setSettingsOpen(false);
+    setLoading(true);
+    setError(null);
+    try {
+      const discovered = await discoverDashboardConfig(rpcUrl);
+      const nextSnapshot = await loadLiveSnapshot(discovered);
+      setConfig(discovered);
+      setSnapshot(nextSnapshot);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(discovered));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to discover live Zeta accounts");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (autoLoadStarted.current) return;
+    autoLoadStarted.current = true;
+    const hasSavedAddresses = Boolean(config.poolAddress && config.lineAddress && config.policyAddress);
+    if (hasSavedAddresses) void connect(config);
+    else void discover(config.rpcUrl);
+  }, [config, connect, discover]);
+
   const showDemo = () => {
     setSnapshot(demoSnapshot());
     setConfig(DEFAULT_CONFIG);
@@ -434,8 +475,8 @@ export default function App() {
   };
 
   const refresh = () => {
-    if (snapshot.source === "live") void connect(config);
-    else setSnapshot(demoSnapshot());
+    if (snapshot?.source === "live") void connect(config);
+    else void discover(config.rpcUrl);
   };
 
   const navItems: Array<{ id: View; label: string; icon: ReactNode }> = [
@@ -456,7 +497,7 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <SourceNotice snapshot={snapshot} />
+          <SourceNotice snapshot={snapshot} loading={loading} />
           <Button appearance="subtle" icon={<SettingsRegular />} onClick={() => setSettingsOpen(true)}>Connection</Button>
         </div>
       </aside>
@@ -464,27 +505,39 @@ export default function App() {
       <main>
         <header className="topbar">
           <div><span className="workspace-label">Credit operations</span><span className="network-label">Solana devnet</span></div>
-          <Tooltip content="Refresh account data" relationship="label">
-            <Button appearance="subtle" icon={<ArrowSyncRegular />} aria-label="Refresh account data" onClick={refresh} disabled={loading} />
-          </Tooltip>
-          <Tooltip content="Connection settings" relationship="label">
-            <Button appearance="subtle" icon={<SettingsRegular />} aria-label="Connection settings" onClick={() => setSettingsOpen(true)} />
-          </Tooltip>
+          <div className="topbar-actions">
+            <Tooltip content="Refresh live data" relationship="label">
+              <Button appearance="subtle" icon={<ArrowSyncRegular />} aria-label="Refresh live data" onClick={refresh} disabled={loading} />
+            </Tooltip>
+            <Tooltip content="Connection settings" relationship="label">
+              <Button appearance="subtle" icon={<SettingsRegular />} aria-label="Connection settings" onClick={() => setSettingsOpen(true)} />
+            </Tooltip>
+          </div>
         </header>
         <div className="main-content">
           {error ? (
             <div className="error-banner" role="alert">
               <DismissCircleRegular />
-              <div><strong>Could not connect to devnet</strong><span>{error}</span></div>
+              <div><strong>Live devnet data is not available</strong><span>{error}</span></div>
               <Button appearance="subtle" onClick={() => setSettingsOpen(true)}>Check addresses</Button>
             </div>
           ) : null}
-          {loading ? <LoadingState /> : (
+          {loading ? <LoadingState /> : snapshot ? (
             <>
               {view === "lender" ? <LenderPanel snapshot={snapshot} /> : null}
               {view === "agent" ? <AgentPanel snapshot={snapshot} /> : null}
               {view === "audit" ? <AuditPanel snapshot={snapshot} /> : null}
             </>
+          ) : (
+            <div className="empty-state live-empty-state">
+              <DatabaseRegular />
+              <h2>No live account set loaded</h2>
+              <p>Retry automatic discovery, choose specific devnet addresses, or open the labelled demo.</p>
+              <div className="empty-actions">
+                <Button appearance="primary" onClick={() => void discover(config.rpcUrl)}>Retry live discovery</Button>
+                <Button appearance="secondary" onClick={showDemo}>Use demo data</Button>
+              </div>
+            </div>
           )}
         </div>
       </main>
@@ -494,6 +547,7 @@ export default function App() {
         config={config}
         onClose={() => setSettingsOpen(false)}
         onConnect={(next) => void connect(next)}
+        onDiscover={(rpcUrl) => void discover(rpcUrl)}
         onDemo={showDemo}
       />
     </div>

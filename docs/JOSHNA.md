@@ -45,10 +45,10 @@ SDK hardening: typed `Denial` errors, 10-line quickstart, faucet
 docs, publish.
 
 Implementation status: the three dashboard panels are built in
-`packages/dashboard`. They open with labelled sample data and switch to
-read-only devnet data when valid deployed account addresses are supplied.
-Live proof still depends on the program deployment described in
-`docs/STATUS.md`.
+`packages/dashboard`. It automatically discovers a connected pool, credit
+line, and policy from the deployed programs, then renders their read-only
+devnet state and audit history. Specific addresses and a clearly labelled
+demo fallback remain available through Connection settings.
 
 ## Do not
 
