@@ -18,7 +18,8 @@ Devnet vault/policy spine.
 
 We compare (not just display) equity vs xStock vs Ondo feeds as a lending-risk
 input. On-chain Pyth CPI inside the vault is not claimed in this packet — Fair
-programs stay frozen; the market-data function is live via Hermes today.
+programs stay frozen; the market-data function is live via Hermes today
+(requires a Pyth API key after the Aug 2026 Core upgrade).
 
 ## Links
 
@@ -30,6 +31,12 @@ programs stay frozen; the market-data function is live via Hermes today.
 | Vault (Devnet) | https://explorer.solana.com/address/4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi?cluster=devnet |
 
 ## Demo command
+
+```bat
+copy C:\Users\User\zeta-labs\scripts\pyth.env.example C:\Users\User\zeta-labs\scripts\pyth.env
+```
+
+Put your Pyth API key in `scripts\pyth.env`, then:
 
 ```bat
 cd /d C:\Users\User\zeta-labs\packages\sdk

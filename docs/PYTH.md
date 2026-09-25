@@ -5,6 +5,20 @@ vs **tokenized** listings and emit an **off-chain credit signal** before agent d
 
 We do **not** claim an on-chain Pyth oracle CPI in the vault (programs frozen for Fair).
 
+## Auth (required after Aug 2026 Pyth Core upgrade)
+
+Hermes `updates/price/latest` returns **401** without a key.
+
+1. Create an API key at [Pyth Terminal / Insights](https://insights.pyth.network/)
+2. Ensure the key can read **equity** + **crypto** feeds (AAPL equity + AAPLX + AAPLON)
+3. Copy env file:
+
+```bat
+copy C:\Users\User\zeta-labs\scripts\pyth.env.example C:\Users\User\zeta-labs\scripts\pyth.env
+```
+
+Edit `scripts/pyth.env` and set `PYTH_API_KEY=...` (gitignored).
+
 ## Feeds (hackathon brief)
 
 | Role | Symbol | Hermes feed id |
@@ -16,7 +30,7 @@ We do **not** claim an on-chain Pyth oracle CPI in the vault (programs frozen fo
 ## What we built
 
 ```text
-Hermes latest prices
+Hermes latest prices (Bearer API key)
   → equity vs AAPLX vs AAPLON basis (bps)
   → ALLOW / TIGHTEN / HALT credit signal
   → operator uses signal before Zeta spend-submit
@@ -34,7 +48,7 @@ cd /d C:\Users\User\zeta-labs\packages\sdk
 npm run pyth:aapl-compare
 ```
 
-Optional thresholds:
+Optional:
 
 ```bat
 npm run pyth:aapl-compare -- --tighten-bps 50 --halt-bps 150
