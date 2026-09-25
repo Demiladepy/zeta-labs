@@ -14,12 +14,15 @@ import {
 } from "@fluentui/react-components";
 import {
   ArrowSyncRegular,
+  ArrowRightRegular,
   BotRegular,
   BuildingBankRegular,
   CheckmarkCircleRegular,
   CopyRegular,
   DatabaseRegular,
   DismissCircleRegular,
+  DocumentBulletListRegular,
+  HomeRegular,
   OpenRegular,
   SettingsRegular,
   ShieldCheckmarkRegular,
@@ -40,7 +43,7 @@ import {
   type DashboardSnapshot,
 } from "./data.js";
 
-type View = "lender" | "agent" | "audit";
+type View = "overview" | "lender" | "agent" | "policy" | "audit";
 type AuditFilter = "all" | "allowed" | "denied";
 
 const STORAGE_KEY = "zeta-dashboard-config";
@@ -133,6 +136,123 @@ function PanelHeader(props: { id: string; title: string; description: string; ac
   );
 }
 
+function policyExpiry(expiresAt: bigint): string {
+  if (expiresAt === 0n) return "No expiry";
+  return new Date(Number(expiresAt) * 1000).toLocaleDateString("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function OverviewPanel({ snapshot, onNavigate }: { snapshot: DashboardSnapshot; onNavigate: (view: View) => void }) {
+  const available = snapshot.pool.deposited - snapshot.pool.outstanding;
+  const remaining = snapshot.line.limit - snapshot.line.drawn - snapshot.line.reserved;
+  const latestDecision = snapshot.audits[0];
+  const policyStatus = snapshot.policy.revoked ? "Blocked" : "Active";
+
+  return (
+    <section aria-labelledby="overview-title">
+      <PanelHeader
+        id="overview-title"
+        title="Credit control center"
+        description="A live view of capital, policy checks, and the agent credit line they protect."
+      />
+      <div className="metric-grid overview-metrics">
+        <Metric label="Capital in pool" value={`${formatUsdc(snapshot.pool.deposited)} USDC`} detail="Live vault balance" />
+        <Metric label="Agent can spend" value={`${formatUsdc(remaining)} USDC`} detail="After settled and reserved credit" tone="accent" />
+        <Metric label="Policy status" value={policyStatus} detail={snapshot.policy.revoked ? "New draws are stopped" : "Checks run before each draw"} tone={snapshot.policy.revoked ? "danger" : "accent"} />
+      </div>
+
+      <div className="overview-grid">
+        <article className="surface control-stage">
+          <div className="surface-heading">
+            <div><span className="section-kicker">Capital at work</span><h2>Where the available USDC sits</h2></div>
+            <Button appearance="subtle" size="small" icon={<ArrowRightRegular />} iconPosition="after" onClick={() => onNavigate("lender")}>Open lender view</Button>
+          </div>
+          <div className="stage-amount">
+            <span>Ready for a policy-approved draw</span>
+            <strong>{formatUsdc(available)}</strong>
+            <small>USDC</small>
+          </div>
+          <div className="stage-breakdown">
+            <div><span>Outstanding in channels</span><strong>{formatUsdc(snapshot.pool.outstanding)} USDC</strong></div>
+            <div><span>Credit line limit</span><strong>{formatUsdc(snapshot.line.limit)} USDC</strong></div>
+          </div>
+        </article>
+
+        <article className="surface control-summary">
+          <div className="surface-heading">
+            <div><span className="section-kicker">Policy checkpoint</span><h2>Draw protection</h2></div>
+            <span className={snapshot.policy.revoked ? "state-label state-danger" : "state-label"}>{policyStatus}</span>
+          </div>
+          <dl className="compact-list">
+            <div><dt>Per-call maximum</dt><dd>{formatUsdc(snapshot.policy.perCallCap)} USDC</dd></div>
+            <div><dt>Expiry</dt><dd>{policyExpiry(snapshot.policy.expiresAt)}</dd></div>
+            <div><dt>Revocation</dt><dd>{snapshot.policy.revoked ? "In effect" : "Ready"}</dd></div>
+          </dl>
+          <Button appearance="subtle" size="small" icon={<ArrowRightRegular />} iconPosition="after" onClick={() => onNavigate("policy")}>Review policy</Button>
+        </article>
+
+        <article className="surface route-surface">
+          <div className="surface-heading"><div><span className="section-kicker">Credit route</span><h2>How one spend is protected</h2></div></div>
+          <div className="route-map" aria-label="Pool to agent credit route">
+            <div className="route-node"><BuildingBankRegular /><div><strong>Pool</strong><span>{shortAddress(snapshot.poolAddress)}</span></div></div>
+            <ArrowRightRegular className="route-arrow" aria-hidden="true" />
+            <div className="route-node"><ShieldCheckmarkRegular /><div><strong>Policy</strong><span>{shortAddress(snapshot.policyAddress)}</span></div></div>
+            <ArrowRightRegular className="route-arrow" aria-hidden="true" />
+            <div className="route-node"><BotRegular /><div><strong>Agent line</strong><span>{publicKeyLabel(snapshot.line.agent)}</span></div></div>
+          </div>
+        </article>
+
+        <article className="surface latest-surface">
+          <div className="surface-heading"><div><span className="section-kicker">Latest evaluation</span><h2>On-chain decision</h2></div></div>
+          {latestDecision ? (
+            <div className={`latest-decision ${latestDecision.allowed ? "decision-allow" : "decision-deny"}`}>
+              {latestDecision.allowed ? <CheckmarkCircleRegular /> : <DismissCircleRegular />}
+              <div><span>{latestDecision.allowed ? "Allowed" : "Denied"}</span><strong>{formatUsdc(latestDecision.amount)} USDC</strong><small>{latestDecision.allowed ? formatTime(latestDecision.unixTs) : denialLabels[latestDecision.denial]}</small></div>
+            </div>
+          ) : <p className="empty-copy">No decoded evaluation is available yet.</p>}
+          <Button appearance="subtle" size="small" icon={<ArrowRightRegular />} iconPosition="after" onClick={() => onNavigate("audit")}>View audit trail</Button>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function PolicyPanel({ snapshot }: { snapshot: DashboardSnapshot }) {
+  const controls = [
+    ["Per-call amount", `${formatUsdc(snapshot.policy.perCallCap)} USDC`, "Enforced"],
+    ["Expiry", policyExpiry(snapshot.policy.expiresAt), "Enforced"],
+    ["Revocation", snapshot.policy.revoked ? "Blocked now" : "Can stop new draws", "Enforced"],
+  ];
+
+  return (
+    <section aria-labelledby="policy-title">
+      <PanelHeader id="policy-title" title="Policy controls" description="Every draw is evaluated on-chain before USDC can leave the vault." />
+      <div className={`policy-hero ${snapshot.policy.revoked ? "policy-hero-revoked" : ""}`}>
+        {snapshot.policy.revoked ? <DismissCircleRegular /> : <ShieldCheckmarkRegular />}
+        <div><span>Current protection</span><strong>{snapshot.policy.revoked ? "New draws are blocked" : "Policy is active"}</strong><p>{snapshot.policy.revoked ? "This policy has been revoked, so the credit line cannot make new draws." : "Each request must satisfy the current policy before it is approved."}</p></div>
+      </div>
+      <div className="content-grid policy-grid">
+        <article className="surface">
+          <div className="surface-heading"><div><span className="section-kicker">Enforced today</span><h2>Live guardrails</h2></div></div>
+          <div className="control-list">
+            {controls.map(([label, value, status]) => <div key={label}><div><strong>{label}</strong><span>{value}</span></div><span className="enforced-label">{status}</span></div>)}
+          </div>
+          <div className="address-stack"><AddressValue label="Policy" value={snapshot.policyAddress} /><AddressValue label="Issuer" value={publicKeyAddress(snapshot.policy.issuer)} /></div>
+        </article>
+        <article className="surface planned-surface">
+          <div className="surface-heading"><div><span className="section-kicker">Planned controls</span><h2>Not enabled on this policy</h2></div></div>
+          <p>These controls are reserved for a later protocol phase. They are not applied to the connected agent today.</p>
+          <div className="planned-controls"><span>Rolling spend cap</span><span>Total credit cap</span><span>Recipient allowlist</span><span>Spend category</span></div>
+          <div className="policy-note"><DocumentBulletListRegular /><span>Current policy seed: {snapshot.policy.seed.toString()}</span></div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 function LenderPanel({ snapshot }: { snapshot: DashboardSnapshot }) {
   const available = snapshot.pool.deposited - snapshot.pool.outstanding;
   const utilization = snapshot.pool.deposited === 0n
@@ -214,13 +334,7 @@ function AgentPanel({ snapshot }: { snapshot: DashboardSnapshot }) {
   const remaining = snapshot.line.limit - snapshot.line.drawn - snapshot.line.reserved;
   const lastSpend = snapshot.audits.find((entry) => entry.allowed);
   const lastDenial = snapshot.audits.find((entry) => !entry.allowed);
-  const expiry = snapshot.policy.expiresAt === 0n
-    ? "No expiry"
-    : new Date(Number(snapshot.policy.expiresAt) * 1000).toLocaleDateString("en", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
+  const expiry = policyExpiry(snapshot.policy.expiresAt);
 
   return (
     <section aria-labelledby="agent-title">
@@ -417,7 +531,7 @@ function SettingsDialog(props: {
 }
 
 export default function App() {
-  const [view, setView] = useState<View>("lender");
+  const [view, setView] = useState<View>("overview");
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [config, setConfig] = useState<DashboardConfig>(() => loadSavedConfig());
   const [loading, setLoading] = useState(true);
@@ -480,8 +594,10 @@ export default function App() {
   };
 
   const navItems: Array<{ id: View; label: string; icon: ReactNode }> = [
+    { id: "overview", label: "Overview", icon: <HomeRegular /> },
     { id: "lender", label: "Lender", icon: <BuildingBankRegular /> },
     { id: "agent", label: "Agent", icon: <BotRegular /> },
+    { id: "policy", label: "Policies", icon: <ShieldCheckmarkRegular /> },
     { id: "audit", label: "Audit", icon: <ShieldCheckmarkRegular /> },
   ];
 
@@ -504,7 +620,7 @@ export default function App() {
 
       <main>
         <header className="topbar">
-          <div><span className="workspace-label">Credit operations</span><span className="network-label">Solana devnet</span></div>
+          <div><span className="workspace-label">Zeta Labs</span><span className="network-label">Credit operations · Solana devnet</span></div>
           <div className="topbar-actions">
             <Tooltip content="Refresh live data" relationship="label">
               <Button appearance="subtle" icon={<ArrowSyncRegular />} aria-label="Refresh live data" onClick={refresh} disabled={loading} />
@@ -524,8 +640,10 @@ export default function App() {
           ) : null}
           {loading ? <LoadingState /> : snapshot ? (
             <>
+              {view === "overview" ? <OverviewPanel snapshot={snapshot} onNavigate={setView} /> : null}
               {view === "lender" ? <LenderPanel snapshot={snapshot} /> : null}
               {view === "agent" ? <AgentPanel snapshot={snapshot} /> : null}
+              {view === "policy" ? <PolicyPanel snapshot={snapshot} /> : null}
               {view === "audit" ? <AuditPanel snapshot={snapshot} /> : null}
             </>
           ) : (

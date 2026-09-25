@@ -68,6 +68,63 @@ main { min-width: 0; }
 .metric-accent strong { color: var(--accent); }
 .metric-danger strong { color: var(--danger); }
 
+.overview-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(310px, .75fr); gap: 20px; }
+.control-stage { min-height: 376px; background: radial-gradient(circle at 8% 106%, rgba(105, 218, 129, .2), transparent 45%), var(--surface); }
+.stage-amount { min-height: 205px; padding: 26px 24px 20px; display: grid; align-content: end; }
+.stage-amount > span { color: var(--muted); font-size: 12px; }
+.stage-amount strong { margin-top: 8px; font-size: clamp(54px, 7vw, 88px); letter-spacing: -.07em; line-height: .84; font-weight: 570; font-variant-numeric: tabular-nums; }
+.stage-amount small { margin-top: 12px; color: var(--accent); font-size: 11px; letter-spacing: .12em; font-weight: 700; }
+.stage-breakdown { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line-soft); }
+.stage-breakdown div { min-height: 91px; padding: 17px 24px; display: grid; align-content: center; gap: 6px; }
+.stage-breakdown div + div { border-left: 1px solid var(--line-soft); }
+.stage-breakdown span { color: var(--muted); font-size: 11px; }
+.stage-breakdown strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+.control-summary { min-height: 376px; display: flex; flex-direction: column; }
+.compact-list { margin: 0; padding: 7px 22px; flex: 1; }
+.compact-list div { min-height: 60px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--line-soft); }
+.compact-list div:last-child { border-bottom: 0; }
+.control-summary > button { justify-content: flex-start; margin: 2px 12px 14px; }
+.state-danger { color: var(--danger); border-color: rgba(255, 129, 120, .3); background: var(--danger-soft); }
+.route-surface, .latest-surface { min-height: 220px; }
+.route-map { min-height: 135px; padding: 20px 22px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.route-node { min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: center; gap: 8px; }
+.route-node > svg { color: var(--accent); font-size: 22px; }
+.route-node div { min-width: 0; display: grid; gap: 3px; }
+.route-node strong { font-size: 12px; }
+.route-node span { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "Cascadia Code", "SFMono-Regular", monospace; font-size: 10px; }
+.route-arrow { flex: none; color: var(--dim); font-size: 18px; }
+.latest-surface { display: flex; flex-direction: column; }
+.latest-decision { margin: 16px 20px; display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 10px; }
+.latest-decision > svg { font-size: 23px; }
+.latest-decision > div { display: grid; gap: 3px; }
+.latest-decision span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
+.latest-decision strong { font-size: 19px; font-variant-numeric: tabular-nums; }
+.latest-decision small { color: var(--dim); font-size: 11px; }
+.latest-surface > button { justify-content: flex-start; margin: auto 12px 14px; }
+
+.policy-hero { min-height: 180px; margin-bottom: 20px; padding: 28px 30px; display: grid; grid-template-columns: 40px 1fr; align-items: start; gap: 15px; border: 1px solid rgba(105, 218, 129, .28); border-radius: var(--radius); background: radial-gradient(circle at 4% 108%, rgba(105, 218, 129, .18), transparent 36%), var(--surface); }
+.policy-hero > svg { color: var(--accent); font-size: 29px; }
+.policy-hero > div { display: grid; gap: 5px; }
+.policy-hero span { color: var(--accent); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 650; }
+.policy-hero strong { font-size: clamp(26px, 3vw, 38px); letter-spacing: -.04em; line-height: 1.05; }
+.policy-hero p { max-width: 620px; margin: 3px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.policy-hero-revoked { border-color: rgba(255, 129, 120, .3); background: radial-gradient(circle at 4% 108%, rgba(255, 129, 120, .13), transparent 36%), var(--surface); }
+.policy-hero-revoked > svg, .policy-hero-revoked span { color: var(--danger); }
+.policy-grid { grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); }
+.control-list { padding: 6px 22px 14px; }
+.control-list > div { min-height: 76px; display: flex; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 1px solid var(--line-soft); }
+.control-list > div:last-child { border-bottom: 0; }
+.control-list > div > div { display: grid; gap: 5px; }
+.control-list strong { font-size: 13px; }
+.control-list span { color: var(--muted); font-size: 12px; }
+.enforced-label { flex: none; color: var(--accent) !important; border: 1px solid rgba(105, 218, 129, .25); border-radius: 6px; padding: 4px 7px; background: var(--accent-soft); font-size: 10px !important; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; }
+.planned-surface { padding-bottom: 20px; }
+.planned-surface > p { margin: 20px 22px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.planned-controls { margin: 0 22px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.planned-controls span { padding: 11px; color: var(--dim); border: 1px dashed var(--line); border-radius: 8px; font-size: 11px; }
+.policy-note { margin: 18px 22px 0; padding-top: 16px; display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line-soft); color: var(--dim); font-size: 11px; }
+.policy-note svg { color: var(--muted); font-size: 17px; }
+
 .content-grid { display: grid; gap: 20px; }
 .lender-grid { grid-template-columns: minmax(0, 1.4fr) minmax(340px, 0.8fr); }
 .agent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -192,7 +249,7 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
   .brand div, .sidebar nav button span, .sidebar-footer .source-notice, .sidebar-footer > button span { display: none; }
   .sidebar nav button { justify-content: center; padding: 12px; }
   .sidebar-footer > button { justify-content: center; }
-  .lender-grid, .agent-grid { grid-template-columns: 1fr; }
+  .lender-grid, .agent-grid, .overview-grid, .policy-grid { grid-template-columns: 1fr; }
   .audit-layout { grid-template-columns: 1fr; }
   .audit-detail { border-left: 0; border-top: 1px solid var(--line); }
 }
@@ -201,7 +258,7 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
   .app-shell { display: block; padding-bottom: 70px; }
   .sidebar { position: fixed; inset: auto 0 0; width: 100%; height: 64px; padding: 6px 12px; border: 0; border-top: 1px solid var(--line); flex-direction: row; align-items: center; background: rgba(13, 16, 14, .96); backdrop-filter: blur(18px); }
   .brand, .sidebar-footer { display: none; }
-  .sidebar nav { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .sidebar nav { width: 100%; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
   .sidebar nav button { display: grid; place-items: center; gap: 1px; padding: 6px; font-size: 10px; }
   .sidebar nav button span { display: block; }
   .sidebar nav .nav-active { box-shadow: inset 0 -2px var(--accent); }
@@ -216,6 +273,13 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
   .liquidity-figure { grid-template-columns: 1fr; min-height: 310px; }
   .agent-hero { min-height: 360px; padding: 24px; align-items: stretch; flex-direction: column; justify-content: space-between; }
   .agent-hero > div:first-child strong { font-size: 62px; }
+  .overview-metrics { margin-bottom: 22px; }
+  .control-stage, .control-summary { min-height: auto; }
+  .route-map { align-items: stretch; flex-direction: column; }
+  .route-node { grid-template-columns: 28px minmax(0, 1fr); }
+  .route-arrow { align-self: center; transform: rotate(90deg); }
+  .policy-hero { padding: 22px; grid-template-columns: 30px 1fr; }
+  .policy-hero strong { font-size: 27px; }
   .audit-table th:nth-child(3), .audit-table td:nth-child(3), .audit-table th:nth-child(4), .audit-table td:nth-child(4) { display: none; }
   .address-row { grid-template-columns: minmax(90px, 1fr) auto 32px; }
   .settings-fields { min-width: 0; }
