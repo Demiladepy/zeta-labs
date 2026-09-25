@@ -64,7 +64,10 @@ async function main() {
     if (agent.persona) console.log(`  persona=${agent.persona.slice(0, 100)}…`);
   }
 
-  const zeta = agents.find((a) => a.name === "zeta-credit-agent" || a.id === "c2bcae2d-1012-48d8-97b8-416649b32793");
+  const zeta =
+    agents.find((a) => a.id === "c2bcae2d-1012-48d8-97b8-416649b32793") ??
+    agents.find((a) => a.name === "zeta-credit-agent" && a.persona?.includes("Zeta")) ??
+    agents.find((a) => a.name === "zeta-credit-agent");
   if (zeta) {
     console.log("\n✓ zeta-credit-agent found");
     console.log(`  dashboard: https://clawpump.tech/dashboard/agents/${zeta.id}`);
