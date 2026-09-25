@@ -11,7 +11,7 @@ import { Connection } from "@solana/web3.js";
 import { submitSevenStepSpend } from "../src/spend-submit.js";
 import { buildDemoSpendParams, loadKeypair } from "./spend-config.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
-import { resolveActiveSpendParams } from "./resolve-spend-context.js";
+import { printDashboardConfig, resolveActiveSpendParams } from "./resolve-spend-context.js";
 
 function hasFlag(flag: string): boolean {
   return process.argv.includes(flag);
@@ -32,16 +32,17 @@ async function main() {
   const cluster = network === "mainnet" ? "mainnet-beta" : network === "localnet" ? "devnet" : "devnet";
 
   const connection = new Connection(env.rpcUrl, "confirmed");
-  const submitMode = hasFlag("--submit");
-  const { lender, agent, operator, planParams } = submitMode
-    ? await resolveActiveSpendParams(
-        connection,
-        env,
-        env.operatorKeypairPath
-          ? loadKeypair(env.operatorKeypairPath)
-          : buildDemoSpendParams(env).operator,
-      )
-    : buildDemoSpendParams(env);
+  const operator = env.operatorKeypairPath
+    ? loadKeypair(env.operatorKeypairPath)
+    : buildDemoSpendParams(env).operator;
+
+  const resolved = submit
+    ? await resolveActiveSpendParams(connection, env, operator)
+    : null;
+  const demo = buildDemoSpendParams(env);
+  const lender = resolved?.lender ?? demo.lender;
+  const agent = resolved?.agent ?? demo.agent;
+  const planParams = resolved?.planParams ?? demo.planParams;
 
   if (settledRaw) {
     planParams.settledEstimate = BigInt(settledRaw);
@@ -91,7 +92,16 @@ async function main() {
       console.log(`  ${step.name}: ok`);
     }
   }
-  console.log("");
+  if (resolved) {
+    printDashboardConfig({
+      rpcUrl: env.rpcUrl,
+      lender: lender.publicKey,
+      agent: agent.publicKey,
+      operator: operator.publicKey,
+      accounts: resolved.accounts,
+    });
+  }
+
   console.log("OK — seven-step submit finished.");
 }
 

@@ -19,7 +19,7 @@ import {
   ZetaClient,
   type PdaAccountProvisioner,
 } from "./client.js";
-import { decodePool } from "./decoder.js";
+import { decodeLine, decodePool, decodePolicy } from "./decoder.js";
 import { fetchPaidEndpoint } from "./paykit/x402.js";
 import {
   CREDIT_VAULT_PROGRAM_ID,
@@ -267,7 +267,6 @@ export async function submitSevenStepSpend(
       });
       record("register_policy", signature);
     } else {
-      const { decodePolicy } = await import("./decoder.js");
       const policyState = decodePolicy(policyInfo.data);
       if (policyState.revoked) {
         throw new Error(
@@ -289,6 +288,15 @@ export async function submitSevenStepSpend(
       });
       record("open_line", signature);
     } else {
+      const lineState = decodeLine(lineInfo.data);
+      const linePolicy = new PublicKey(lineState.policy);
+      if (!linePolicy.equals(plan.accounts.policy)) {
+        throw new Error(
+          `credit line ${plan.accounts.line.toBase58()} is bound to policy ${linePolicy.toBase58()}, ` +
+            `but this plan uses ${plan.accounts.policy.toBase58()}. ` +
+            "Re-run submit — resolve-spend-context should reuse the line policy.",
+        );
+      }
       recordSkip("open_line", "line already exists");
     }
 
