@@ -17,5 +17,6 @@ packages/sdk/.env.local
 scripts/colosseum.env
 scripts/devnet.env
 scripts/clawpump.env
+scripts/pyth.env
 .keys/
 .keys/*.json

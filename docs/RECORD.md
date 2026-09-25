@@ -52,3 +52,12 @@ Live host: https://zetalabsx.vercel.app
 
 Open agent dashboard URL from `get_dashboard_urls`, then cut back to spend-submit + Explorer.
 See docs/CLAWPUMP.md.
+
+### 5. Pyth cut (AAPL equity vs tokenized)
+
+```bat
+cd /d C:\Users\User\zeta-labs\packages\sdk
+npm run pyth:aapl-compare
+```
+
+Show ALLOW / TIGHTEN / HALT, then cut to spend-submit. See docs/PYTH.md.
