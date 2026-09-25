@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="420" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Zeta Labs architecture</title>
+  <desc id="desc">Lender deposits to pool; policy bounds agent line; draw opens Payment Channels; settle and repay.</desc>
+  <rect width="960" height="420" fill="#0b1220"/>
+  <text x="32" y="40" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="700">Zeta Labs  Phase 1 path</text>
+  <text x="32" y="68" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Policy-bounded agent credit on Solana Devnet</text>
+
+  <rect x="32" y="100" width="150" height="70" rx="10" fill="#152238" stroke="#3d6df0" stroke-width="2"/>
+  <text x="107" y="130" text-anchor="middle" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Lender</text>
+  <text x="107" y="152" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">deposit USDC</text>
+
+  <path d="M182 135 H214" stroke="#3d6df0" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="214" y="100" width="150" height="70" rx="10" fill="#152238" stroke="#3d6df0" stroke-width="2"/>
+  <text x="289" y="130" text-anchor="middle" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Credit Vault</text>
+  <text x="289" y="152" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">pool PDA</text>
+
+  <path d="M364 135 H396" stroke="#3d6df0" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="396" y="100" width="150" height="70" rx="10" fill="#152238" stroke="#22c55e" stroke-width="2"/>
+  <text x="471" y="130" text-anchor="middle" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Policy</text>
+  <text x="471" y="152" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">cap · expiry · revoke</text>
+
+  <path d="M546 135 H578" stroke="#3d6df0" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="578" y="100" width="150" height="70" rx="10" fill="#152238" stroke="#3d6df0" stroke-width="2"/>
+  <text x="653" y="130" text-anchor="middle" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Credit Line</text>
+  <text x="653" y="152" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">agent grant</text>
+
+  <path d="M728 135 H760" stroke="#3d6df0" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="760" y="100" width="168" height="70" rx="10" fill="#152238" stroke="#f59e0b" stroke-width="2"/>
+  <text x="844" y="130" text-anchor="middle" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Agent</text>
+  <text x="844" y="152" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">signs draw</text>
+
+  <path d="M844 170 V210" stroke="#3d6df0" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="680" y="220" width="248" height="80" rx="10" fill="#152238" stroke="#f59e0b" stroke-width="2"/>
+  <text x="804" y="252" text-anchor="middle" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Vault draw</text>
+  <text x="804" y="274" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">evaluate ’ audit ’ reserve</text>
+  <text x="804" y="292" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">deny never reserves</text>
+
+  <path d="M680 260 H520" stroke="#3d6df0" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="272" y="220" width="248" height="80" rx="10" fill="#152238" stroke="#a855f7" stroke-width="2"/>
+  <text x="396" y="252" text-anchor="middle" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Payment Channels open</text>
+  <text x="396" y="274" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">payer = pool PDA (CPI)</text>
+  <text x="396" y="292" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">x402 upto meter ’ settle</text>
+
+  <path d="M272 260 H182" stroke="#3d6df0" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="32" y="220" width="150" height="80" rx="10" fill="#152238" stroke="#22c55e" stroke-width="2"/>
+  <text x="107" y="255" text-anchor="middle" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Repay</text>
+  <text x="107" y="277" text-anchor="middle" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">book settled</text>
+
+  <text x="32" y="360" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12">Agent never holds unconstrained draw USDC. Pool PDA is the token payer.</text>
+  <text x="32" y="382" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12">Programs: Policy Registry + Credit Vault (Devnet). Interface frozen in zeta-interface.</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3d6df0"/>
+    </marker>
+  </defs>
+</svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">Zeta dashboard panels</title>
+  <desc id="desc">Read-only lender, agent, policy, and audit views over live Devnet accounts.</desc>
+  <rect width="960" height="360" fill="#0b1220"/>
+  <text x="32" y="40" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="700">Operations dashboard</text>
+  <text x="32" y="66" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Auto-discovers pool · line · policy on Devnet · shared SDK decoder</text>
+
+  <rect x="32" y="96" width="210" height="200" rx="12" fill="#152238" stroke="#3d6df0" stroke-width="2"/>
+  <text x="48" y="128" fill="#3d6df0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700">LENDER</text>
+  <text x="48" y="160" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Pool deposited</text>
+  <text x="48" y="184" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Outstanding</text>
+  <text x="48" y="208" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12">Vault ATA · mint</text>
+  <text x="48" y="260" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">Who put capital in</text>
+
+  <rect x="262" y="96" width="210" height="200" rx="12" fill="#152238" stroke="#f59e0b" stroke-width="2"/>
+  <text x="278" y="128" fill="#f59e0b" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700">AGENT</text>
+  <text x="278" y="160" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Line limit</text>
+  <text x="278" y="184" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Drawn / reserved</text>
+  <text x="278" y="208" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12">Remaining capacity</text>
+  <text x="278" y="260" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">What the agent can spend</text>
+
+  <rect x="492" y="96" width="210" height="200" rx="12" fill="#152238" stroke="#22c55e" stroke-width="2"/>
+  <text x="508" y="128" fill="#22c55e" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700">POLICY</text>
+  <text x="508" y="160" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Per-call cap</text>
+  <text x="508" y="184" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Expiry</text>
+  <text x="508" y="208" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12">Revoked flag</text>
+  <text x="508" y="260" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">Rules that bound the line</text>
+
+  <rect x="722" y="96" width="210" height="200" rx="12" fill="#152238" stroke="#ef4444" stroke-width="2"/>
+  <text x="738" y="128" fill="#ef4444" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="700">AUDIT</text>
+  <text x="738" y="160" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Allow / deny</text>
+  <text x="738" y="184" fill="#e8eef9" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Amounts · slots</text>
+  <text x="738" y="208" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12">From tx logs</text>
+  <text x="738" y="260" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11">Safety story made visible</text>
+
+  <text x="32" y="340" fill="#8fa3bf" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12">Read-only. Demo fallback available when Devnet discovery finds no accounts.</text>
+</svg>
