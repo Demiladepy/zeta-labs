@@ -20,7 +20,15 @@ export const ACCOUNT_ORDER = {
     "vaultAta(w)",
     "tokenProgram",
   ] as const,
-  openLine: ["authority(s,w)", "pool", "policy", "agent", "linePda(w)", "systemProgram"] as const,
+  openLine: [
+    "authority(s,w)",
+    "pool",
+    "policy",
+    "agent",
+    "linePda(w)",
+    "systemProgram",
+    "clock",
+  ] as const,
   draw: [
     "agent(s)",
     "pool(w)",

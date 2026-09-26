@@ -123,6 +123,7 @@ export function buildOpenLineInstruction(args: {
   agent: PublicKey;
   limit: bigint;
   line?: PublicKey;
+  clock?: PublicKey;
   programId?: PublicKey;
 }): TransactionInstruction {
   assertU64("line limit", args.limit);
@@ -138,6 +139,13 @@ export function buildOpenLineInstruction(args: {
       { pubkey: args.agent, isSigner: false, isWritable: false },
       { pubkey: line, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      {
+        pubkey:
+          args.clock ??
+          new PublicKey("SysvarC1ock11111111111111111111111111111111"),
+        isSigner: false,
+        isWritable: false,
+      },
     ],
     data: u64Instruction(VAULT_IX.openLine, args.limit),
   });

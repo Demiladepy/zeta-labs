@@ -4,6 +4,7 @@ members = [
     "crates/zeta-interface",
     "programs/policy-registry",
     "programs/credit-vault",
+    "programs/litesvm-harness",
 ]
 
 [workspace.package]

@@ -188,7 +188,7 @@ pub fn build_deposit_with_transfer(
     }
 }
 
-/// Accounts: `[authority (s,w), pool, policy, agent, line_pda (w), system_program]`
+/// Accounts: `[authority (s,w), pool, policy, agent, line_pda (w), system_program, clock]`
 pub fn build_open_line(
     program_id: [u8; 32],
     authority: [u8; 32],
@@ -196,6 +196,7 @@ pub fn build_open_line(
     policy: [u8; 32],
     agent: [u8; 32],
     line_pda: [u8; 32],
+    clock: [u8; 32],
     args: OpenLineArgs,
 ) -> IxShell {
     IxShell {
@@ -207,6 +208,7 @@ pub fn build_open_line(
             meta(agent, false, false),
             meta(line_pda, false, true),
             meta(SYSTEM_PROGRAM_ID, false, false),
+            meta(clock, false, false),
         ],
         data: CreditVaultIx::OpenLine(args).encode(),
     }

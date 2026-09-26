@@ -73,6 +73,7 @@ fn from_vault(e: VaultError) -> ProgramError {
         VaultError::PolicyDenied(d) => ProgramError::Custom(d.program_error_code()),
         VaultError::BadRepay => err(4),
         VaultError::DrawSpec(_) => err(5),
+        VaultError::UnderwritingDenied => err(6),
     }
 }
 
@@ -190,9 +191,13 @@ fn process_open_line(
     let policy_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let agent = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let line_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
-    let system_ai = next_account_info(iter).ok();
+    let system_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    let clock_ai = next_account_info(iter).map_err(|_| err(ERR_CLOCK))?;
     if !authority.is_signer {
         return Err(from_vault(VaultError::Unauthorized));
+    }
+    if *clock_ai.key != solana_program::sysvar::clock::id() {
+        return Err(err(ERR_CLOCK));
     }
     let pool = Pool::unpack(&pool_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
     if pubkey_bytes(authority.key) != pool.authority {
@@ -201,7 +206,14 @@ fn process_open_line(
     if policy_ai.owner != &policy_registry_id() {
         return Err(err(ERR_POLICY_OWNER));
     }
-    let _policy = Policy::unpack(&policy_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
+    let policy = Policy::unpack(&policy_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
+    let now_unix = {
+        let data = clock_ai.try_borrow_data()?;
+        if data.len() < 40 {
+            return Err(err(ERR_CLOCK));
+        }
+        i64::from_le_bytes(data[32..40].try_into().unwrap())
+    };
     let pool_key = pubkey_bytes(pool_ai.key);
     let agent_key = pubkey_bytes(agent.key);
     let seeds = line_seeds(&pool_key, &agent_key);
@@ -213,7 +225,7 @@ fn process_open_line(
         program_id,
         authority,
         line_ai,
-        system_ai,
+        Some(system_ai),
         CREDIT_LINE_LEN,
         &seeds,
         bump,
@@ -230,8 +242,10 @@ fn process_open_line(
         pool_key,
         agent_key,
         pubkey_bytes(policy_ai.key),
+        &policy,
         args,
         bump,
+        now_unix,
     )
     .map_err(from_vault)?;
     data[..CREDIT_LINE_LEN].copy_from_slice(&line.pack());
@@ -574,16 +588,19 @@ mod tests {
         let agent_b = agent.to_bytes();
         let (line_pda, line_bump) =
             Pubkey::find_program_address(&line_seeds(&pool_key, &agent_b), &program_id);
-        let policy = policy_account(expires_at, revoked, cap);
+        let mut policy = policy_account(expires_at, false, cap);
         let line = open_line_with_keys(
             &pool,
             pool_key,
             agent_b,
             policy_pk.to_bytes(),
+            &policy,
             OpenLineArgs { limit },
             line_bump,
+            1,
         )
         .unwrap();
+        policy.revoked = revoked;
         DrawHarness {
             program_id,
             authority,

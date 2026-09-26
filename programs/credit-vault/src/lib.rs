@@ -17,6 +17,44 @@ pub enum VaultError {
     PolicyDenied(Denial),
     BadRepay,
     DrawSpec(DrawSpecError),
+    /// Policy too loose / expired / revoked for the requested line limit.
+    UnderwritingDenied,
+}
+
+/// Underwriting v1: base 25% LTV; policy controls raise the haircut ceiling.
+pub fn policy_ltv_bps(policy: &Policy) -> u64 {
+    let mut bps = 2_500u64;
+    if policy.expires_at != 0 {
+        bps = bps.saturating_add(2_000);
+    }
+    if policy.acl_version != 0 {
+        bps = bps.saturating_add(1_500);
+    }
+    if policy.total_cap != 0 {
+        bps = bps.saturating_add(1_500);
+    }
+    if policy.rolling_cap != 0 {
+        bps = bps.saturating_add(1_500);
+    }
+    bps.min(10_000)
+}
+
+/// Max line.limit allowed for this policy against current pool liquidity.
+pub fn underwrite_limit(policy: &Policy, pool: &Pool, now_unix: i64) -> Result<u64, VaultError> {
+    if policy.revoked {
+        return Err(VaultError::UnderwritingDenied);
+    }
+    if policy.expires_at != 0 && now_unix >= policy.expires_at {
+        return Err(VaultError::UnderwritingDenied);
+    }
+    let available = pool.deposited.saturating_sub(pool.outstanding);
+    let mut max = available
+        .saturating_mul(policy_ltv_bps(policy))
+        / 10_000;
+    if policy.total_cap != 0 {
+        max = max.min(policy.total_cap);
+    }
+    Ok(max)
 }
 
 pub fn create_pool(
@@ -54,8 +92,18 @@ pub fn open_line(
     policy: &Policy,
     args: OpenLineArgs,
     bump: u8,
+    now_unix: i64,
 ) -> Result<CreditLine, VaultError> {
-    open_line_with_keys(pool, pool.authority, agent, policy.issuer, args, bump)
+    open_line_with_keys(
+        pool,
+        pool.authority,
+        agent,
+        policy.issuer,
+        policy,
+        args,
+        bump,
+        now_unix,
+    )
 }
 
 pub fn evaluate_draw(
@@ -149,11 +197,14 @@ pub fn open_line_with_keys(
     pool_key: [u8; 32],
     agent: [u8; 32],
     policy_key: [u8; 32],
+    policy: &Policy,
     args: OpenLineArgs,
     bump: u8,
+    now_unix: i64,
 ) -> Result<CreditLine, VaultError> {
-    if args.limit == 0 || args.limit > pool.deposited.saturating_sub(pool.outstanding) {
-        return Err(VaultError::InsufficientLiquidity);
+    let max = underwrite_limit(policy, pool, now_unix)?;
+    if args.limit == 0 || args.limit > max {
+        return Err(VaultError::UnderwritingDenied);
     }
     Ok(CreditLine {
         discriminator: ACCOUNT_DISCRIMINATOR_LINE,
@@ -226,6 +277,7 @@ mod tests {
             &policy,
             OpenLineArgs { limit: 2_000 },
             255,
+            1,
         )
         .unwrap();
         let spec = draw(
@@ -271,6 +323,7 @@ mod tests {
             &policy,
             OpenLineArgs { limit: 2_000 },
             255,
+            1,
         )
         .unwrap();
         let err = draw(
@@ -292,5 +345,40 @@ mod tests {
         assert_eq!(err, VaultError::PolicyDenied(Denial::PerCallCap));
         assert_eq!(line.reserved, 0);
         assert_eq!(pool.outstanding, 0);
+    }
+
+    #[test]
+    fn underwriting_ltv_bands() {
+        let (pool, mut policy) = setup();
+        // Loose: 25% of 10_000 = 2_500
+        assert_eq!(policy_ltv_bps(&policy), 2_500);
+        assert_eq!(underwrite_limit(&policy, &pool, 1).unwrap(), 2_500);
+        assert!(matches!(
+            open_line(&pool, [9; 32], &policy, OpenLineArgs { limit: 2_501 }, 255, 1),
+            Err(VaultError::UnderwritingDenied)
+        ));
+        open_line(
+            &pool,
+            [9; 32],
+            &policy,
+            OpenLineArgs { limit: 2_500 },
+            255,
+            1,
+        )
+        .unwrap();
+
+        policy.expires_at = 1_000;
+        policy.acl_version = 1;
+        policy.total_cap = 9_000;
+        policy.rolling_cap = 5_000;
+        // 2500+2000+1500+1500+1500 = 9000 bps → 9000 of 10000, min total_cap 9000
+        assert_eq!(policy_ltv_bps(&policy), 9_000);
+        assert_eq!(underwrite_limit(&policy, &pool, 1).unwrap(), 9_000);
+
+        policy.revoked = true;
+        assert!(matches!(
+            underwrite_limit(&policy, &pool, 1),
+            Err(VaultError::UnderwritingDenied)
+        ));
     }
 }

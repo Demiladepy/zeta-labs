@@ -208,7 +208,7 @@ on already-owned accounts.
 
 **Vault `deposit`** — `0` authority (signer) · `1` pool (writable). Optional token CPI: `2` source ATA · `3` vault ATA · `4` token program.
 
-**Vault `open_line`** — `0` authority (signer, writable) · `1` pool · `2` policy · `3` agent · `4` line PDA (writable) · `5` system program
+**Vault `open_line`** — `0` authority (signer, writable) · `1` pool · `2` policy · `3` agent · `4` line PDA (writable) · `5` system program · `6` clock. Underwriting v1: LTV from policy tightness vs free pool liquidity; revoked/expired refuse; custom error `6` = `UnderwritingDenied`.
 
 **Vault `draw`** — `0` agent (signer) · `1` pool (writable) · `2` line (writable) · `3` policy · `4` payee · `5` rent_payer (signer) · `6` clock · optional `acl` (when `acl_version != 0`) · optional `usage` writable + system (when `rolling_cap != 0`). Optional CPI: next account is Payment Channels program + the 14 `open` accounts below. Trailing ix bytes after the 30-byte draw header are the distribution preimage.
 

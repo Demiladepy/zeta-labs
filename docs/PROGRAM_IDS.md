@@ -1,6 +1,7 @@
 # Devnet program IDs (share with Anurag)
 
-**LIVE on Solana Devnet** (deployed 2026-09-24). Same as `.keys/*.json` and `crates/zeta-interface/src/ids.rs`.
+**LIVE on Solana Devnet** — same IDs as `.keys/*.json` and `crates/zeta-interface/src/ids.rs`.
+Upgraded **2026-09-26** with `INTERFACE_VERSION` = 3 + **Underwriting v1** on `open_line`.
 
 | Program | Program ID | Explorer |
 | --- | --- | --- |
@@ -18,12 +19,16 @@ PAYMENT_CHANNELS_PROGRAM_ID=CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX
 DEVNET_USDC_MINT=4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
 ```
 
-**Deploy tx signatures:**
+**Initial deploy tx signatures (2026-09-24):**
 - Policy Registry: `3Y26WJsv3RGTPU5HSJH1DRzNWFCH4sY7QSvAfanv1CjSnkMmsL7t53YGv6JySQhfD1cKxmV95SqpzhsuBr5ufAuH`
 - Credit Vault: `GTQZDUD2HNZKWhPt8DtELyoqazxSzSv8qGarMTvLPx5nPgUaNqDZLHoG1sQvBePu6FzrNjhaacsiE422t2TRNuL`
 
-**Status:** both programs deployed + verified with `solana program show` on Devnet. Upgrade authority: `7QuNW1WLy58oYUfbXLboDMpyqzwfmKyYFU58q2bJ1uVX`.
+**Upgrade tx signatures (2026-09-26 — P4/P5 + Underwriting v1):**
+- Policy Registry: `5ZQ3h6hmNRn9DTwA3xowfFifK4YnYxcgdxCfq9meyY13d5FJ2ZkpYfBnpzXYtWauvHJkvc2aKJcHbEFkYrgyevUK`
+- Credit Vault: `25kC1qHLM3gGVesvund3F8b4h6Cjm3kUx4z2BAGXgwP9hz3Eqch6gQEDDmBk3c7wJgrDgFpsgKFYZxQeKjfQvJMb`
 
-**PDA path for Anurag:** see [`docs/PDA.md`](./PDA.md) — seeds, spaces, account order, program-side `create_account`. Devnet programs upgraded with this path (2026-09-24).
+**Status:** both programs upgraded + verified with `solana program show` on Devnet (slots ~504429244 / ~504429692). Upgrade authority: `7QuNW1WLy58oYUfbXLboDMpyqzwfmKyYFU58q2bJ1uVX`. On-chain bytecode includes ACL, caps, and open_line LTV underwriting (`UnderwritingDenied` = custom `6`).
+
+**PDA path for Anurag:** see [`docs/PDA.md`](./PDA.md) — seeds, spaces, account order (incl. Clock on `open_line`), program-side `create_account`.
 
 Do **not** commit private keypair JSON (`.keys/` stays local/gitignored).

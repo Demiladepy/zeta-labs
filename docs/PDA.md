@@ -71,7 +71,10 @@ open_line:
   3 agent
   4 line PDA (writable)
   5 System Program
+  6 Clock sysvar
 ```
+
+**Underwriting v1** (on `open_line`): max `limit` = free liquidity × LTV bps (base 2500; +2000 expiry, +1500 ACL, +1500 total_cap, +1500 rolling_cap, clamp 10000), also capped by `total_cap` when set. Revoked/expired policy → deny.
 
 On first call, the program CPI-creates the PDA (rent-exempt, owned by the
 program). If the PDA already exists with the right owner + length, the
