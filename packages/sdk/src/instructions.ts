@@ -54,6 +54,13 @@ export function findAclPda(policy: PublicKey, programId = new PublicKey(POLICY_R
   )[0];
 }
 
+export function findUsagePda(line: PublicKey, programId = new PublicKey(CREDIT_VAULT_PROGRAM_ID)): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("usage"), line.toBytes()],
+    programId,
+  )[0];
+}
+
 export function buildCreatePoolInstruction(args: {
   authority: PublicKey;
   mint: PublicKey;
@@ -250,6 +257,35 @@ export function buildSetAclInstruction(args: {
       { pubkey: args.policy, isSigner: false, isWritable: true },
       { pubkey: acl, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: Buffer.from(data),
+  });
+}
+
+/** P5: set rolling/total caps (`0` disables that check). */
+export function buildSetCapsInstruction(args: {
+  issuer: PublicKey;
+  policy: PublicKey;
+  rollingCap: bigint;
+  totalCap: bigint;
+  rollingWindowSecs: number;
+  programId?: PublicKey;
+}): TransactionInstruction {
+  assertU64("rollingCap", args.rollingCap);
+  assertU64("totalCap", args.totalCap);
+  if (args.rollingCap !== 0n && args.rollingWindowSecs === 0) {
+    throw new Error("rollingWindowSecs required when rollingCap != 0");
+  }
+  const data = new Uint8Array(21);
+  data[0] = POLICY_IX.setCaps;
+  writeU64LE(data, 1, args.rollingCap);
+  writeU64LE(data, 9, args.totalCap);
+  new DataView(data.buffer).setUint32(17, args.rollingWindowSecs >>> 0, true);
+  return new TransactionInstruction({
+    programId: args.programId ?? new PublicKey(POLICY_REGISTRY_PROGRAM_ID),
+    keys: [
+      { pubkey: args.issuer, isSigner: true, isWritable: false },
+      { pubkey: args.policy, isSigner: false, isWritable: true },
     ],
     data: Buffer.from(data),
   });

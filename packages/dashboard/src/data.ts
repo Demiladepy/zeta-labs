@@ -125,6 +125,7 @@ export function demoSnapshot(): DashboardSnapshot {
       aclVersion: 0,
       revoked: false,
       bump: 251,
+      rollingWindowSecs: 0,
     },
     audits: [
       audit(3_000_000n, Denial.Allow, 4, "5hA9Sg4demo1111111111111111111111111111111111111111111111111111"),

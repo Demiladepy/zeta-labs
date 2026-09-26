@@ -63,7 +63,7 @@ x402 `upto` roles we lock:
 
 Devnet USDC: `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`.
 
-`INTERFACE_VERSION` = **2** (PolicyAcl + `set_acl` + evaluate P4 + `DrawArgs.category`).
+`INTERFACE_VERSION` = **3** (set_caps + LineUsage + P5 rolling/total).
 
 ---
 
@@ -91,8 +91,10 @@ Invariant (P1): `drawn + reserved + new_draw ≤ limit`.
 
 v1 live: `per_call_cap`, `expires_at` (`i64`, `0` = none), `revoked`.
 
-v2 (`INTERFACE_VERSION = 2`): `acl_version` gates P4. `rolling_cap` /
-`total_cap` reserved for P5 (`0` = unused). Do not reuse these bytes.
+v2 (`INTERFACE_VERSION` >= 2): `acl_version` gates P4.
+
+v3 (`INTERFACE_VERSION = 3`): `rolling_cap` / `total_cap` / `rolling_window_secs`
+(bytes 84-87) are live for P5. `0` caps = that check off.
 
 ### `PolicyAcl` — seeds `["acl", policy]` (v2 / P4)
 
@@ -113,6 +115,11 @@ set **and** recipient must match → else `Denial::NotAllowlisted` (6).
 When `acl_version == 0`: v1 behavior (ignore recipient/category); no ACL
 account required.
 
+### `LineUsage` — seeds `["usage", line]` (v3 / P5)
+
+Sibling PDA owned by Credit Vault. Fixed **64** bytes: tumbling window meter
+(`window_start`, `rolling_spent`). Required when `rolling_cap != 0`.
+
 ### `AuditRecord` — event, not an account
 
 Emitted on every `evaluate`, allow or deny. Fields in `accounts.rs`.
@@ -132,13 +139,17 @@ Ordered checks. First failure wins. Always emit `AuditRecord`.
 | 1 | `revoked == true` | `Revoked` | 1 |
 | 2 | `expires_at != 0 && now >= expires_at` | `Expired` | 1 |
 | 3 | `amount == 0 \|\| amount > per_call_cap` | `PerCallCap` | 1 |
-| 4 | rolling window | `RollingCap` | 2 / P5 |
-| 5 | lifetime total | `TotalCap` | 2 / P5 |
+| 4 | rolling window (`rolling_cap != 0`) | `RollingCap` | 2 / P5 |
+| 5 | lifetime total (`drawn+reserved+amount`) | `TotalCap` | 2 / P5 |
 | 6 | recipient / category ACL (`acl_version != 0`) | `NotAllowlisted` | 2 / P4 |
 
 `recipient` and `category` are in the wire signature. v1 (`acl_version == 0`)
-ignores them. Vault `draw` inlines the same shared `evaluate` (ACL bytes
-fed via `EvaluateInput.acl_allows` after unpacking the ACL account).
+ignores them. Vault `draw` inlines the same shared `evaluate` (ACL via
+`acl_allows`; P5 via line + `LineUsage` fields on `EvaluateInput`).
+
+When `rolling_cap != 0`, tumbling window uses `LineUsage` PDA
+(`["usage", line]`, Credit Vault, 64 bytes). Deny does not mutate usage;
+allow applies `apply_draw`.
 
 `Denial` is a `u8`. `0` = allow. SDK maps these to typed errors.
 
@@ -153,7 +164,8 @@ fed via `EvaluateInput.acl_allows` after unpacking the ACL account).
 - `revoke()` — issuer only. Immediate. P3.
 - `set_acl(category_mask, recipient_count, recipients[8])` — tag `3`. Issuer
   signer; creates/updates ACL PDA; sets `policy.acl_version = 1` (or bumps).
-
+- `set_caps(rolling_cap, total_cap, rolling_window_secs)` — tag `4`. Issuer
+  signer; `rolling_cap != 0` requires nonzero window.
 ### Credit Vault
 
 - `create_pool()`
@@ -190,13 +202,15 @@ on already-owned accounts.
 
 **Policy `set_acl`** — `0` issuer (signer, writable) · `1` policy (writable) · `2` acl PDA (writable) · `3` system program
 
+**Policy `set_caps`** — `0` issuer (signer) · `1` policy (writable)
+
 **Vault `create_pool`** — `0` authority (signer, writable) · `1` mint · `2` pool PDA (writable) · `3` vault ATA · `4` system program
 
 **Vault `deposit`** — `0` authority (signer) · `1` pool (writable). Optional token CPI: `2` source ATA · `3` vault ATA · `4` token program.
 
 **Vault `open_line`** — `0` authority (signer, writable) · `1` pool · `2` policy · `3` agent · `4` line PDA (writable) · `5` system program
 
-**Vault `draw`** — `0` agent (signer) · `1` pool (writable) · `2` line (writable) · `3` policy · `4` payee · `5` rent_payer (signer) · `6` clock · optional `7` acl (when `acl_version != 0`). Optional CPI: next account is Payment Channels program + the 14 `open` accounts below. Trailing ix bytes after the 30-byte draw header are the distribution preimage.
+**Vault `draw`** — `0` agent (signer) · `1` pool (writable) · `2` line (writable) · `3` policy · `4` payee · `5` rent_payer (signer) · `6` clock · optional `acl` (when `acl_version != 0`) · optional `usage` writable + system (when `rolling_cap != 0`). Optional CPI: next account is Payment Channels program + the 14 `open` accounts below. Trailing ix bytes after the 30-byte draw header are the distribution preimage.
 
 **Vault `repay`** — `0` signer (agent or pool authority) · `1` pool (writable) · `2` line (writable)
 

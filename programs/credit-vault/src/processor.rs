@@ -10,9 +10,10 @@ use solana_program::{
     pubkey::Pubkey,
 };
 use zeta_interface::{
-    encode_payment_channels_open, ids, line_seeds, open_slot_is_recent, pool_seeds, AuditRecord,
-    CreditLine, CreditVaultIx, DrawArgs, DrawChannelSpec, OpenLineArgs,
-    PaymentChannelsOpenAccounts, Policy, PolicyAcl, Pool, RepayArgs, CREDIT_LINE_LEN,
+    encode_payment_channels_open, ids, line_seeds, open_slot_is_recent, pool_seeds, usage_seeds,
+    AuditRecord, CreditLine, CreditVaultIx, DrawArgs, DrawChannelSpec, LineUsage, OpenLineArgs,
+    PaymentChannelsOpenAccounts, Policy, PolicyAcl, Pool, RepayArgs,
+    ACCOUNT_DISCRIMINATOR_LINE_USAGE, CREDIT_LINE_LEN, LINE_USAGE_LEN,
     PAYMENT_CHANNELS_OPEN_ACCOUNT_COUNT, POOL_LEN,
 };
 
@@ -293,10 +294,47 @@ fn process_draw(
     } else {
         None
     };
+    let usage_ai = if policy.rolling_cap != 0 {
+        Some(next_account_info(iter).map_err(|_| err(ERR_ACL))?)
+    } else {
+        None
+    };
+    let usage_system = if policy.rolling_cap != 0 {
+        next_account_info(iter).ok()
+    } else {
+        None
+    };
 
     let payee_bytes = pubkey_bytes(payee.key);
     let acl_allows = resolve_acl_allows(&policy, policy_ai.key, acl_ai, payee_bytes, args.category)?;
-    let denial = evaluate_draw(&policy, payee_bytes, &args, now_unix, acl_allows);
+
+    let (rolling_spent, window_start) = if policy.rolling_cap != 0 {
+        let usage_ai = usage_ai.ok_or_else(|| err(ERR_ACL))?;
+        let data = usage_ai.try_borrow_data()?;
+        if data.len() >= LINE_USAGE_LEN && data[..8] != [0u8; 8] {
+            let usage = LineUsage::unpack(&data).ok_or(err(ERR_ACL))?;
+            if usage.line != pubkey_bytes(line_ai.key) {
+                return Err(err(ERR_ACL));
+            }
+            (usage.rolling_spent, usage.window_start)
+        } else {
+            (0, 0)
+        }
+    } else {
+        (0, 0)
+    };
+
+    let denial = evaluate_draw(
+        &policy,
+        payee_bytes,
+        &args,
+        now_unix,
+        acl_allows,
+        line.drawn,
+        line.reserved,
+        rolling_spent,
+        window_start,
+    );
     let audit = AuditRecord::new(
         pubkey_bytes(policy_ai.key),
         pubkey_bytes(line_ai.key),
@@ -312,6 +350,7 @@ fn process_draw(
         return Err(ProgramError::Custom(denial.program_error_code()));
     }
 
+    let draw_amount = args.amount;
     let spec = reserve_draw(
         &mut pool,
         &mut line,
@@ -329,6 +368,43 @@ fn process_draw(
         line_data[..CREDIT_LINE_LEN].copy_from_slice(&line.pack());
     }
 
+    if policy.rolling_cap != 0 {
+        let usage_ai = usage_ai.ok_or_else(|| err(ERR_ACL))?;
+        if !usage_ai.is_writable {
+            return Err(err(ERR_ACCOUNTS));
+        }
+        let line_bytes = pubkey_bytes(line_ai.key);
+        let seeds = usage_seeds(&line_bytes);
+        let (expected, bump) = Pubkey::find_program_address(&seeds, program_id);
+        if expected != *usage_ai.key {
+            return Err(err(ERR_PDA));
+        }
+        ensure_pda_account(
+            program_id,
+            rent_payer,
+            usage_ai,
+            usage_system,
+            LINE_USAGE_LEN,
+            &seeds,
+            bump,
+        )?;
+        let mut data = usage_ai.try_borrow_mut_data()?;
+        let mut usage = if data[..8] == [0u8; 8] {
+            LineUsage {
+                discriminator: ACCOUNT_DISCRIMINATOR_LINE_USAGE,
+                line: line_bytes,
+                window_start: 0,
+                rolling_spent: 0,
+                bump,
+                _pad: [0; 7],
+            }
+        } else {
+            LineUsage::unpack(&data).ok_or(err(ERR_ACL))?
+        };
+        usage.apply_draw(draw_amount, now_unix, policy.rolling_window_secs);
+        data[..LINE_USAGE_LEN].copy_from_slice(&usage.pack());
+    }
+
     let open_data = encode_payment_channels_open(&spec, extra);
     set_return_data(&open_data);
 
@@ -337,7 +413,6 @@ fn process_draw(
         invoke_open_cpi(program_id, pool_ai, &pool, &spec, extra, &rest)?;
     }
 
-    let _ = program_id;
     Ok(())
 }
 
@@ -454,7 +529,8 @@ mod tests {
             acl_version: 0,
             revoked,
             bump: 255,
-            _pad: [0; 12],
+            rolling_window_secs: 0,
+            _pad: [0; 8],
         }
     }
 

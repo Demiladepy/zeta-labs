@@ -49,7 +49,8 @@ fn sample_policy() -> Policy {
         acl_version: 0,
         revoked: false,
         bump: 253,
-        _pad: [0; 12],
+        rolling_window_secs: 0,
+        _pad: [0; 8],
     }
 }
 

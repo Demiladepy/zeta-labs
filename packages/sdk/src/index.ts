@@ -15,6 +15,7 @@ export {
   Denial,
   DEVNET_USDC,
   INTERFACE_VERSION,
+  LINE_USAGE_LEN,
   PAYMENT_CHANNELS_PROGRAM_ID,
   POLICY_ACL_LEN,
   POLICY_ACL_MAX_RECIPIENTS,
@@ -31,6 +32,7 @@ export {
   decodeAudit,
   decodeAuditLogs,
   decodeLine,
+  decodeLineUsage,
   decodePolicy,
   decodePolicyAcl,
   decodePool,
@@ -48,10 +50,12 @@ export {
   buildRegisterPolicyInstruction,
   buildRevokeInstruction,
   buildSetAclInstruction,
+  buildSetCapsInstruction,
   findAclPda,
   findLinePda,
   findPolicyPda,
   findPoolPda,
+  findUsagePda,
 } from "./instructions.js";
 
 export {
@@ -101,6 +105,7 @@ export type {
   DrawArgs,
   DrawChannelSpec,
   EvaluateArgs,
+  LineUsage,
   Policy,
   PolicyAcl,
   Pool,

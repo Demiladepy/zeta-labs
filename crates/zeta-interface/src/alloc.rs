@@ -4,7 +4,7 @@
 //! (Solana rent-exempt for the data length); clients should call
 //! `getMinimumBalanceForRentExemption` on RPC rather than hardcoding lamports.
 
-use crate::accounts::{CREDIT_LINE_LEN, POLICY_ACL_LEN, POLICY_LEN, POOL_LEN};
+use crate::accounts::{CREDIT_LINE_LEN, LINE_USAGE_LEN, POLICY_ACL_LEN, POLICY_LEN, POOL_LEN};
 
 /// Exact data lengths the processors write.
 pub const fn pool_alloc_bytes() -> usize {
@@ -18,6 +18,9 @@ pub const fn line_alloc_bytes() -> usize {
 }
 pub const fn policy_acl_alloc_bytes() -> usize {
     POLICY_ACL_LEN
+}
+pub const fn line_usage_alloc_bytes() -> usize {
+    LINE_USAGE_LEN
 }
 
 /// System Program `CreateAccount` / `Allocate` space field for each PDA.
@@ -43,6 +46,10 @@ pub const POLICY_ACL_ALLOC: PdaAlloc = PdaAlloc {
     space: POLICY_ACL_LEN as u64,
     seed_label: "acl",
 };
+pub const LINE_USAGE_ALLOC: PdaAlloc = PdaAlloc {
+    space: LINE_USAGE_LEN as u64,
+    seed_label: "usage",
+};
 
 #[cfg(test)]
 mod tests {
@@ -54,5 +61,6 @@ mod tests {
         assert_eq!(POLICY_ALLOC.space, 96);
         assert_eq!(LINE_ALLOC.space, 136);
         assert_eq!(POLICY_ACL_ALLOC.space, 304);
+        assert_eq!(LINE_USAGE_ALLOC.space, 64);
     }
 }

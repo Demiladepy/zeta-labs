@@ -17,7 +17,8 @@ fn policy(per_call_cap: u64, expires_at: i64, revoked: bool) -> Policy {
         acl_version: 0,
         revoked,
         bump: 255,
-        _pad: [0; 12],
+        rolling_window_secs: 0,
+        _pad: [0; 8],
     }
 }
 
@@ -42,6 +43,10 @@ fn input(amount: u64, now: i64) -> EvaluateInput {
         recipient: [9; 32],
         category: 0,
         acl_allows: None,
+        line_drawn: 0,
+        line_reserved: 0,
+        rolling_spent: 0,
+        window_start: 0,
     }
 }
 
@@ -133,6 +138,32 @@ fn evaluate_acl_gated_by_acl_version() {
     assert_eq!(evaluate(&p_acl, a), Denial::NotAllowlisted);
     a.acl_allows = Some(true);
     assert_eq!(evaluate(&p_acl, a), Denial::Allow);
+}
+
+#[test]
+fn evaluate_p5_total_and_rolling_caps() {
+    let mut p = policy(1_000, 0, false);
+    p.total_cap = 500;
+    let mut a = input(200, 1);
+    a.line_drawn = 200;
+    a.line_reserved = 100;
+    assert_eq!(evaluate(&p, a), Denial::Allow); // 300+200=500
+    a.amount = 201;
+    assert_eq!(evaluate(&p, a), Denial::TotalCap);
+
+    let mut r = policy(1_000, 0, false);
+    r.rolling_cap = 300;
+    r.rolling_window_secs = 3_600;
+    let mut b = input(100, 1_000);
+    b.rolling_spent = 250;
+    b.window_start = 500; // still in window
+    assert_eq!(evaluate(&r, b), Denial::RollingCap); // 250+100 > 300
+    b.amount = 50;
+    assert_eq!(evaluate(&r, b), Denial::Allow); // 250+50 = 300
+    // window elapsed → spent resets
+    b.amount = 300;
+    b.now_unix = 500 + 3_600;
+    assert_eq!(evaluate(&r, b), Denial::Allow);
 }
 
 #[test]

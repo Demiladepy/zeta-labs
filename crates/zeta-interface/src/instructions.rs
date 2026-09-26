@@ -7,6 +7,7 @@ pub const POLICY_IX_REGISTER: u8 = 0;
 pub const POLICY_IX_EVALUATE: u8 = 1;
 pub const POLICY_IX_REVOKE: u8 = 2;
 pub const POLICY_IX_SET_ACL: u8 = 3;
+pub const POLICY_IX_SET_CAPS: u8 = 4;
 
 pub const VAULT_IX_CREATE_POOL: u8 = 0;
 pub const VAULT_IX_DEPOSIT: u8 = 1;
@@ -20,6 +21,7 @@ pub enum PolicyRegistryIx {
     Evaluate(EvaluateArgs),
     Revoke,
     SetAcl(SetAclArgs),
+    SetCaps(SetCapsArgs),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -54,6 +56,15 @@ pub struct SetAclArgs {
     pub category_mask: u32,
     pub recipient_count: u8,
     pub recipients: [[u8; 32]; POLICY_ACL_MAX_RECIPIENTS],
+}
+
+/// P5: set rolling/total caps on an existing policy (`0` disables that check).
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SetCapsArgs {
+    pub rolling_cap: u64,
+    pub total_cap: u64,
+    pub rolling_window_secs: u32,
 }
 
 #[repr(C)]
@@ -96,6 +107,8 @@ pub const EVALUATE_IX_LEN: usize = 1 + 8 + 32 + 2;
 pub const REVOKE_IX_LEN: usize = 1;
 /// 1 + 4 + 1 + 256
 pub const SET_ACL_IX_LEN: usize = 1 + 4 + 1 + 32 * POLICY_ACL_MAX_RECIPIENTS;
+/// 1 + 8 + 8 + 4
+pub const SET_CAPS_IX_LEN: usize = 1 + 8 + 8 + 4;
 pub const CREATE_POOL_IX_LEN: usize = 1;
 pub const DEPOSIT_IX_LEN: usize = 1 + 8;
 pub const OPEN_LINE_IX_LEN: usize = 1 + 8;
@@ -175,6 +188,27 @@ impl SetAclArgs {
     }
 }
 
+impl SetCapsArgs {
+    pub fn pack(&self) -> [u8; 20] {
+        let mut out = [0u8; 20];
+        out[0..8].copy_from_slice(&self.rolling_cap.to_le_bytes());
+        out[8..16].copy_from_slice(&self.total_cap.to_le_bytes());
+        out[16..20].copy_from_slice(&self.rolling_window_secs.to_le_bytes());
+        out
+    }
+
+    pub fn unpack(data: &[u8]) -> Option<Self> {
+        if data.len() < 20 {
+            return None;
+        }
+        Some(Self {
+            rolling_cap: u64::from_le_bytes(data[0..8].try_into().ok()?),
+            total_cap: u64::from_le_bytes(data[8..16].try_into().ok()?),
+            rolling_window_secs: u32::from_le_bytes(data[16..20].try_into().ok()?),
+        })
+    }
+}
+
 impl OpenLineArgs {
     pub fn pack(&self) -> [u8; 8] {
         self.limit.to_le_bytes()
@@ -243,6 +277,7 @@ impl PolicyRegistryIx {
             POLICY_IX_EVALUATE => Some(Self::Evaluate(EvaluateArgs::unpack(rest)?)),
             POLICY_IX_REVOKE => Some(Self::Revoke),
             POLICY_IX_SET_ACL => Some(Self::SetAcl(SetAclArgs::unpack(rest)?)),
+            POLICY_IX_SET_CAPS => Some(Self::SetCaps(SetCapsArgs::unpack(rest)?)),
             _ => None,
         }
     }
@@ -265,6 +300,12 @@ impl PolicyRegistryIx {
             Self::SetAcl(args) => {
                 let mut out = Vec::with_capacity(SET_ACL_IX_LEN);
                 out.push(POLICY_IX_SET_ACL);
+                out.extend_from_slice(&args.pack());
+                out
+            }
+            Self::SetCaps(args) => {
+                let mut out = Vec::with_capacity(SET_CAPS_IX_LEN);
+                out.push(POLICY_IX_SET_CAPS);
                 out.extend_from_slice(&args.pack());
                 out
             }

@@ -4,12 +4,13 @@
  * Bump INTERFACE_VERSION in the same PR as the Rust crate.
  */
 
-export const INTERFACE_VERSION = 2 as const;
+export const INTERFACE_VERSION = 3 as const;
 
 export const POOL_LEN = 128;
 export const CREDIT_LINE_LEN = 136;
 export const POLICY_LEN = 96;
 export const POLICY_ACL_LEN = 304;
+export const LINE_USAGE_LEN = 64;
 export const AUDIT_RECORD_LEN = 136;
 export const POLICY_ACL_MAX_RECIPIENTS = 8;
 
@@ -19,6 +20,8 @@ export const ACCOUNT_DISCRIMINATOR = {
   policy: 0x5a455441504f4c59n,
   /** ASCII "ZETAPACL" as u64 LE discriminant. */
   policyAcl: 0x5a4554415041434cn,
+  /** ASCII "ZETAUSAG". */
+  lineUsage: 0x5a45544155534147n,
   audit: 0x5a45544141554454n,
 } as const;
 
@@ -27,6 +30,7 @@ export const POLICY_IX = {
   evaluate: 1,
   revoke: 2,
   setAcl: 3,
+  setCaps: 4,
 } as const;
 
 export const VAULT_IX = {
@@ -93,6 +97,8 @@ export type Policy = {
   aclVersion: number;
   revoked: boolean;
   bump: number;
+  /** P5 tumbling window seconds; required nonzero when rollingCap != 0. */
+  rollingWindowSecs: number;
 };
 
 /** Sibling PDA for P4 category + recipient allowlist (`["acl", policy]`). */
@@ -103,6 +109,15 @@ export type PolicyAcl = {
   recipientCount: number;
   bump: number;
   recipients: Uint8Array[];
+};
+
+/** Per-line rolling meter (`["usage", line]`, Credit Vault). */
+export type LineUsage = {
+  discriminator: bigint;
+  line: Uint8Array;
+  windowStart: bigint;
+  rollingSpent: bigint;
+  bump: number;
 };
 
 export type AuditRecord = {

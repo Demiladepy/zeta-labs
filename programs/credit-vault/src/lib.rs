@@ -64,6 +64,10 @@ pub fn evaluate_draw(
     args: &DrawArgs,
     now_unix: i64,
     acl_allows: Option<bool>,
+    line_drawn: u64,
+    line_reserved: u64,
+    rolling_spent: u64,
+    window_start: i64,
 ) -> Denial {
     evaluate(
         policy,
@@ -73,6 +77,10 @@ pub fn evaluate_draw(
             recipient: payee,
             category: args.category,
             acl_allows,
+            line_drawn,
+            line_reserved,
+            rolling_spent,
+            window_start,
         },
     )
 }
@@ -119,7 +127,17 @@ pub fn draw(
     args: DrawArgs,
     now_unix: i64,
 ) -> Result<DrawChannelSpec, VaultError> {
-    let denial = evaluate_draw(policy, payee, &args, now_unix, None);
+    let denial = evaluate_draw(
+        policy,
+        payee,
+        &args,
+        now_unix,
+        None,
+        line.drawn,
+        line.reserved,
+        0,
+        0,
+    );
     if !denial.is_allow() {
         return Err(VaultError::PolicyDenied(denial));
     }
@@ -188,7 +206,8 @@ mod tests {
             acl_version: 0,
             revoked: false,
             bump: 255,
-            _pad: [0; 12],
+            rolling_window_secs: 0,
+            _pad: [0; 8],
         };
         let _ = RegisterPolicyArgs {
             seed: 1,

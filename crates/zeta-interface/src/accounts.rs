@@ -7,16 +7,20 @@ pub const ACCOUNT_DISCRIMINATOR_LINE: u64 = 0x5A455441_4C494E45; // "ZETA" "LINE
 pub const ACCOUNT_DISCRIMINATOR_POLICY: u64 = 0x5A455441_504F4C59; // "ZETA" "POLY"
 /// "ZETA" "PACL"
 pub const ACCOUNT_DISCRIMINATOR_POLICY_ACL: u64 = 0x5A455441_5041434C;
+/// "ZETA" "USAG"
+pub const ACCOUNT_DISCRIMINATOR_LINE_USAGE: u64 = 0x5A455441_55534147;
 
 /// `8 + 32 + 32 + 32 + 8 + 8 + 1 + 7 pad = 128`
 pub const POOL_LEN: usize = 128;
 /// `8 + 32 + 32 + 32 + 8 + 8 + 8 + 1 + 7 pad = 136`
 pub const CREDIT_LINE_LEN: usize = 136;
-/// 96-byte policy. Phase-2 named fields occupy 64–81; `_pad[12]` is extra reserve.
+/// 96-byte policy. P5: `rolling_window_secs` at bytes 84–87 (was pad).
 pub const POLICY_LEN: usize = 96;
 /// Sibling ACL PDA: `8 + 32 + 4 + 1 + 1 + 2 + 256 = 304`
 pub const POLICY_ACL_LEN: usize = 304;
 pub const POLICY_ACL_MAX_RECIPIENTS: usize = 8;
+/// Per-line rolling window meter: `8 + 32 + 8 + 8 + 1 + 7 = 64`
+pub const LINE_USAGE_LEN: usize = 64;
 /// Event payload. Includes 6 bytes of alignment pad after the flags.
 pub const AUDIT_RECORD_LEN: usize = 136;
 
@@ -87,15 +91,85 @@ pub struct Policy {
     pub seed: u64,
     pub per_call_cap: u64,
     pub expires_at: i64,
-    /// Phase 2 / P5. `0` = unused.
+    /// P5. `0` = rolling check off.
     pub rolling_cap: u64,
-    /// Phase 2 / P5. `0` = unused.
+    /// P5. `0` = lifetime total check off.
     pub total_cap: u64,
     /// P4 Token ACL. `0` = ACL off; nonzero requires sibling `PolicyAcl` PDA.
     pub acl_version: u16,
     pub revoked: bool,
     pub bump: u8,
-    pub _pad: [u8; 12],
+    /// Tumbling window length in seconds. Required nonzero when `rolling_cap != 0`.
+    pub rolling_window_secs: u32,
+    pub _pad: [u8; 8],
+}
+
+/// Per-line rolling spend meter (`["usage", line]`, owned by Credit Vault).
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LineUsage {
+    pub discriminator: u64,
+    pub line: [u8; 32],
+    pub window_start: i64,
+    pub rolling_spent: u64,
+    pub bump: u8,
+    pub _pad: [u8; 7],
+}
+
+impl LineUsage {
+    /// Spent in the current tumbling window (0 if the window has elapsed).
+    pub fn effective_spent(&self, now_unix: i64, window_secs: u32) -> u64 {
+        if window_secs == 0 || self.window_start == 0 {
+            return 0;
+        }
+        if now_unix.saturating_sub(self.window_start) >= window_secs as i64 {
+            return 0;
+        }
+        self.rolling_spent
+    }
+
+    /// Reset window if elapsed, then add `amount`. Call only after an allow.
+    pub fn apply_draw(&mut self, amount: u64, now_unix: i64, window_secs: u32) {
+        if window_secs == 0 {
+            return;
+        }
+        if self.window_start == 0
+            || now_unix.saturating_sub(self.window_start) >= window_secs as i64
+        {
+            self.window_start = now_unix;
+            self.rolling_spent = 0;
+        }
+        self.rolling_spent = self.rolling_spent.saturating_add(amount);
+    }
+
+    pub fn pack(&self) -> [u8; LINE_USAGE_LEN] {
+        let mut out = [0u8; LINE_USAGE_LEN];
+        out[0..8].copy_from_slice(&self.discriminator.to_le_bytes());
+        out[8..40].copy_from_slice(&self.line);
+        out[40..48].copy_from_slice(&self.window_start.to_le_bytes());
+        out[48..56].copy_from_slice(&self.rolling_spent.to_le_bytes());
+        out[56] = self.bump;
+        out[57..64].copy_from_slice(&self._pad);
+        out
+    }
+
+    pub fn unpack(data: &[u8]) -> Option<Self> {
+        if data.len() < LINE_USAGE_LEN {
+            return None;
+        }
+        let discriminator = u64::from_le_bytes(data[0..8].try_into().ok()?);
+        if discriminator != ACCOUNT_DISCRIMINATOR_LINE_USAGE {
+            return None;
+        }
+        Some(Self {
+            discriminator,
+            line: data[8..40].try_into().ok()?,
+            window_start: i64::from_le_bytes(data[40..48].try_into().ok()?),
+            rolling_spent: u64::from_le_bytes(data[48..56].try_into().ok()?),
+            bump: data[56],
+            _pad: data[57..64].try_into().ok()?,
+        })
+    }
 }
 
 /// Category + recipient allowlist for a policy (`["acl", policy]`).
@@ -263,7 +337,8 @@ impl Policy {
         out[80..82].copy_from_slice(&self.acl_version.to_le_bytes());
         out[82] = if self.revoked { 1 } else { 0 };
         out[83] = self.bump;
-        out[84..96].copy_from_slice(&self._pad);
+        out[84..88].copy_from_slice(&self.rolling_window_secs.to_le_bytes());
+        out[88..96].copy_from_slice(&self._pad);
         out
     }
 
@@ -286,7 +361,8 @@ impl Policy {
             acl_version: u16::from_le_bytes(data[80..82].try_into().ok()?),
             revoked: data[82] != 0,
             bump: data[83],
-            _pad: data[84..96].try_into().ok()?,
+            rolling_window_secs: u32::from_le_bytes(data[84..88].try_into().ok()?),
+            _pad: data[88..96].try_into().ok()?,
         })
     }
 }
@@ -360,6 +436,7 @@ const fn assert_layout() {
     assert!(core::mem::size_of::<CreditLine>() == CREDIT_LINE_LEN);
     assert!(core::mem::size_of::<Policy>() == POLICY_LEN);
     assert!(core::mem::size_of::<PolicyAcl>() == POLICY_ACL_LEN);
+    assert!(core::mem::size_of::<LineUsage>() == LINE_USAGE_LEN);
     assert!(core::mem::size_of::<AuditRecord>() == AUDIT_RECORD_LEN);
 }
 

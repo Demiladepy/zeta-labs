@@ -67,10 +67,12 @@ test("decodes frozen CreditLine and Policy layouts", () => {
   policyView.setUint16(80, 0, true);
   policyData[82] = 1;
   policyData[83] = 3;
+  policyView.setUint32(84, 3600, true);
   const policy = decodePolicy(policyData);
   assert.equal(policy.seed, 9n);
   assert.equal(policy.expiresAt, -1n);
   assert.equal(policy.revoked, true);
+  assert.equal(policy.rollingWindowSecs, 3600);
 });
 
 test("decodes AuditRecord and rejects contradictory flags", () => {

@@ -5,7 +5,7 @@
 
 use crate::instructions::{
     CreditVaultIx, DrawArgs, EvaluateArgs, OpenLineArgs, PolicyRegistryIx, RegisterPolicyArgs,
-    RepayArgs, SetAclArgs,
+    RepayArgs, SetAclArgs, SetCapsArgs,
 };
 use crate::paykit::OpenAccountMeta;
 
@@ -111,6 +111,20 @@ pub fn build_set_acl(
             meta(SYSTEM_PROGRAM_ID, false, false),
         ],
         data: PolicyRegistryIx::SetAcl(args).encode(),
+    }
+}
+
+/// Accounts: `[issuer (s), policy (w)]`
+pub fn build_set_caps(
+    program_id: [u8; 32],
+    issuer: [u8; 32],
+    policy: [u8; 32],
+    args: SetCapsArgs,
+) -> IxShell {
+    IxShell {
+        program_id,
+        accounts: vec![meta(issuer, true, false), meta(policy, false, true)],
+        data: PolicyRegistryIx::SetCaps(args).encode(),
     }
 }
 

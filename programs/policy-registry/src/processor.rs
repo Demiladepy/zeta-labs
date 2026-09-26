@@ -88,6 +88,7 @@ pub fn process_instruction(
         PolicyRegistryIx::Evaluate(args) => process_evaluate(program_id, accounts, args),
         PolicyRegistryIx::Revoke => process_revoke(accounts),
         PolicyRegistryIx::SetAcl(args) => process_set_acl(program_id, accounts, args),
+        PolicyRegistryIx::SetCaps(args) => process_set_caps(accounts, args),
     }
 }
 
@@ -144,7 +145,6 @@ fn process_evaluate(
     let line_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let agent_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let clock_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
-    let acl_ai = next_account_info(iter).ok();
 
     if *clock_ai.key != solana_program::sysvar::clock::id() {
         return Err(err(ERR_CLOCK));
@@ -155,6 +155,18 @@ fn process_evaluate(
 
     let policy = Policy::unpack(&policy_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
     let (slot, now_unix) = read_clock(&clock_ai.try_borrow_data()?)?;
+
+    let acl_ai = if policy.acl_version != 0 {
+        Some(next_account_info(iter).map_err(|_| err(ERR_ACL))?)
+    } else {
+        None
+    };
+    let usage_ai = if policy.rolling_cap != 0 {
+        Some(next_account_info(iter).map_err(|_| err(ERR_ACL))?)
+    } else {
+        None
+    };
+
     let acl_allows = resolve_acl_allows(
         &policy,
         policy_ai.key,
@@ -163,6 +175,27 @@ fn process_evaluate(
         args.recipient,
         args.category,
     )?;
+
+    let (line_drawn, line_reserved) = if policy.total_cap != 0 {
+        let line = zeta_interface::CreditLine::unpack(&line_ai.try_borrow_data()?)
+            .ok_or(err(ERR_INIT))?;
+        (line.drawn, line.reserved)
+    } else {
+        (0, 0)
+    };
+
+    let (rolling_spent, window_start) = if policy.rolling_cap != 0 {
+        let usage_ai = usage_ai.ok_or_else(|| err(ERR_ACL))?;
+        let usage = zeta_interface::LineUsage::unpack(&usage_ai.try_borrow_data()?)
+            .ok_or(err(ERR_ACL))?;
+        if usage.line != pubkey_bytes(line_ai.key) {
+            return Err(err(ERR_ACL));
+        }
+        (usage.rolling_spent, usage.window_start)
+    } else {
+        (0, 0)
+    };
+
     let (denial, audit) = evaluate_at(
         &policy,
         pubkey_bytes(policy_ai.key),
@@ -172,6 +205,10 @@ fn process_evaluate(
         now_unix,
         slot,
         acl_allows,
+        line_drawn,
+        line_reserved,
+        rolling_spent,
+        window_start,
     );
     emit_audit(&audit);
     set_return_data(&[denial.as_u8()]);
@@ -180,6 +217,34 @@ fn process_evaluate(
     } else {
         Err(ProgramError::Custom(denial.program_error_code()))
     }
+}
+
+fn process_set_caps(
+    accounts: &[AccountInfo],
+    args: zeta_interface::SetCapsArgs,
+) -> ProgramResult {
+    let iter = &mut accounts.iter();
+    let issuer = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    let policy_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    if !issuer.is_signer {
+        return Err(from_policy(PolicyError::Unauthorized));
+    }
+    if !policy_ai.is_writable {
+        return Err(err(ERR_ACCOUNTS));
+    }
+    if args.rolling_cap != 0 && args.rolling_window_secs == 0 {
+        return Err(from_policy(PolicyError::InvalidCap));
+    }
+    let mut data = policy_ai.try_borrow_mut_data()?;
+    let mut policy = Policy::unpack(&data).ok_or(err(ERR_INIT))?;
+    if pubkey_bytes(issuer.key) != policy.issuer {
+        return Err(from_policy(PolicyError::Unauthorized));
+    }
+    policy.rolling_cap = args.rolling_cap;
+    policy.total_cap = args.total_cap;
+    policy.rolling_window_secs = args.rolling_window_secs;
+    data[..POLICY_LEN].copy_from_slice(&policy.pack());
+    Ok(())
 }
 
 fn process_set_acl(

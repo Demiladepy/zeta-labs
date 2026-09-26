@@ -7,12 +7,14 @@ import {
   AUDIT_RECORD_LEN,
   CREDIT_LINE_LEN,
   Denial,
+  LINE_USAGE_LEN,
   POLICY_ACL_LEN,
   POLICY_ACL_MAX_RECIPIENTS,
   POLICY_LEN,
   POOL_LEN,
   type AuditRecord,
   type CreditLine,
+  type LineUsage,
   type Policy,
   type PolicyAcl,
   type Pool,
@@ -104,6 +106,7 @@ export function decodePolicy(data: Uint8Array): Policy {
     aclVersion: view.getUint16(80, true),
     revoked: bool("Policy.revoked", view.getUint8(82)),
     bump: view.getUint8(83),
+    rollingWindowSecs: view.getUint32(84, true),
   };
 }
 
@@ -124,6 +127,17 @@ export function decodePolicyAcl(data: Uint8Array): PolicyAcl {
     recipientCount,
     bump: view.getUint8(45),
     recipients,
+  };
+}
+
+export function decodeLineUsage(data: Uint8Array): LineUsage {
+  const view = viewFor("LineUsage", data, LINE_USAGE_LEN);
+  return {
+    discriminator: discriminator("LineUsage", view, ACCOUNT_DISCRIMINATOR.lineUsage),
+    line: bytes(data, 8, 40),
+    windowStart: view.getBigInt64(40, true),
+    rollingSpent: view.getBigUint64(48, true),
+    bump: view.getUint8(56),
   };
 }
 

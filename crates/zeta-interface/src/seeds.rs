@@ -2,6 +2,7 @@ pub const POOL_SEED: &[u8] = b"pool";
 pub const LINE_SEED: &[u8] = b"line";
 pub const POLICY_SEED: &[u8] = b"policy";
 pub const ACL_SEED: &[u8] = b"acl";
+pub const USAGE_SEED: &[u8] = b"usage";
 
 /// `["pool", authority, mint]`
 pub fn pool_seeds<'a>(authority: &'a [u8; 32], mint: &'a [u8; 32]) -> [&'a [u8]; 3] {
@@ -21,6 +22,11 @@ pub fn policy_seeds<'a>(issuer: &'a [u8; 32], seed: &'a [u8; 8]) -> [&'a [u8]; 3
 /// `["acl", policy]`
 pub fn acl_seeds<'a>(policy: &'a [u8; 32]) -> [&'a [u8]; 2] {
     [ACL_SEED, policy.as_slice()]
+}
+
+/// `["usage", line]` — Credit Vault owned rolling meter.
+pub fn usage_seeds<'a>(line: &'a [u8; 32]) -> [&'a [u8]; 2] {
+    [USAGE_SEED, line.as_slice()]
 }
 
 pub const CHANNEL_SEED: &[u8] = b"channel";

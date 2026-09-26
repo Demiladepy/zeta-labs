@@ -10,6 +10,7 @@ export const ACCOUNT_ORDER = {
   evaluateWithAcl: ["policy", "line", "agent", "clock", "acl"] as const,
   revoke: ["issuer(s)", "policy(w)"] as const,
   setAcl: ["issuer(s,w)", "policy(w)", "aclPda(w)", "systemProgram"] as const,
+  setCaps: ["issuer(s)", "policy(w)"] as const,
   createPool: ["authority(s,w)", "mint", "poolPda(w)", "vaultAta", "systemProgram"] as const,
   deposit: ["authority(s)", "pool(w)"] as const,
   depositWithTransfer: [
@@ -40,6 +41,8 @@ export const ACCOUNT_ORDER = {
     "clock",
     "acl",
   ] as const,
+  /** When rolling_cap != 0: usage (w) after acl/clock; optional system for first create. */
+  drawWithUsageTail: ["usage(w)", "systemProgram?"] as const,
   /** After draw core: channelsProgram + 14 Payment Channels open accounts. */
   drawWithChannelOpenTail: ["channelsProgram", "...open[14]"] as const,
   repay: ["signer(s)", "pool(w)", "line(w)"] as const,
@@ -50,5 +53,6 @@ export const PDA_ALLOC = {
   pool: 128,
   policy: 96,
   policyAcl: 304,
+  lineUsage: 64,
   line: 136,
 } as const;

@@ -23,14 +23,15 @@ pool PDA    = findProgramAddress(["pool",   authority_pubkey, mint_pubkey],     
 line PDA    = findProgramAddress(["line",   pool_pubkey,      agent_pubkey],          CREDIT_VAULT)
 policy PDA  = findProgramAddress(["policy", issuer_pubkey,    seed_u64_le_8_bytes],   POLICY_REGISTRY)
 acl PDA     = findProgramAddress(["acl",    policy_pubkey],                           POLICY_REGISTRY)
+usage PDA   = findProgramAddress(["usage",  line_pubkey],                             CREDIT_VAULT)
 channel PDA = findProgramAddress(
                 ["channel", payer, payee, mint, authorized_signer, salt_u64_le, open_slot_u64_le],
                 PAYMENT_CHANNELS
               )
 ```
 
-SDK helpers: `findPoolPda`, `findLinePda`, `findPolicyPda`, `findAclPda` in
-`packages/sdk/src/instructions.ts`.
+SDK helpers: `findPoolPda`, `findLinePda`, `findPolicyPda`, `findAclPda`,
+`findUsagePda` in `packages/sdk/src/instructions.ts`.
 
 ## Spaces (exact data lengths)
 
@@ -39,6 +40,7 @@ SDK helpers: `findPoolPda`, `findLinePda`, `findPolicyPda`, `findAclPda` in
 | pool | 128 |
 | policy | 96 |
 | policy ACL | 304 |
+| line usage | 64 |
 | line | 136 |
 
 ## Init account order (trailing SystemProgram = provision path)

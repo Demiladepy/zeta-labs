@@ -86,6 +86,7 @@ export function decodePolicy(data: Uint8Array): Policy {
     aclVersion: view.getUint16(80, true),
     revoked: data[82] !== 0,
     bump: data[83]!,
+    rollingWindowSecs: view.getUint32(84, true),
   };
 }
 
@@ -164,5 +165,6 @@ export function packPolicy(p: Policy): Uint8Array {
   view.setUint16(80, p.aclVersion, true);
   out[82] = p.revoked ? 1 : 0;
   out[83] = p.bump;
+  view.setUint32(84, p.rollingWindowSecs >>> 0, true);
   return out;
 }
