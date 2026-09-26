@@ -12,6 +12,8 @@ pub const ACCOUNT_DISCRIMINATOR_LINE_USAGE: u64 = 0x5A455441_55534147;
 
 /// `8 + 32 + 32 + 32 + 8 + 8 + 1 + 7 pad = 128`
 pub const POOL_LEN: usize = 128;
+/// `Pool._pad[0]`: set while Payment Channels CPI is in flight (reentrancy lock).
+pub const POOL_REENTRANCY_LOCK: u8 = 1;
 /// `8 + 32 + 32 + 32 + 8 + 8 + 8 + 1 + 7 pad = 136`
 pub const CREDIT_LINE_LEN: usize = 136;
 /// 96-byte policy. P5: `rolling_window_secs` at bytes 84–87 (was pad).
@@ -34,7 +36,20 @@ pub struct Pool {
     pub deposited: u64,
     pub outstanding: u64,
     pub bump: u8,
+    /// `_pad[0]` = reentrancy lock (`POOL_REENTRANCY_LOCK` while draw CPI runs).
     pub _pad: [u8; 7],
+}
+
+impl Pool {
+    #[inline]
+    pub const fn reentrancy_locked(&self) -> bool {
+        self._pad[0] == POOL_REENTRANCY_LOCK
+    }
+
+    #[inline]
+    pub fn set_reentrancy_lock(&mut self, locked: bool) {
+        self._pad[0] = if locked { POOL_REENTRANCY_LOCK } else { 0 };
+    }
 }
 
 #[repr(C)]

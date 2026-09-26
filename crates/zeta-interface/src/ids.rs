@@ -4,6 +4,12 @@
 /// Base58 of the live Payment Channels program.
 pub const PAYMENT_CHANNELS_ID_STR: &str = "CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX";
 
+/// Bytes for `CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX`.
+pub const PAYMENT_CHANNELS_ID: [u8; 32] = [
+    167, 161, 251, 164, 235, 43, 9, 9, 147, 247, 210, 223, 214, 43, 137, 226, 184, 114, 7, 122, 99,
+    159, 215, 215, 71, 168, 233, 159, 99, 212, 21, 174,
+];
+
 /// From `.keys/policy-registry-keypair.json` — live on Devnet.
 pub const POLICY_REGISTRY_ID_STR: &str = "G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk";
 

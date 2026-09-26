@@ -13,6 +13,8 @@ Day-1 host state machines are **real Solana programs** on Devnet
 - **Underwriting v1** — tightness LTV (bps) on `open_line`; Clock required; deny → `UnderwritingDenied` (custom `6`); no new accounts / no INTERFACE bump
 - **LiteSVM harness** — `programs/litesvm-harness` loads both `.so` files; allow + deny underwriting path
 - **Audit hardening** — Clock sysvar key check; policy owner = Policy Registry on vault `open_line`/`draw`; repay requires `line.pool == pool`
+- **Hot-path harden** — `Pool._pad[0]` reentrancy lock around Payment Channels CPI (custom `7`); Channels program-id check; rolling/total overflow → deny; window boundary tests
+- **Revoke story** — revoke kills new spend immediately; in-flight `reserved` clears only via `repay` (no clawback)
 - **Program-side PDA provision** — `ensure_pda_account` + trailing `SystemProgram` (`docs/PDA.md`)
 - `draw` order: evaluate → audit → (deny: no write) → reserve → update usage → encode Payment Channels `open` → optional CPI
 - `crates/zeta-interface` — layouts, codecs, builders, pay-kit open encoding
@@ -25,12 +27,12 @@ Day-1 host state machines are **real Solana programs** on Devnet
 | Policy Registry | `G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk` |
 | Credit Vault | `4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi` |
 
-See `docs/PROGRAM_IDS.md` (upgraded 2026-09-26 with v3 + Underwriting v1).
+See `docs/PROGRAM_IDS.md` (upgraded 2026-09-26 — harden pass). Fair txs: `docs/PROOF.md`.
 
 ## What is next (Demilade)
 
-1. Keep STATUS honest as Anurag/Joshna consume `INTERFACE_VERSION` = 3 + Clock on `open_line`.
-2. Optional: Swig / formal LTL — not Phase 1.
+1. Keep STATUS / PROOF honest through Fair submit (12 Oct 2026).
+2. Do not claim Swig or production x402 until STATUS moves them to Done.
 
 ## Commands
 

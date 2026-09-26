@@ -245,7 +245,7 @@ fn seven_step_demo_path_processors() {
         assert_eq!(Pool::unpack(&pool_data).unwrap().outstanding, 400);
     }
 
-    // 7. revoke → next draw denied
+    // 7. compromised-key / revoke: next draw denied; in-flight reserved intact until repay
     {
         let mut l0 = 1u64;
         let mut l1 = 1u64;
@@ -297,7 +297,9 @@ fn seven_step_demo_path_processors() {
             err,
             ProgramError::Custom(Denial::Revoked.program_error_code())
         );
+        // In-flight reservation survives revoke; lender recovers via repay after settle.
         assert_eq!(CreditLine::unpack(&line_data).unwrap().reserved, 400);
+        assert_eq!(Pool::unpack(&pool_data).unwrap().outstanding, 400);
     }
 
     // repay the allowed draw

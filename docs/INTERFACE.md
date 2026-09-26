@@ -75,11 +75,17 @@ See `crates/zeta-interface/src/accounts.rs`.
 ### `Pool` — seeds `["pool", authority, mint]`
 
 `authority` (lender), `mint`, `vault_ata`, `deposited`, `outstanding`, `bump`.
+`_pad[0]` is the **reentrancy lock** (`1` while Payment Channels CPI is in
+flight on `draw`; mutators refuse with custom error `7` = `Reentrancy` when set).
 
 `outstanding` is **in-flight channel deposits only** (sum of `line.reserved`).
 `deposited` drops by `settled` on `repay`. Unused reservation returns to
 the pool ATA and leaves `outstanding`. Lifetime spend lives on
 `CreditLine.drawn`.
+
+**Revoke vs in-flight:** `revoke` immediately fails new `evaluate` / `draw` /
+`open_line`. It does **not** clear `line.reserved` or open channels — those
+settle via normal `repay` after `distribute`. No on-chain clawback.
 
 ### `CreditLine` — seeds `["line", pool, agent]`
 
@@ -210,7 +216,7 @@ on already-owned accounts.
 
 **Vault `open_line`** — `0` authority (signer, writable) · `1` pool · `2` policy · `3` agent · `4` line PDA (writable) · `5` system program · `6` clock. Underwriting v1: LTV from policy tightness vs free pool liquidity; revoked/expired refuse; custom error `6` = `UnderwritingDenied`.
 
-**Vault `draw`** — `0` agent (signer) · `1` pool (writable) · `2` line (writable) · `3` policy · `4` payee · `5` rent_payer (signer) · `6` clock · optional `acl` (when `acl_version != 0`) · optional `usage` writable + system (when `rolling_cap != 0`). Optional CPI: next account is Payment Channels program + the 14 `open` accounts below. Trailing ix bytes after the 30-byte draw header are the distribution preimage.
+**Vault `draw`** — `0` agent (signer) · `1` pool (writable) · `2` line (writable) · `3` policy · `4` payee · `5` rent_payer (signer) · `6` clock · optional `acl` (when `acl_version != 0`) · optional `usage` writable + system (when `rolling_cap != 0`). Optional CPI: next account **must** be Payment Channels program id + the 14 `open` accounts below. Pool reentrancy lock is set around the CPI (custom `7` if nested vault entry). Trailing ix bytes after the 30-byte draw header are the distribution preimage.
 
 **Vault `repay`** — `0` signer (agent or pool authority) · `1` pool (writable) · `2` line (writable)
 

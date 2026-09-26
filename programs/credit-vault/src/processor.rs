@@ -74,7 +74,20 @@ fn from_vault(e: VaultError) -> ProgramError {
         VaultError::BadRepay => err(4),
         VaultError::DrawSpec(_) => err(5),
         VaultError::UnderwritingDenied => err(6),
+        VaultError::Reentrancy => err(7),
     }
+}
+
+fn require_unlocked(pool: &Pool) -> Result<(), ProgramError> {
+    if pool.reentrancy_locked() {
+        Err(from_vault(VaultError::Reentrancy))
+    } else {
+        Ok(())
+    }
+}
+
+fn payment_channels_id() -> Pubkey {
+    Pubkey::new_from_array(ids::PAYMENT_CHANNELS_ID)
 }
 
 fn pubkey_bytes(key: &Pubkey) -> [u8; 32] {
@@ -149,6 +162,7 @@ fn process_deposit(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         return Err(from_vault(VaultError::Unauthorized));
     }
     let mut pool = Pool::unpack(&pool_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
+    require_unlocked(&pool)?;
     deposit(&mut pool, pubkey_bytes(authority.key), amount).map_err(from_vault)?;
 
     if accounts.len() >= 5 {
@@ -200,6 +214,7 @@ fn process_open_line(
         return Err(err(ERR_CLOCK));
     }
     let pool = Pool::unpack(&pool_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
+    require_unlocked(&pool)?;
     if pubkey_bytes(authority.key) != pool.authority {
         return Err(from_vault(VaultError::Unauthorized));
     }
@@ -295,6 +310,7 @@ fn process_draw(
 
     let policy = Policy::unpack(&policy_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
     let mut pool = Pool::unpack(&pool_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
+    require_unlocked(&pool)?;
     let mut line = CreditLine::unpack(&line_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
     if pubkey_bytes(agent.key) != line.agent {
         return Err(from_vault(VaultError::Unauthorized));
@@ -424,7 +440,11 @@ fn process_draw(
 
     let rest: Vec<&AccountInfo> = iter.collect();
     if rest.len() >= 1 + PAYMENT_CHANNELS_OPEN_ACCOUNT_COUNT {
+        pool.set_reentrancy_lock(true);
+        pool_ai.try_borrow_mut_data()?[..POOL_LEN].copy_from_slice(&pool.pack());
         invoke_open_cpi(program_id, pool_ai, &pool, &spec, extra, &rest)?;
+        pool.set_reentrancy_lock(false);
+        pool_ai.try_borrow_mut_data()?[..POOL_LEN].copy_from_slice(&pool.pack());
     }
 
     Ok(())
@@ -439,6 +459,9 @@ fn invoke_open_cpi(
     rest: &[&AccountInfo],
 ) -> ProgramResult {
     let channels_program = rest[0];
+    if channels_program.key != &payment_channels_id() {
+        return Err(err(ERR_MISMATCH));
+    }
     let open_ais = &rest[1..1 + PAYMENT_CHANNELS_OPEN_ACCOUNT_COUNT];
     let accounts = PaymentChannelsOpenAccounts::from_spec(
         spec,
@@ -491,6 +514,7 @@ fn process_repay(accounts: &[AccountInfo], args: RepayArgs) -> ProgramResult {
         return Err(from_vault(VaultError::Unauthorized));
     }
     let mut pool = Pool::unpack(&pool_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
+    require_unlocked(&pool)?;
     let mut line = CreditLine::unpack(&line_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
     if line.pool != pubkey_bytes(pool_ai.key) {
         return Err(err(ERR_MISMATCH));
@@ -835,5 +859,27 @@ mod tests {
         assert_eq!(line.reserved, 0);
         assert_eq!(pool.outstanding, 0);
         assert_eq!(pool.deposited, 9_880);
+    }
+
+    #[test]
+    fn processor_rejects_reentrancy_lock() {
+        let mut h = harness(0, false, 500, 2_000);
+        h.pool.set_reentrancy_lock(true);
+        let err = run_draw(
+            &mut h,
+            DrawArgs {
+                amount: 100,
+                salt: 1,
+                grace_period: 60,
+                open_slot: 10,
+                category: 0,
+            },
+            10,
+            1,
+        )
+        .unwrap_err();
+        assert_eq!(err, ProgramError::Custom(7));
+        assert_eq!(h.line.reserved, 0);
+        assert!(h.pool.reentrancy_locked());
     }
 }

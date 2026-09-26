@@ -10,8 +10,11 @@ Do not claim anything in the "Not done" column in demos, Builder Feed, or the su
 | PolicyAcl + `set_acl` + evaluate P4 | Demilade | `NotAllowlisted` (106); ACL allow/deny host tests |
 | `set_caps` + LineUsage + evaluate P5 | Demilade | `RollingCap` (104) / `TotalCap` (105); host e2e |
 | Underwriting v1 on `open_line` | Demilade | LTV from policy tightness; custom error `6`; host + LiteSVM |
+| Hot-path reentrancy lock | Demilade | `Pool._pad[0]` around Channels CPI; custom `7`; Payment Channels id check |
+| Windowed-cap edge tests | Demilade | boundary / overflow / mid-window `set_caps` in `invariants.rs` |
 | LiteSVM BPF harness | Demilade | `programs/litesvm-harness` — load `.so`, underwriting allow/deny |
-| Policy Registry + Credit Vault on Devnet | Demilade | `docs/PROGRAM_IDS.md` — upgraded 2026-09-26 (v3 + Underwriting v1) |
+| Policy Registry + Credit Vault on Devnet | Demilade | `docs/PROGRAM_IDS.md` — upgraded 2026-09-26 (harden pass) |
+| Fair Explorer proof set | Demilade | `docs/PROOF.md` — happy draw + deny + revoke |
 | PDA program-side provision | Demilade | `docs/PDA.md` — trailing SystemProgram on init ixs |
 | Deny does not reserve | Demilade | processor + seven-step host e2e (+ ACL/caps/underwriting deny) |
 | Payment Channels `open` encoding | Demilade + Anurag | `encode_payment_channels_open` + pay-kit wire |
@@ -31,4 +34,4 @@ Do not claim anything in the "Not done" column in demos, Builder Feed, or the su
 
 ## Verdict
 
-Phase 1 spine + P4 + P5 + Underwriting v1 + LiteSVM harness are in-repo. Hackathon final submit is **12 Oct 2026**.
+Phase 1 spine + P4 + P5 + Underwriting v1 + hot-path harden + LiteSVM + Fair PROOF.md are in-repo. Hackathon final submit is **12 Oct 2026**.

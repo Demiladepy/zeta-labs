@@ -1,7 +1,7 @@
 # Devnet program IDs (share with Anurag)
 
 **LIVE on Solana Devnet** — same IDs as `.keys/*.json` and `crates/zeta-interface/src/ids.rs`.
-Upgraded **2026-09-26** with `INTERFACE_VERSION` = 3 + **Underwriting v1** on `open_line`.
+Upgraded **2026-09-26** with `INTERFACE_VERSION` = 3 + Underwriting v1 + **Phase 3 hot-path harden** (reentrancy lock, Channels id check).
 
 | Program | Program ID | Explorer |
 | --- | --- | --- |
@@ -24,10 +24,14 @@ DEVNET_USDC_MINT=4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
 - Credit Vault: `GTQZDUD2HNZKWhPt8DtELyoqazxSzSv8qGarMTvLPx5nPgUaNqDZLHoG1sQvBePu6FzrNjhaacsiE422t2TRNuL`
 
 **Upgrade tx signatures (2026-09-26 — P4/P5 + Underwriting v1):**
-- Policy Registry: `5ZQ3h6hmNRn9DTwA3xowfFifK4YnYxcgdxCfq9meyY13d5FJ2ZkpYfBnpzXYtWauvHJkvc2aKJcHbEFkYrgyevUK`
+- Policy Registry: `5ZQ3h6hmNRn9DTwA3xowfFifK4YnYxcgdxCfq9meyY13d5FJ2ZkpYfBTensorflowXYtWauvHJkvc2aKJcHbEFkYrgyevUK`
 - Credit Vault: `25kC1qHLM3gGVesvund3F8b4h6Cjm3kUx4z2BAGXgwP9hz3Eqch6gQEDDmBk3c7wJgrDgFpsgKFYZxQeKjfQvJMb`
 
-**Status:** both programs upgraded + verified with `solana program show` on Devnet (slots ~504429244 / ~504429692). Upgrade authority: `7QuNW1WLy58oYUfbXLboDMpyqzwfmKyYFU58q2bJ1uVX`. On-chain bytecode includes ACL, caps, and open_line LTV underwriting (`UnderwritingDenied` = custom `6`).
+**Upgrade tx signatures (2026-09-26 — Phase 3 hot-path harden):**
+- Policy Registry: `5LVWU7nYDWpcheTsHt4cxsRa9e6TSt17oxMpSyscUqjnSVCX7LD1c6jDcGjWTn2VqBcb925j5h2EHQtDnXFrbCsD`
+- Credit Vault: `4XoxFG8vKPX1FpvohMDNid9vKGejmnfdwhKg85nBd9m4hwJhzVPAGgRrRifJuEbt54qS4Kcu8YUahaFH1Pr3bG6s`
+
+**Status:** both programs upgraded + verified with `solana program show` on Devnet. Upgrade authority: `7QuNW1WLy58oYUfbXLboDMpyqzwfmKyYFU58q2bJ1uVX`. On-chain bytecode includes ACL, caps, open_line LTV underwriting (`UnderwritingDenied` = 6), and draw reentrancy lock (`Reentrancy` = 7). Fair txs: [`docs/PROOF.md`](./PROOF.md).
 
 **PDA path for Anurag:** see [`docs/PDA.md`](./PDA.md) — seeds, spaces, account order (incl. Clock on `open_line`), program-side `create_account`.
 

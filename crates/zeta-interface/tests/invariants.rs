@@ -140,34 +140,112 @@ fn evaluate_acl_gated_by_acl_version() {
     assert_eq!(evaluate(&p_acl, a), Denial::Allow);
 }
 
-#[test]
-fn evaluate_p5_total_and_rolling_caps() {
-    let mut p = policy(1_000, 0, false);
-    p.total_cap = 500;
-    let mut a = input(200, 1);
-    a.line_drawn = 200;
-    a.line_reserved = 100;
-    assert_eq!(evaluate(&p, a), Denial::Allow); // 300+200=500
-    a.amount = 201;
-    assert_eq!(evaluate(&p, a), Denial::TotalCap);
+    #[test]
+    fn evaluate_p5_total_and_rolling_caps() {
+        let mut p = policy(1_000, 0, false);
+        p.total_cap = 500;
+        let mut a = input(200, 1);
+        a.line_drawn = 200;
+        a.line_reserved = 100;
+        assert_eq!(evaluate(&p, a), Denial::Allow); // 300+200=500
+        a.amount = 201;
+        assert_eq!(evaluate(&p, a), Denial::TotalCap);
 
-    let mut r = policy(1_000, 0, false);
-    r.rolling_cap = 300;
-    r.rolling_window_secs = 3_600;
-    let mut b = input(100, 1_000);
-    b.rolling_spent = 250;
-    b.window_start = 500; // still in window
-    assert_eq!(evaluate(&r, b), Denial::RollingCap); // 250+100 > 300
-    b.amount = 50;
-    assert_eq!(evaluate(&r, b), Denial::Allow); // 250+50 = 300
-    // window elapsed → spent resets
-    b.amount = 300;
-    b.now_unix = 500 + 3_600;
-    assert_eq!(evaluate(&r, b), Denial::Allow);
-}
+        let mut r = policy(1_000, 0, false);
+        r.rolling_cap = 300;
+        r.rolling_window_secs = 3_600;
+        let mut b = input(100, 1_000);
+        b.rolling_spent = 250;
+        b.window_start = 500; // still in window
+        assert_eq!(evaluate(&r, b), Denial::RollingCap); // 250+100 > 300
+        b.amount = 50;
+        assert_eq!(evaluate(&r, b), Denial::Allow); // 250+50 = 300
+        // window elapsed → spent resets
+        b.amount = 300;
+        b.now_unix = 500 + 3_600;
+        assert_eq!(evaluate(&r, b), Denial::Allow);
+    }
 
-#[test]
-fn ordered_checks_expiry_before_cap() {
+    #[test]
+    fn rolling_window_exact_boundary() {
+        let mut r = policy(1_000, 0, false);
+        r.rolling_cap = 100;
+        r.rolling_window_secs = 60;
+        let mut b = input(100, 1_059);
+        b.rolling_spent = 100;
+        b.window_start = 1_000;
+        // still inside window (59 < 60)
+        assert_eq!(evaluate(&r, b), Denial::RollingCap);
+        // exact boundary resets
+        b.now_unix = 1_060;
+        assert_eq!(evaluate(&r, b), Denial::Allow);
+    }
+
+    #[test]
+    fn rolling_cap_requires_nonzero_window() {
+        let mut r = policy(1_000, 0, false);
+        r.rolling_cap = 100;
+        r.rolling_window_secs = 0;
+        assert_eq!(evaluate(&r, input(1, 1)), Denial::RollingCap);
+    }
+
+    #[test]
+    fn total_and_rolling_overflow_deny() {
+        let mut t = policy(u64::MAX, 0, false);
+        t.total_cap = u64::MAX;
+        let mut a = input(1, 1);
+        a.line_drawn = u64::MAX;
+        a.line_reserved = 0;
+        assert_eq!(evaluate(&t, a), Denial::TotalCap);
+        a.line_drawn = u64::MAX / 2 + 1;
+        a.line_reserved = u64::MAX / 2 + 1;
+        a.amount = 1;
+        assert_eq!(evaluate(&t, a), Denial::TotalCap);
+
+        let mut r = policy(u64::MAX, 0, false);
+        r.rolling_cap = u64::MAX;
+        r.rolling_window_secs = 60;
+        let mut b = input(1, 10);
+        b.rolling_spent = u64::MAX;
+        b.window_start = 1;
+        assert_eq!(evaluate(&r, b), Denial::RollingCap);
+    }
+
+    #[test]
+    fn line_usage_boundary_apply_draw() {
+        use zeta_interface::{LineUsage, ACCOUNT_DISCRIMINATOR_LINE_USAGE};
+        let mut u = LineUsage {
+            discriminator: ACCOUNT_DISCRIMINATOR_LINE_USAGE,
+            line: [1; 32],
+            window_start: 1_000,
+            rolling_spent: 40,
+            bump: 1,
+            _pad: [0; 7],
+        };
+        assert_eq!(u.effective_spent(1_059, 60), 40);
+        assert_eq!(u.effective_spent(1_060, 60), 0);
+        u.apply_draw(10, 1_060, 60);
+        assert_eq!(u.window_start, 1_060);
+        assert_eq!(u.rolling_spent, 10);
+    }
+
+    #[test]
+    fn mid_window_set_caps_uses_new_window_length() {
+        // After set_caps shortens the window, the same window_start can already
+        // be "elapsed" under the new length — tumbling resets (documented).
+        let mut r = policy(1_000, 0, false);
+        r.rolling_cap = 100;
+        r.rolling_window_secs = 3_600;
+        let mut b = input(100, 2_000);
+        b.rolling_spent = 90;
+        b.window_start = 1_000;
+        assert_eq!(evaluate(&r, b), Denial::RollingCap); // still in 3600s window
+        r.rolling_window_secs = 500; // issuer shortened mid-flight
+        assert_eq!(evaluate(&r, b), Denial::Allow); // 2000-1000 >= 500 → reset
+    }
+
+    #[test]
+    fn ordered_checks_expiry_before_cap() {
     let p = policy(1, 10, false);
     assert_eq!(evaluate(&p, input(99, 10)), Denial::Expired);
 }

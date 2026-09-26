@@ -19,6 +19,8 @@ pub enum VaultError {
     DrawSpec(DrawSpecError),
     /// Policy too loose / expired / revoked for the requested line limit.
     UnderwritingDenied,
+    /// Pool reentrancy lock set (nested vault entry during draw CPI).
+    Reentrancy,
 }
 
 /// Underwriting v1: base 25% LTV; policy controls raise the haircut ceiling.

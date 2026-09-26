@@ -49,14 +49,18 @@ pub fn evaluate(policy: &Policy, input: EvaluateInput) -> Denial {
         } else {
             input.rolling_spent
         };
-        if effective.saturating_add(input.amount) > policy.rolling_cap {
-            return Denial::RollingCap;
+        match effective.checked_add(input.amount) {
+            Some(next) if next <= policy.rolling_cap => {}
+            _ => return Denial::RollingCap,
         }
     }
     if policy.total_cap != 0 {
-        let used = input.line_drawn.saturating_add(input.line_reserved);
-        if used.saturating_add(input.amount) > policy.total_cap {
+        let Some(used) = input.line_drawn.checked_add(input.line_reserved) else {
             return Denial::TotalCap;
+        };
+        match used.checked_add(input.amount) {
+            Some(next) if next <= policy.total_cap => {}
+            _ => return Denial::TotalCap,
         }
     }
     if policy.acl_version != 0 {
