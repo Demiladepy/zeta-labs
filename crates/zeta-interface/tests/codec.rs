@@ -119,6 +119,7 @@ fn instruction_codecs_roundtrip() {
         salt: 11,
         grace_period: 60,
         open_slot: 99,
+        category: 0,
     });
     let encoded = CreditVaultIx::encode_draw(
         DrawArgs {
@@ -126,6 +127,7 @@ fn instruction_codecs_roundtrip() {
             salt: 11,
             grace_period: 60,
             open_slot: 99,
+            category: 0,
         },
         &[0xAB, 0xCD],
     );
@@ -163,6 +165,7 @@ fn payment_channels_open_is_real_shaped() {
             salt: 7,
             grace_period: 900,
             open_slot: 42,
+            category: 0,
         },
     )
     .unwrap();

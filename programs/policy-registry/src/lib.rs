@@ -1,7 +1,7 @@
 //! Policy Registry v1. On-chain entrypoint lands on this state machine.
 #![allow(unexpected_cfgs)]
 //!
-//! Instructions: `register_policy`, `evaluate`, `revoke`.
+//! Instructions: `register_policy`, `evaluate`, `revoke`, `set_acl`.
 
 use zeta_interface::{
     evaluate as eval, AuditRecord, Denial, EvaluateArgs, EvaluateInput, Policy, RegisterPolicyArgs,
@@ -57,7 +57,7 @@ pub fn evaluate(
     now_unix: i64,
     slot: u64,
 ) -> (Denial, AuditRecord) {
-    evaluate_at(policy, policy.issuer, line, agent, args, now_unix, slot)
+    evaluate_at(policy, policy.issuer, line, agent, args, now_unix, slot, None)
 }
 
 /// On-chain path stamps the policy PDA, not the issuer, into the audit.
@@ -69,6 +69,7 @@ pub fn evaluate_at(
     args: EvaluateArgs,
     now_unix: i64,
     slot: u64,
+    acl_allows: Option<bool>,
 ) -> (Denial, AuditRecord) {
     let denial = eval(
         policy,
@@ -77,6 +78,7 @@ pub fn evaluate_at(
             now_unix,
             recipient: args.recipient,
             category: args.category,
+            acl_allows,
         },
     );
     let audit = AuditRecord::new(policy_key, line, agent, args.amount, denial, slot, now_unix);

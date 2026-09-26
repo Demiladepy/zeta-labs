@@ -5,13 +5,18 @@ use crate::denial::Denial;
 pub const ACCOUNT_DISCRIMINATOR_POOL: u64 = 0x5A455441_504F4F4C; // "ZETA" "POOL"
 pub const ACCOUNT_DISCRIMINATOR_LINE: u64 = 0x5A455441_4C494E45; // "ZETA" "LINE"
 pub const ACCOUNT_DISCRIMINATOR_POLICY: u64 = 0x5A455441_504F4C59; // "ZETA" "POLY"
+/// "ZETA" "PACL"
+pub const ACCOUNT_DISCRIMINATOR_POLICY_ACL: u64 = 0x5A455441_5041434C;
 
 /// `8 + 32 + 32 + 32 + 8 + 8 + 1 + 7 pad = 128`
 pub const POOL_LEN: usize = 128;
 /// `8 + 32 + 32 + 32 + 8 + 8 + 8 + 1 + 7 pad = 136`
 pub const CREDIT_LINE_LEN: usize = 136;
-/// 96-byte reserved layout. Trailing pad is Phase-2 room.
+/// 96-byte policy. Phase-2 named fields occupy 64–81; `_pad[12]` is extra reserve.
 pub const POLICY_LEN: usize = 96;
+/// Sibling ACL PDA: `8 + 32 + 4 + 1 + 1 + 2 + 256 = 304`
+pub const POLICY_ACL_LEN: usize = 304;
+pub const POLICY_ACL_MAX_RECIPIENTS: usize = 8;
 /// Event payload. Includes 6 bytes of alignment pad after the flags.
 pub const AUDIT_RECORD_LEN: usize = 136;
 
@@ -43,7 +48,6 @@ pub struct CreditLine {
 }
 
 impl CreditLine {
-    /// P1: a new draw of `amount` must fit under the unused line.
     pub const fn can_draw(&self, amount: u64) -> bool {
         match self.limit.checked_sub(self.drawn) {
             Some(headroom) => match headroom.checked_sub(self.reserved) {
@@ -62,8 +66,6 @@ impl CreditLine {
         true
     }
 
-    /// After Payment Channels `distribute`. `reserved_this_draw` is the
-    /// ceiling that was locked on `draw`; `settled` is the voucher watermark.
     pub fn repay(&mut self, reserved_this_draw: u64, settled: u64) -> bool {
         if settled > reserved_this_draw || self.reserved < reserved_this_draw {
             return false;
@@ -85,15 +87,80 @@ pub struct Policy {
     pub seed: u64,
     pub per_call_cap: u64,
     pub expires_at: i64,
-    /// Phase 2. `0` = unused.
+    /// Phase 2 / P5. `0` = unused.
     pub rolling_cap: u64,
-    /// Phase 2. `0` = unused.
+    /// Phase 2 / P5. `0` = unused.
     pub total_cap: u64,
-    /// Phase 2 Token ACL version. `0` = unused.
+    /// P4 Token ACL. `0` = ACL off; nonzero requires sibling `PolicyAcl` PDA.
     pub acl_version: u16,
     pub revoked: bool,
     pub bump: u8,
     pub _pad: [u8; 12],
+}
+
+/// Category + recipient allowlist for a policy (`["acl", policy]`).
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PolicyAcl {
+    pub discriminator: u64,
+    pub policy: [u8; 32],
+    pub category_mask: u32,
+    pub recipient_count: u8,
+    pub bump: u8,
+    pub _pad: [u8; 2],
+    pub recipients: [[u8; 32]; POLICY_ACL_MAX_RECIPIENTS],
+}
+
+impl PolicyAcl {
+    pub fn allows(&self, recipient: &[u8; 32], category: u16) -> bool {
+        if category >= 32 {
+            return false;
+        }
+        if self.category_mask & (1u32 << category) == 0 {
+            return false;
+        }
+        let n = (self.recipient_count as usize).min(POLICY_ACL_MAX_RECIPIENTS);
+        self.recipients[..n].iter().any(|r| r == recipient)
+    }
+
+    pub fn pack(&self) -> [u8; POLICY_ACL_LEN] {
+        let mut out = [0u8; POLICY_ACL_LEN];
+        out[0..8].copy_from_slice(&self.discriminator.to_le_bytes());
+        out[8..40].copy_from_slice(&self.policy);
+        out[40..44].copy_from_slice(&self.category_mask.to_le_bytes());
+        out[44] = self.recipient_count;
+        out[45] = self.bump;
+        out[46..48].copy_from_slice(&self._pad);
+        for (i, r) in self.recipients.iter().enumerate() {
+            let start = 48 + i * 32;
+            out[start..start + 32].copy_from_slice(r);
+        }
+        out
+    }
+
+    pub fn unpack(data: &[u8]) -> Option<Self> {
+        if data.len() < POLICY_ACL_LEN {
+            return None;
+        }
+        let discriminator = u64::from_le_bytes(data[0..8].try_into().ok()?);
+        if discriminator != ACCOUNT_DISCRIMINATOR_POLICY_ACL {
+            return None;
+        }
+        let mut recipients = [[0u8; 32]; POLICY_ACL_MAX_RECIPIENTS];
+        for (i, slot) in recipients.iter_mut().enumerate() {
+            let start = 48 + i * 32;
+            *slot = data[start..start + 32].try_into().ok()?;
+        }
+        Some(Self {
+            discriminator,
+            policy: data[8..40].try_into().ok()?,
+            category_mask: u32::from_le_bytes(data[40..44].try_into().ok()?),
+            recipient_count: data[44],
+            bump: data[45],
+            _pad: data[46..48].try_into().ok()?,
+            recipients,
+        })
+    }
 }
 
 #[repr(C)]
@@ -292,6 +359,7 @@ const fn assert_layout() {
     assert!(core::mem::size_of::<Pool>() == POOL_LEN);
     assert!(core::mem::size_of::<CreditLine>() == CREDIT_LINE_LEN);
     assert!(core::mem::size_of::<Policy>() == POLICY_LEN);
+    assert!(core::mem::size_of::<PolicyAcl>() == POLICY_ACL_LEN);
     assert!(core::mem::size_of::<AuditRecord>() == AUDIT_RECORD_LEN);
 }
 

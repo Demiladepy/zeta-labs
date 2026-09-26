@@ -47,6 +47,13 @@ export function findPolicyPda(issuer: PublicKey, seed: bigint, programId = new P
   )[0];
 }
 
+export function findAclPda(policy: PublicKey, programId = new PublicKey(POLICY_REGISTRY_PROGRAM_ID)): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("acl"), policy.toBytes()],
+    programId,
+  )[0];
+}
+
 export function buildCreatePoolInstruction(args: {
   authority: PublicKey;
   mint: PublicKey;
@@ -167,6 +174,8 @@ export function buildEvaluateInstruction(args: {
   recipient: PublicKey;
   category?: number;
   clock?: PublicKey;
+  /** Required when policy.aclVersion != 0. */
+  acl?: PublicKey;
   programId?: PublicKey;
 }): TransactionInstruction {
   assertU64("evaluate amount", args.amount);
@@ -178,20 +187,24 @@ export function buildEvaluateInstruction(args: {
   writeU64LE(data, 1, args.amount);
   data.set(args.recipient.toBytes(), 9);
   new DataView(data.buffer).setUint16(41, category, true);
+  const keys: AccountMeta[] = [
+    { pubkey: args.policy, isSigner: false, isWritable: false },
+    { pubkey: args.line, isSigner: false, isWritable: false },
+    { pubkey: args.agent, isSigner: false, isWritable: false },
+    {
+      pubkey:
+        args.clock ??
+        new PublicKey("SysvarC1ock11111111111111111111111111111111"),
+      isSigner: false,
+      isWritable: false,
+    },
+  ];
+  if (args.acl) {
+    keys.push({ pubkey: args.acl, isSigner: false, isWritable: false });
+  }
   return new TransactionInstruction({
     programId: args.programId ?? new PublicKey(POLICY_REGISTRY_PROGRAM_ID),
-    keys: [
-      { pubkey: args.policy, isSigner: false, isWritable: false },
-      { pubkey: args.line, isSigner: false, isWritable: false },
-      { pubkey: args.agent, isSigner: false, isWritable: false },
-      {
-        pubkey:
-          args.clock ??
-          new PublicKey("SysvarC1ock11111111111111111111111111111111"),
-        isSigner: false,
-        isWritable: false,
-      },
-    ],
+    keys,
     data: Buffer.from(data),
   });
 }
@@ -208,5 +221,36 @@ export function buildRevokeInstruction(args: {
       { pubkey: args.policy, isSigner: false, isWritable: true },
     ],
     data: Buffer.from([POLICY_IX.revoke]),
+  });
+}
+
+/** P4: create/update PolicyAcl PDA and bump policy.acl_version. */
+export function buildSetAclInstruction(args: {
+  issuer: PublicKey;
+  policy: PublicKey;
+  categoryMask: number;
+  recipients: PublicKey[];
+  acl?: PublicKey;
+  programId?: PublicKey;
+}): TransactionInstruction {
+  if (args.recipients.length > 8) throw new Error("at most 8 ACL recipients");
+  const programId = args.programId ?? new PublicKey(POLICY_REGISTRY_PROGRAM_ID);
+  const acl = args.acl ?? findAclPda(args.policy, programId);
+  const data = new Uint8Array(1 + 4 + 1 + 32 * 8);
+  data[0] = POLICY_IX.setAcl;
+  new DataView(data.buffer).setUint32(1, args.categoryMask >>> 0, true);
+  data[5] = args.recipients.length;
+  for (let i = 0; i < args.recipients.length; i++) {
+    data.set(args.recipients[i]!.toBytes(), 6 + i * 32);
+  }
+  return new TransactionInstruction({
+    programId,
+    keys: [
+      { pubkey: args.issuer, isSigner: true, isWritable: true },
+      { pubkey: args.policy, isSigner: false, isWritable: true },
+      { pubkey: acl, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data: Buffer.from(data),
   });
 }

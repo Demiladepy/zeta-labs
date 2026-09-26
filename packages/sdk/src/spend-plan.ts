@@ -132,6 +132,7 @@ export function planSevenStepSpend(params: PlanSevenStepSpendParams): SevenStepS
     salt,
     gracePeriod,
     openSlot: params.openSlot,
+    category: 0,
   };
 
   if (params.drawAmount > params.perCallCap) {

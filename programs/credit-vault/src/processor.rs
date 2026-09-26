@@ -10,10 +10,10 @@ use solana_program::{
     pubkey::Pubkey,
 };
 use zeta_interface::{
-    encode_payment_channels_open, line_seeds, open_slot_is_recent, pool_seeds, AuditRecord,
+    encode_payment_channels_open, ids, line_seeds, open_slot_is_recent, pool_seeds, AuditRecord,
     CreditLine, CreditVaultIx, DrawArgs, DrawChannelSpec, OpenLineArgs,
-    PaymentChannelsOpenAccounts, Policy, Pool, RepayArgs, CREDIT_LINE_LEN, PAYMENT_CHANNELS_OPEN_ACCOUNT_COUNT,
-    POOL_LEN,
+    PaymentChannelsOpenAccounts, Policy, PolicyAcl, Pool, RepayArgs, CREDIT_LINE_LEN,
+    PAYMENT_CHANNELS_OPEN_ACCOUNT_COUNT, POOL_LEN,
 };
 
 use crate::{
@@ -31,6 +31,34 @@ const ERR_INIT: u32 = 23;
 const ERR_CLOCK: u32 = 24;
 const ERR_SLOT: u32 = 25;
 const ERR_MISMATCH: u32 = 26;
+const ERR_ACL: u32 = 27;
+const ERR_POLICY_OWNER: u32 = 28;
+
+fn policy_registry_id() -> Pubkey {
+    Pubkey::new_from_array(ids::POLICY_REGISTRY_ID)
+}
+
+fn resolve_acl_allows(
+    policy: &Policy,
+    policy_key: &Pubkey,
+    acl_ai: Option<&AccountInfo>,
+    recipient: [u8; 32],
+    category: u16,
+) -> Result<Option<bool>, ProgramError> {
+    if policy.acl_version == 0 {
+        return Ok(None);
+    }
+    let acl_ai = acl_ai.ok_or_else(|| err(ERR_ACL))?;
+    let registry = policy_registry_id();
+    if acl_ai.owner != &registry {
+        return Err(err(ERR_ACL));
+    }
+    let acl = PolicyAcl::unpack(&acl_ai.try_borrow_data()?).ok_or(err(ERR_ACL))?;
+    if acl.policy != pubkey_bytes(policy_key) {
+        return Err(err(ERR_ACL));
+    }
+    Ok(Some(acl.allows(&recipient, category)))
+}
 
 fn err(code: u32) -> ProgramError {
     ProgramError::Custom(code)
@@ -169,6 +197,9 @@ fn process_open_line(
     if pubkey_bytes(authority.key) != pool.authority {
         return Err(from_vault(VaultError::Unauthorized));
     }
+    if policy_ai.owner != &policy_registry_id() {
+        return Err(err(ERR_POLICY_OWNER));
+    }
     let _policy = Policy::unpack(&policy_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
     let pool_key = pubkey_bytes(pool_ai.key);
     let agent_key = pubkey_bytes(agent.key);
@@ -226,6 +257,12 @@ fn process_draw(
     if !rent_payer.is_signer {
         return Err(from_vault(VaultError::Unauthorized));
     }
+    if *clock_ai.key != solana_program::sysvar::clock::id() {
+        return Err(err(ERR_CLOCK));
+    }
+    if policy_ai.owner != &policy_registry_id() {
+        return Err(err(ERR_POLICY_OWNER));
+    }
 
     let (slot, now_unix) = {
         let data = clock_ai.try_borrow_data()?;
@@ -251,8 +288,15 @@ fn process_draw(
         return Err(err(ERR_MISMATCH));
     }
 
+    let acl_ai = if policy.acl_version != 0 {
+        Some(next_account_info(iter).map_err(|_| err(ERR_ACL))?)
+    } else {
+        None
+    };
+
     let payee_bytes = pubkey_bytes(payee.key);
-    let denial = evaluate_draw(&policy, payee_bytes, &args, now_unix);
+    let acl_allows = resolve_acl_allows(&policy, policy_ai.key, acl_ai, payee_bytes, args.category)?;
+    let denial = evaluate_draw(&policy, payee_bytes, &args, now_unix, acl_allows);
     let audit = AuditRecord::new(
         pubkey_bytes(policy_ai.key),
         pubkey_bytes(line_ai.key),
@@ -359,6 +403,9 @@ fn process_repay(accounts: &[AccountInfo], args: RepayArgs) -> ProgramResult {
     }
     let mut pool = Pool::unpack(&pool_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
     let mut line = CreditLine::unpack(&line_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
+    if line.pool != pubkey_bytes(pool_ai.key) {
+        return Err(err(ERR_MISMATCH));
+    }
     let sig = pubkey_bytes(signer.key);
     if sig != line.agent && sig != pool.authority {
         return Err(from_vault(VaultError::Unauthorized));
@@ -424,6 +471,7 @@ mod tests {
         pool_pda: Pubkey,
         line_pda: Pubkey,
         policy_pk: Pubkey,
+        policy_owner: Pubkey,
         pool: Pool,
         line: CreditLine,
         policy: Policy,
@@ -437,8 +485,9 @@ mod tests {
         let agent = Pubkey::new_from_array([9; 32]);
         let payee = Pubkey::new_from_array([8; 32]);
         let rent_payer = agent;
-        let clock = Pubkey::new_from_array([11; 32]);
+        let clock = solana_program::sysvar::clock::id();
         let policy_pk = Pubkey::new_from_array([6; 32]);
+        let policy_owner = Pubkey::new_from_array(zeta_interface::ids::POLICY_REGISTRY_ID);
         let authority_b = authority.to_bytes();
         let mint_b = mint.to_bytes();
         let (pool_pda, pool_bump) =
@@ -471,6 +520,7 @@ mod tests {
             pool_pda,
             line_pda,
             policy_pk,
+            policy_owner,
             pool,
             line,
             policy,
@@ -504,7 +554,14 @@ mod tests {
                 account(&h.agent, true, false, &mut l0, &mut agent_data, &h.program_id),
                 account(&h.pool_pda, false, true, &mut l1, &mut pool_data, &h.program_id),
                 account(&h.line_pda, false, true, &mut l2, &mut line_data, &h.program_id),
-                account(&h.policy_pk, false, false, &mut l3, &mut policy_data, &h.program_id),
+                account(
+                    &h.policy_pk,
+                    false,
+                    false,
+                    &mut l3,
+                    &mut policy_data,
+                    &h.policy_owner,
+                ),
                 account(&h.payee, false, false, &mut l4, &mut payee_data, &h.program_id),
                 account(&h.rent_payer, true, false, &mut l5, &mut rent_data, &h.program_id),
                 account(&h.clock, false, false, &mut l6, &mut clock_data, &h.program_id),
@@ -567,6 +624,7 @@ mod tests {
             salt: 1,
             grace_period: 60,
             open_slot: 10,
+            category: 0,
         };
         run_draw(&mut h, args, 10, 1).unwrap();
         assert_eq!(h.line.reserved, 400);
@@ -587,6 +645,7 @@ mod tests {
                 salt: 1,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             },
             10,
             1_000,
@@ -607,6 +666,7 @@ mod tests {
                 salt: 1,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             },
             10,
             1,
@@ -627,6 +687,7 @@ mod tests {
                 salt: 1,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             },
             10,
             1,
@@ -648,6 +709,7 @@ mod tests {
                 salt: 7,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             },
             10,
             1,

@@ -1,10 +1,12 @@
 //! Instruction discriminators and argument layouts. First byte is the tag.
 
+use crate::accounts::POLICY_ACL_MAX_RECIPIENTS;
 use crate::denial::Denial;
 
 pub const POLICY_IX_REGISTER: u8 = 0;
 pub const POLICY_IX_EVALUATE: u8 = 1;
 pub const POLICY_IX_REVOKE: u8 = 2;
+pub const POLICY_IX_SET_ACL: u8 = 3;
 
 pub const VAULT_IX_CREATE_POOL: u8 = 0;
 pub const VAULT_IX_DEPOSIT: u8 = 1;
@@ -17,6 +19,7 @@ pub enum PolicyRegistryIx {
     RegisterPolicy(RegisterPolicyArgs),
     Evaluate(EvaluateArgs),
     Revoke,
+    SetAcl(SetAclArgs),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -44,6 +47,15 @@ pub struct EvaluateArgs {
     pub category: u16,
 }
 
+/// Fixed wire: category_mask + count + 8 recipient slots (unused slots ignored).
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SetAclArgs {
+    pub category_mask: u32,
+    pub recipient_count: u8,
+    pub recipients: [[u8; 32]; POLICY_ACL_MAX_RECIPIENTS],
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct OpenLineArgs {
@@ -51,8 +63,7 @@ pub struct OpenLineArgs {
 }
 
 /// Maps 1:1 onto Payment Channels `open` header fields that the vault
-/// is allowed to choose. Distribution preimage is built by the client
-/// (Anurag / pay-kit) and passed as remaining accounts + extra data.
+/// is allowed to choose. `category` is P4 (INTERFACE_VERSION ≥ 2).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DrawArgs {
@@ -60,6 +71,7 @@ pub struct DrawArgs {
     pub salt: u64,
     pub grace_period: u32,
     pub open_slot: u64,
+    pub category: u16,
 }
 
 #[repr(C)]
@@ -82,10 +94,14 @@ impl EvaluateArgs {
 pub const REGISTER_POLICY_IX_LEN: usize = 1 + 8 + 8 + 8;
 pub const EVALUATE_IX_LEN: usize = 1 + 8 + 32 + 2;
 pub const REVOKE_IX_LEN: usize = 1;
+/// 1 + 4 + 1 + 256
+pub const SET_ACL_IX_LEN: usize = 1 + 4 + 1 + 32 * POLICY_ACL_MAX_RECIPIENTS;
 pub const CREATE_POOL_IX_LEN: usize = 1;
 pub const DEPOSIT_IX_LEN: usize = 1 + 8;
 pub const OPEN_LINE_IX_LEN: usize = 1 + 8;
-pub const DRAW_IX_HEADER_LEN: usize = 1 + 8 + 8 + 4 + 8;
+/// 1 + 8 + 8 + 4 + 8 + 2
+pub const DRAW_IX_HEADER_LEN: usize = 1 + 8 + 8 + 4 + 8 + 2;
+pub const DRAW_ARGS_LEN: usize = 30;
 pub const REPAY_IX_LEN: usize = 1 + 8 + 8;
 
 impl RegisterPolicyArgs {
@@ -130,6 +146,35 @@ impl EvaluateArgs {
     }
 }
 
+impl SetAclArgs {
+    pub fn pack(&self) -> [u8; 261] {
+        let mut out = [0u8; 261];
+        out[0..4].copy_from_slice(&self.category_mask.to_le_bytes());
+        out[4] = self.recipient_count;
+        for (i, r) in self.recipients.iter().enumerate() {
+            let start = 5 + i * 32;
+            out[start..start + 32].copy_from_slice(r);
+        }
+        out
+    }
+
+    pub fn unpack(data: &[u8]) -> Option<Self> {
+        if data.len() < 261 {
+            return None;
+        }
+        let mut recipients = [[0u8; 32]; POLICY_ACL_MAX_RECIPIENTS];
+        for (i, slot) in recipients.iter_mut().enumerate() {
+            let start = 5 + i * 32;
+            *slot = data[start..start + 32].try_into().ok()?;
+        }
+        Some(Self {
+            category_mask: u32::from_le_bytes(data[0..4].try_into().ok()?),
+            recipient_count: data[4],
+            recipients,
+        })
+    }
+}
+
 impl OpenLineArgs {
     pub fn pack(&self) -> [u8; 8] {
         self.limit.to_le_bytes()
@@ -146,17 +191,18 @@ impl OpenLineArgs {
 }
 
 impl DrawArgs {
-    pub fn pack(&self) -> [u8; 28] {
-        let mut out = [0u8; 28];
+    pub fn pack(&self) -> [u8; DRAW_ARGS_LEN] {
+        let mut out = [0u8; DRAW_ARGS_LEN];
         out[0..8].copy_from_slice(&self.amount.to_le_bytes());
         out[8..16].copy_from_slice(&self.salt.to_le_bytes());
         out[16..20].copy_from_slice(&self.grace_period.to_le_bytes());
         out[20..28].copy_from_slice(&self.open_slot.to_le_bytes());
+        out[28..30].copy_from_slice(&self.category.to_le_bytes());
         out
     }
 
     pub fn unpack(data: &[u8]) -> Option<Self> {
-        if data.len() < 28 {
+        if data.len() < DRAW_ARGS_LEN {
             return None;
         }
         Some(Self {
@@ -164,6 +210,7 @@ impl DrawArgs {
             salt: u64::from_le_bytes(data[8..16].try_into().ok()?),
             grace_period: u32::from_le_bytes(data[16..20].try_into().ok()?),
             open_slot: u64::from_le_bytes(data[20..28].try_into().ok()?),
+            category: u16::from_le_bytes(data[28..30].try_into().ok()?),
         })
     }
 }
@@ -195,6 +242,7 @@ impl PolicyRegistryIx {
             POLICY_IX_REGISTER => Some(Self::RegisterPolicy(RegisterPolicyArgs::unpack(rest)?)),
             POLICY_IX_EVALUATE => Some(Self::Evaluate(EvaluateArgs::unpack(rest)?)),
             POLICY_IX_REVOKE => Some(Self::Revoke),
+            POLICY_IX_SET_ACL => Some(Self::SetAcl(SetAclArgs::unpack(rest)?)),
             _ => None,
         }
     }
@@ -214,12 +262,18 @@ impl PolicyRegistryIx {
                 out
             }
             Self::Revoke => vec![POLICY_IX_REVOKE],
+            Self::SetAcl(args) => {
+                let mut out = Vec::with_capacity(SET_ACL_IX_LEN);
+                out.push(POLICY_IX_SET_ACL);
+                out.extend_from_slice(&args.pack());
+                out
+            }
         }
     }
 }
 
 impl CreditVaultIx {
-    /// `draw` may carry a trailing distribution preimage after the 29-byte header.
+    /// `draw` may carry a trailing distribution preimage after the header.
     pub fn decode(data: &[u8]) -> Option<(Self, &[u8])> {
         let tag = *data.first()?;
         let rest = &data[1..];
@@ -232,12 +286,16 @@ impl CreditVaultIx {
                 let amount = u64::from_le_bytes(rest[0..8].try_into().ok()?);
                 Some((Self::Deposit { amount }, &rest[8..]))
             }
-            VAULT_IX_OPEN_LINE => Some((Self::OpenLine(OpenLineArgs::unpack(rest)?), &rest[8.min(rest.len())..])),
+            VAULT_IX_OPEN_LINE => {
+                Some((Self::OpenLine(OpenLineArgs::unpack(rest)?), &rest[8.min(rest.len())..]))
+            }
             VAULT_IX_DRAW => {
                 let args = DrawArgs::unpack(rest)?;
-                Some((Self::Draw(args), &rest[28.min(rest.len())..]))
+                Some((Self::Draw(args), &rest[DRAW_ARGS_LEN.min(rest.len())..]))
             }
-            VAULT_IX_REPAY => Some((Self::Repay(RepayArgs::unpack(rest)?), &rest[16.min(rest.len())..])),
+            VAULT_IX_REPAY => {
+                Some((Self::Repay(RepayArgs::unpack(rest)?), &rest[16.min(rest.len())..]))
+            }
             _ => None,
         }
     }

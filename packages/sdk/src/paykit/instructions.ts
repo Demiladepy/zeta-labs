@@ -6,7 +6,7 @@ import {
 } from "@solana/web3.js";
 import type { DrawArgs, DrawChannelSpec, RepayArgs } from "../types.js";
 import { VAULT_IX } from "../types.js";
-import { concatBytes, writeU32LE, writeU64LE } from "./bytes.js";
+import { concatBytes, writeU16LE, writeU32LE, writeU64LE } from "./bytes.js";
 import {
   DEVNET_TREASURY_OWNER,
   PAYKIT_DEFAULTS,
@@ -14,7 +14,8 @@ import {
 } from "./constants.js";
 import { encodeDistributionPreimage, type DistributionRecipient } from "./distribution.js";
 
-const DRAW_IX_HEADER_LEN = 1 + 8 + 8 + 4 + 8;
+/** 1 + amount + salt + grace + open_slot + category — matches Rust DRAW_IX_HEADER_LEN. */
+const DRAW_IX_HEADER_LEN = 1 + 8 + 8 + 4 + 8 + 2;
 const INSTRUCTIONS_SYSVAR_ID = "Sysvar1nstructions1111111111111111111111111";
 
 export function encodeDrawArgs(draw: DrawArgs, distributionExtra: Uint8Array): Uint8Array {
@@ -24,6 +25,7 @@ export function encodeDrawArgs(draw: DrawArgs, distributionExtra: Uint8Array): U
   writeU64LE(out, 9, draw.salt);
   writeU32LE(out, 17, draw.gracePeriod);
   writeU64LE(out, 21, draw.openSlot);
+  writeU16LE(out, 29, draw.category ?? 0);
   out.set(distributionExtra, DRAW_IX_HEADER_LEN);
   return out;
 }

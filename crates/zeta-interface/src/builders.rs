@@ -5,7 +5,7 @@
 
 use crate::instructions::{
     CreditVaultIx, DrawArgs, EvaluateArgs, OpenLineArgs, PolicyRegistryIx, RegisterPolicyArgs,
-    RepayArgs,
+    RepayArgs, SetAclArgs,
 };
 use crate::paykit::OpenAccountMeta;
 
@@ -70,12 +70,47 @@ pub fn build_evaluate(
     }
 }
 
+/// Accounts: `[policy, line, agent, clock, acl]` — required when `acl_version != 0`.
+pub fn build_evaluate_with_acl(
+    program_id: [u8; 32],
+    policy: [u8; 32],
+    line: [u8; 32],
+    agent: [u8; 32],
+    clock: [u8; 32],
+    acl: [u8; 32],
+    args: EvaluateArgs,
+) -> IxShell {
+    let mut ix = build_evaluate(program_id, policy, line, agent, clock, args);
+    ix.accounts.push(meta(acl, false, false));
+    ix
+}
+
 /// Accounts: `[issuer (s), policy (w)]`
 pub fn build_revoke(program_id: [u8; 32], issuer: [u8; 32], policy: [u8; 32]) -> IxShell {
     IxShell {
         program_id,
         accounts: vec![meta(issuer, true, false), meta(policy, false, true)],
         data: PolicyRegistryIx::Revoke.encode(),
+    }
+}
+
+/// Accounts: `[issuer (s,w), policy (w), acl_pda (w), system_program]`
+pub fn build_set_acl(
+    program_id: [u8; 32],
+    issuer: [u8; 32],
+    policy: [u8; 32],
+    acl_pda: [u8; 32],
+    args: SetAclArgs,
+) -> IxShell {
+    IxShell {
+        program_id,
+        accounts: vec![
+            meta(issuer, true, true),
+            meta(policy, false, true),
+            meta(acl_pda, false, true),
+            meta(SYSTEM_PROGRAM_ID, false, false),
+        ],
+        data: PolicyRegistryIx::SetAcl(args).encode(),
     }
 }
 
@@ -165,6 +200,7 @@ pub fn build_open_line(
 
 /// Core draw accounts (no Payment Channels CPI). Encodes allow → reserve.
 /// Accounts: `[agent (s), pool (w), line (w), policy, payee, rent_payer (s), clock]`
+/// When `policy.acl_version != 0`, append ACL via [`build_draw_with_acl`].
 pub fn build_draw(
     program_id: [u8; 32],
     agent: [u8; 32],
@@ -191,9 +227,38 @@ pub fn build_draw(
     }
 }
 
+/// Draw with P4 ACL account after clock.
+/// Accounts: `[agent (s), pool (w), line (w), policy, payee, rent_payer (s), clock, acl]`
+pub fn build_draw_with_acl(
+    program_id: [u8; 32],
+    agent: [u8; 32],
+    pool: [u8; 32],
+    line: [u8; 32],
+    policy: [u8; 32],
+    payee: [u8; 32],
+    rent_payer: [u8; 32],
+    clock: [u8; 32],
+    acl: [u8; 32],
+    args: DrawArgs,
+) -> IxShell {
+    let mut ix = build_draw(
+        program_id,
+        agent,
+        pool,
+        line,
+        policy,
+        payee,
+        rent_payer,
+        clock,
+        args,
+    );
+    ix.accounts.push(meta(acl, false, false));
+    ix
+}
+
 /// Draw that also CPI-invokes Payment Channels `open`.
 ///
-/// After the 7 core accounts: `[channels_program, ...14 open accounts...]`.
+/// After the 7 core accounts (8 when ACL required): `[channels_program, ...14 open accounts...]`.
 /// `distribution_extra` is appended to ix data after the draw header.
 pub fn build_draw_with_channel_open(
     program_id: [u8; 32],
@@ -302,6 +367,7 @@ mod tests {
                 salt: 1,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             },
         );
         assert_eq!(ix.accounts.len(), 7);
@@ -312,7 +378,10 @@ mod tests {
         let (decoded, extra) = CreditVaultIx::decode(&ix.data).unwrap();
         assert!(extra.is_empty());
         match decoded {
-            CreditVaultIx::Draw(a) => assert_eq!(a.amount, 100),
+            CreditVaultIx::Draw(a) => {
+                assert_eq!(a.amount, 100);
+                assert_eq!(a.category, 0);
+            }
             _ => panic!("expected draw"),
         }
     }
@@ -345,6 +414,7 @@ mod tests {
                 salt: 1,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             },
             &[1, 2, 3, 4],
         );

@@ -22,13 +22,14 @@ You do **not** need a separate client-side provisioner for Phase 1.
 pool PDA    = findProgramAddress(["pool",   authority_pubkey, mint_pubkey],           CREDIT_VAULT)
 line PDA    = findProgramAddress(["line",   pool_pubkey,      agent_pubkey],          CREDIT_VAULT)
 policy PDA  = findProgramAddress(["policy", issuer_pubkey,    seed_u64_le_8_bytes],   POLICY_REGISTRY)
+acl PDA     = findProgramAddress(["acl",    policy_pubkey],                           POLICY_REGISTRY)
 channel PDA = findProgramAddress(
                 ["channel", payer, payee, mint, authorized_signer, salt_u64_le, open_slot_u64_le],
                 PAYMENT_CHANNELS
               )
 ```
 
-SDK helpers: `findPoolPda`, `findLinePda`, `findPolicyPda` in
+SDK helpers: `findPoolPda`, `findLinePda`, `findPolicyPda`, `findAclPda` in
 `packages/sdk/src/instructions.ts`.
 
 ## Spaces (exact data lengths)
@@ -37,6 +38,7 @@ SDK helpers: `findPoolPda`, `findLinePda`, `findPolicyPda` in
 | --- | --- |
 | pool | 128 |
 | policy | 96 |
+| policy ACL | 304 |
 | line | 136 |
 
 ## Init account order (trailing SystemProgram = provision path)
@@ -46,6 +48,12 @@ register_policy:
   0 issuer (signer, writable — pays rent)
   1 policy PDA (writable)
   2 System Program
+
+set_acl:
+  0 issuer (signer, writable — pays rent)
+  1 policy (writable)
+  2 acl PDA (writable)
+  3 System Program
 
 create_pool:
   0 authority (signer, writable — pays rent)

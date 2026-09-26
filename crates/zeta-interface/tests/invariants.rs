@@ -41,6 +41,7 @@ fn input(amount: u64, now: i64) -> EvaluateInput {
         now_unix: now,
         recipient: [9; 32],
         category: 0,
+        acl_allows: None,
     }
 }
 
@@ -114,12 +115,24 @@ fn per_call_cap_and_zero_amount() {
 }
 
 #[test]
-fn evaluate_ignores_recipient_and_category_in_v1() {
+fn evaluate_acl_gated_by_acl_version() {
     let p = policy(10, 0, false);
     let mut a = input(10, 1);
     a.recipient = [0xff; 32];
     a.category = 7;
+    a.acl_allows = None;
     assert_eq!(evaluate(&p, a), Denial::Allow);
+    a.acl_allows = Some(false);
+    assert_eq!(evaluate(&p, a), Denial::Allow);
+
+    let mut p_acl = policy(10, 0, false);
+    p_acl.acl_version = 1;
+    a.acl_allows = None;
+    assert_eq!(evaluate(&p_acl, a), Denial::NotAllowlisted);
+    a.acl_allows = Some(false);
+    assert_eq!(evaluate(&p_acl, a), Denial::NotAllowlisted);
+    a.acl_allows = Some(true);
+    assert_eq!(evaluate(&p_acl, a), Denial::Allow);
 }
 
 #[test]
@@ -150,6 +163,7 @@ fn draw_spec_matches_x402_upto_max_amount() {
             salt: 7,
             grace_period: 900,
             open_slot: 42,
+            category: 0,
         },
     )
     .unwrap();
@@ -166,6 +180,7 @@ fn draw_spec_rejects_zero_and_same_payer_payee() {
         salt: 1,
         grace_period: 1,
         open_slot: 1,
+        category: 0,
     };
     assert!(DrawChannelSpec::from_draw([1; 32], [2; 32], [1; 32], [4; 32], [5; 32], args).is_err());
     let bad = DrawArgs {
@@ -173,6 +188,7 @@ fn draw_spec_rejects_zero_and_same_payer_payee() {
         salt: 1,
         grace_period: 1,
         open_slot: 1,
+        category: 0,
     };
     assert!(DrawChannelSpec::from_draw([1; 32], [2; 32], [3; 32], [4; 32], [5; 32], bad).is_err());
 }

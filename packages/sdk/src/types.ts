@@ -4,17 +4,21 @@
  * Bump INTERFACE_VERSION in the same PR as the Rust crate.
  */
 
-export const INTERFACE_VERSION = 1 as const;
+export const INTERFACE_VERSION = 2 as const;
 
 export const POOL_LEN = 128;
 export const CREDIT_LINE_LEN = 136;
 export const POLICY_LEN = 96;
+export const POLICY_ACL_LEN = 304;
 export const AUDIT_RECORD_LEN = 136;
+export const POLICY_ACL_MAX_RECIPIENTS = 8;
 
 export const ACCOUNT_DISCRIMINATOR = {
   pool: 0x5a455441504f4f4cn,
   line: 0x5a4554414c494e45n,
   policy: 0x5a455441504f4c59n,
+  /** ASCII "ZETAPACL" as u64 LE discriminant. */
+  policyAcl: 0x5a4554415041434cn,
   audit: 0x5a45544141554454n,
 } as const;
 
@@ -22,6 +26,7 @@ export const POLICY_IX = {
   registerPolicy: 0,
   evaluate: 1,
   revoke: 2,
+  setAcl: 3,
 } as const;
 
 export const VAULT_IX = {
@@ -90,6 +95,16 @@ export type Policy = {
   bump: number;
 };
 
+/** Sibling PDA for P4 category + recipient allowlist (`["acl", policy]`). */
+export type PolicyAcl = {
+  discriminator: bigint;
+  policy: Uint8Array;
+  categoryMask: number;
+  recipientCount: number;
+  bump: number;
+  recipients: Uint8Array[];
+};
+
 export type AuditRecord = {
   discriminator: bigint;
   policy: Uint8Array;
@@ -107,6 +122,8 @@ export type DrawArgs = {
   salt: bigint;
   gracePeriod: number;
   openSlot: bigint;
+  /** P4 category (INTERFACE_VERSION ≥ 2). Defaults to 0 when omitted at encode. */
+  category?: number;
 };
 
 export type RepayArgs = {

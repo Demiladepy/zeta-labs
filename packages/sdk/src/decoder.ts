@@ -7,11 +7,14 @@ import {
   AUDIT_RECORD_LEN,
   CREDIT_LINE_LEN,
   Denial,
+  POLICY_ACL_LEN,
+  POLICY_ACL_MAX_RECIPIENTS,
   POLICY_LEN,
   POOL_LEN,
   type AuditRecord,
   type CreditLine,
   type Policy,
+  type PolicyAcl,
   type Pool,
 } from "./types.js";
 
@@ -101,6 +104,26 @@ export function decodePolicy(data: Uint8Array): Policy {
     aclVersion: view.getUint16(80, true),
     revoked: bool("Policy.revoked", view.getUint8(82)),
     bump: view.getUint8(83),
+  };
+}
+
+export function decodePolicyAcl(data: Uint8Array): PolicyAcl {
+  const view = viewFor("PolicyAcl", data, POLICY_ACL_LEN);
+  const recipientCount = view.getUint8(44);
+  if (recipientCount > POLICY_ACL_MAX_RECIPIENTS) {
+    throw new ZetaDecodeError("PolicyAcl.recipientCount out of range");
+  }
+  const recipients: Uint8Array[] = [];
+  for (let i = 0; i < POLICY_ACL_MAX_RECIPIENTS; i++) {
+    recipients.push(bytes(data, 48 + i * 32, 80 + i * 32));
+  }
+  return {
+    discriminator: discriminator("PolicyAcl", view, ACCOUNT_DISCRIMINATOR.policyAcl),
+    policy: bytes(data, 8, 40),
+    categoryMask: view.getUint32(40, true),
+    recipientCount,
+    bump: view.getUint8(45),
+    recipients,
   };
 }
 

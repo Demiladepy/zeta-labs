@@ -9,7 +9,8 @@ use solana_program::{
     pubkey::Pubkey,
 };
 use zeta_interface::{
-    policy_seeds, AuditRecord, POLICY_LEN, Policy, PolicyRegistryIx,
+    acl_seeds, policy_seeds, AuditRecord, Policy, PolicyAcl, PolicyRegistryIx,
+    ACCOUNT_DISCRIMINATOR_POLICY_ACL, POLICY_ACL_LEN, POLICY_ACL_MAX_RECIPIENTS, POLICY_LEN,
 };
 
 use crate::{evaluate_at, pda::ensure_pda_account, register_policy, revoke, PolicyError};
@@ -22,6 +23,7 @@ const ERR_ACCOUNTS: u32 = 21;
 const ERR_PDA: u32 = 22;
 const ERR_INIT: u32 = 23;
 const ERR_CLOCK: u32 = 24;
+const ERR_ACL: u32 = 25;
 
 fn err(code: u32) -> ProgramError {
     ProgramError::Custom(code)
@@ -53,6 +55,28 @@ fn pubkey_bytes(key: &Pubkey) -> [u8; 32] {
     key.to_bytes()
 }
 
+fn resolve_acl_allows(
+    policy: &Policy,
+    policy_key: &Pubkey,
+    program_id: &Pubkey,
+    acl_ai: Option<&AccountInfo>,
+    recipient: [u8; 32],
+    category: u16,
+) -> Result<Option<bool>, ProgramError> {
+    if policy.acl_version == 0 {
+        return Ok(None);
+    }
+    let acl_ai = acl_ai.ok_or_else(|| err(ERR_ACL))?;
+    if acl_ai.owner != program_id {
+        return Err(err(ERR_ACL));
+    }
+    let acl = PolicyAcl::unpack(&acl_ai.try_borrow_data()?).ok_or(err(ERR_ACL))?;
+    if acl.policy != pubkey_bytes(policy_key) {
+        return Err(err(ERR_ACL));
+    }
+    Ok(Some(acl.allows(&recipient, category)))
+}
+
 pub fn process_instruction(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
@@ -61,8 +85,9 @@ pub fn process_instruction(
     let ix = PolicyRegistryIx::decode(instruction_data).ok_or(err(ERR_INVALID_IX))?;
     match ix {
         PolicyRegistryIx::RegisterPolicy(args) => process_register(program_id, accounts, args),
-        PolicyRegistryIx::Evaluate(args) => process_evaluate(accounts, args),
+        PolicyRegistryIx::Evaluate(args) => process_evaluate(program_id, accounts, args),
         PolicyRegistryIx::Revoke => process_revoke(accounts),
+        PolicyRegistryIx::SetAcl(args) => process_set_acl(program_id, accounts, args),
     }
 }
 
@@ -110,6 +135,7 @@ fn process_register(
 }
 
 fn process_evaluate(
+    program_id: &Pubkey,
     accounts: &[AccountInfo],
     args: zeta_interface::EvaluateArgs,
 ) -> ProgramResult {
@@ -118,9 +144,25 @@ fn process_evaluate(
     let line_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let agent_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
     let clock_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    let acl_ai = next_account_info(iter).ok();
+
+    if *clock_ai.key != solana_program::sysvar::clock::id() {
+        return Err(err(ERR_CLOCK));
+    }
+    if policy_ai.owner != program_id {
+        return Err(err(ERR_INIT));
+    }
 
     let policy = Policy::unpack(&policy_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
     let (slot, now_unix) = read_clock(&clock_ai.try_borrow_data()?)?;
+    let acl_allows = resolve_acl_allows(
+        &policy,
+        policy_ai.key,
+        program_id,
+        acl_ai,
+        args.recipient,
+        args.category,
+    )?;
     let (denial, audit) = evaluate_at(
         &policy,
         pubkey_bytes(policy_ai.key),
@@ -129,6 +171,7 @@ fn process_evaluate(
         args,
         now_unix,
         slot,
+        acl_allows,
     );
     emit_audit(&audit);
     set_return_data(&[denial.as_u8()]);
@@ -137,6 +180,71 @@ fn process_evaluate(
     } else {
         Err(ProgramError::Custom(denial.program_error_code()))
     }
+}
+
+fn process_set_acl(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    args: zeta_interface::SetAclArgs,
+) -> ProgramResult {
+    let iter = &mut accounts.iter();
+    let issuer = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    let policy_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    let acl_ai = next_account_info(iter).map_err(|_| err(ERR_ACCOUNTS))?;
+    let system_ai = next_account_info(iter).ok();
+
+    if !issuer.is_signer {
+        return Err(from_policy(PolicyError::Unauthorized));
+    }
+    if !policy_ai.is_writable || !acl_ai.is_writable {
+        return Err(err(ERR_ACCOUNTS));
+    }
+    if policy_ai.owner != program_id {
+        return Err(err(ERR_INIT));
+    }
+    if args.recipient_count as usize > POLICY_ACL_MAX_RECIPIENTS {
+        return Err(err(ERR_ACL));
+    }
+
+    let mut policy = Policy::unpack(&policy_ai.try_borrow_data()?).ok_or(err(ERR_INIT))?;
+    if pubkey_bytes(issuer.key) != policy.issuer {
+        return Err(from_policy(PolicyError::Unauthorized));
+    }
+
+    let policy_bytes = pubkey_bytes(policy_ai.key);
+    let seeds = acl_seeds(&policy_bytes);
+    let (expected, bump) = Pubkey::find_program_address(&seeds, program_id);
+    if expected != *acl_ai.key {
+        return Err(err(ERR_PDA));
+    }
+    ensure_pda_account(
+        program_id,
+        issuer,
+        acl_ai,
+        system_ai,
+        POLICY_ACL_LEN,
+        &seeds,
+        bump,
+    )?;
+
+    let acl = PolicyAcl {
+        discriminator: ACCOUNT_DISCRIMINATOR_POLICY_ACL,
+        policy: policy_bytes,
+        category_mask: args.category_mask,
+        recipient_count: args.recipient_count,
+        bump,
+        _pad: [0; 2],
+        recipients: args.recipients,
+    };
+    acl_ai.try_borrow_mut_data()?[..POLICY_ACL_LEN].copy_from_slice(&acl.pack());
+
+    policy.acl_version = if policy.acl_version == 0 {
+        1
+    } else {
+        policy.acl_version.saturating_add(1).max(1)
+    };
+    policy_ai.try_borrow_mut_data()?[..POLICY_LEN].copy_from_slice(&policy.pack());
+    Ok(())
 }
 
 fn process_revoke(accounts: &[AccountInfo]) -> ProgramResult {
@@ -243,7 +351,7 @@ mod tests {
 
         let line = Pubkey::new_from_array([1; 32]);
         let agent = Pubkey::new_from_array([2; 32]);
-        let clock = Pubkey::new_from_array([3; 32]);
+        let clock = solana_program::sysvar::clock::id();
         let mut line_lamports = 1;
         let mut agent_lamports = 1;
         let mut clock_lamports = 1;
@@ -279,7 +387,7 @@ mod tests {
         let before = policy_data;
         let line = Pubkey::new_from_array([1; 32]);
         let agent = Pubkey::new_from_array([2; 32]);
-        let clock = Pubkey::new_from_array([3; 32]);
+        let clock = solana_program::sysvar::clock::id();
         let mut l1 = 1;
         let mut l2 = 1;
         let mut l3 = 1;
@@ -317,7 +425,7 @@ mod tests {
         let mut policy_data = policy.pack();
         let line = Pubkey::new_from_array([1; 32]);
         let agent = Pubkey::new_from_array([2; 32]);
-        let clock = Pubkey::new_from_array([3; 32]);
+        let clock = solana_program::sysvar::clock::id();
         let mut l1 = 1;
         let mut l2 = 1;
         let mut l3 = 1;
@@ -343,5 +451,186 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(err, ProgramError::Custom(Denial::Revoked.program_error_code()));
+    }
+
+    #[test]
+    fn p4_set_acl_then_evaluate_allow_and_deny() {
+        use zeta_interface::{acl_seeds, SetAclArgs, POLICY_ACL_LEN, POLICY_IX_SET_ACL};
+
+        let program_id = Pubkey::new_from_array(zeta_interface::ids::POLICY_REGISTRY_ID);
+        let issuer = Pubkey::new_from_array([7; 32]);
+        let seed = 4u64;
+        let seed_bytes = seed.to_le_bytes();
+        let issuer_bytes = issuer.to_bytes();
+        let (policy_pda, _) =
+            Pubkey::find_program_address(&policy_seeds(&issuer_bytes, &seed_bytes), &program_id);
+        let policy_bytes = policy_pda.to_bytes();
+        let (acl_pda, _) = Pubkey::find_program_address(&acl_seeds(&policy_bytes), &program_id);
+
+        let mut policy_data = [0u8; POLICY_LEN];
+        let mut acl_data = [0u8; POLICY_ACL_LEN];
+        {
+            let mut issuer_lamports = 1;
+            let mut policy_lamports = 1;
+            let mut issuer_data = [];
+            process_instruction(
+                &program_id,
+                &[
+                    account(&issuer, true, true, &mut issuer_lamports, &mut issuer_data, &program_id),
+                    account(
+                        &policy_pda,
+                        false,
+                        true,
+                        &mut policy_lamports,
+                        &mut policy_data,
+                        &program_id,
+                    ),
+                ],
+                &PolicyRegistryIx::RegisterPolicy(RegisterPolicyArgs {
+                    seed,
+                    per_call_cap: 50,
+                    expires_at: 0,
+                })
+                .encode(),
+            )
+            .unwrap();
+        }
+
+        let payee = [8u8; 32];
+        let mut recipients = [[0u8; 32]; 8];
+        recipients[0] = payee;
+        {
+            let mut issuer_lamports = 1;
+            let mut policy_lamports = 1;
+            let mut acl_lamports = 1;
+            let mut issuer_data = [];
+            process_instruction(
+                &program_id,
+                &[
+                    account(&issuer, true, true, &mut issuer_lamports, &mut issuer_data, &program_id),
+                    account(
+                        &policy_pda,
+                        false,
+                        true,
+                        &mut policy_lamports,
+                        &mut policy_data,
+                        &program_id,
+                    ),
+                    account(&acl_pda, false, true, &mut acl_lamports, &mut acl_data, &program_id),
+                ],
+                &PolicyRegistryIx::SetAcl(SetAclArgs {
+                    category_mask: 1u32 << 3, // category 3
+                    recipient_count: 1,
+                    recipients,
+                })
+                .encode(),
+            )
+            .unwrap();
+        }
+        assert_eq!(Policy::unpack(&policy_data).unwrap().acl_version, 1);
+        assert_eq!(
+            PolicyAcl::unpack(&acl_data).unwrap().category_mask,
+            1u32 << 3
+        );
+        let _ = POLICY_IX_SET_ACL;
+
+        let line = Pubkey::new_from_array([1; 32]);
+        let agent = Pubkey::new_from_array([2; 32]);
+        let clock = solana_program::sysvar::clock::id();
+
+        // allowlisted recipient + category
+        {
+            let mut l1 = 1;
+            let mut l2 = 1;
+            let mut l3 = 1;
+            let mut l4 = 1;
+            let mut l5 = 1;
+            let mut d1 = [];
+            let mut d2 = [];
+            let mut clock_data = clock_bytes(1, 1);
+            process_instruction(
+                &program_id,
+                &[
+                    account(&policy_pda, false, false, &mut l1, &mut policy_data, &program_id),
+                    account(&line, false, false, &mut l2, &mut d1, &program_id),
+                    account(&agent, false, false, &mut l3, &mut d2, &program_id),
+                    account(&clock, false, false, &mut l4, &mut clock_data, &program_id),
+                    account(&acl_pda, false, false, &mut l5, &mut acl_data, &program_id),
+                ],
+                &PolicyRegistryIx::Evaluate(EvaluateArgs {
+                    amount: 10,
+                    recipient: payee,
+                    category: 3,
+                })
+                .encode(),
+            )
+            .unwrap();
+        }
+
+        // wrong recipient → NotAllowlisted
+        {
+            let mut l1 = 1;
+            let mut l2 = 1;
+            let mut l3 = 1;
+            let mut l4 = 1;
+            let mut l5 = 1;
+            let mut d1 = [];
+            let mut d2 = [];
+            let mut clock_data = clock_bytes(1, 1);
+            let err = process_instruction(
+                &program_id,
+                &[
+                    account(&policy_pda, false, false, &mut l1, &mut policy_data, &program_id),
+                    account(&line, false, false, &mut l2, &mut d1, &program_id),
+                    account(&agent, false, false, &mut l3, &mut d2, &program_id),
+                    account(&clock, false, false, &mut l4, &mut clock_data, &program_id),
+                    account(&acl_pda, false, false, &mut l5, &mut acl_data, &program_id),
+                ],
+                &PolicyRegistryIx::Evaluate(EvaluateArgs {
+                    amount: 10,
+                    recipient: [9; 32],
+                    category: 3,
+                })
+                .encode(),
+            )
+            .unwrap_err();
+            assert_eq!(
+                err,
+                ProgramError::Custom(Denial::NotAllowlisted.program_error_code())
+            );
+        }
+
+        // wrong category → NotAllowlisted
+        {
+            let mut l1 = 1;
+            let mut l2 = 1;
+            let mut l3 = 1;
+            let mut l4 = 1;
+            let mut l5 = 1;
+            let mut d1 = [];
+            let mut d2 = [];
+            let mut clock_data = clock_bytes(1, 1);
+            let err = process_instruction(
+                &program_id,
+                &[
+                    account(&policy_pda, false, false, &mut l1, &mut policy_data, &program_id),
+                    account(&line, false, false, &mut l2, &mut d1, &program_id),
+                    account(&agent, false, false, &mut l3, &mut d2, &program_id),
+                    account(&clock, false, false, &mut l4, &mut clock_data, &program_id),
+                    account(&acl_pda, false, false, &mut l5, &mut acl_data, &program_id),
+                ],
+                &PolicyRegistryIx::Evaluate(EvaluateArgs {
+                    amount: 10,
+                    recipient: payee,
+                    category: 0,
+                })
+                .encode(),
+            )
+            .unwrap_err();
+            assert_eq!(
+                err,
+                ProgramError::Custom(Denial::NotAllowlisted.program_error_code())
+            );
+        }
     }
 }

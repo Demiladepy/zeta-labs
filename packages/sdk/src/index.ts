@@ -16,6 +16,8 @@ export {
   DEVNET_USDC,
   INTERFACE_VERSION,
   PAYMENT_CHANNELS_PROGRAM_ID,
+  POLICY_ACL_LEN,
+  POLICY_ACL_MAX_RECIPIENTS,
   POLICY_IX,
   POLICY_LEN,
   POLICY_REGISTRY_PROGRAM_ID,
@@ -30,6 +32,7 @@ export {
   decodeAuditLogs,
   decodeLine,
   decodePolicy,
+  decodePolicyAcl,
   decodePool,
   ZetaDecodeError,
 } from "./decoder.js";
@@ -44,6 +47,8 @@ export {
   buildOpenLineInstruction,
   buildRegisterPolicyInstruction,
   buildRevokeInstruction,
+  buildSetAclInstruction,
+  findAclPda,
   findLinePda,
   findPolicyPda,
   findPoolPda,
@@ -97,6 +102,7 @@ export type {
   DrawChannelSpec,
   EvaluateArgs,
   Policy,
+  PolicyAcl,
   Pool,
 } from "./types.js";
 

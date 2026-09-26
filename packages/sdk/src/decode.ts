@@ -8,11 +8,14 @@ import {
   AUDIT_RECORD_LEN,
   CREDIT_LINE_LEN,
   Denial,
+  POLICY_ACL_LEN,
+  POLICY_ACL_MAX_RECIPIENTS,
   POLICY_LEN,
   POOL_LEN,
   type AuditRecord,
   type CreditLine,
   type Policy,
+  type PolicyAcl,
   type Pool,
 } from "./types.js";
 
@@ -83,6 +86,31 @@ export function decodePolicy(data: Uint8Array): Policy {
     aclVersion: view.getUint16(80, true),
     revoked: data[82] !== 0,
     bump: data[83]!,
+  };
+}
+
+export function decodePolicyAcl(data: Uint8Array): PolicyAcl {
+  if (data.length < POLICY_ACL_LEN) throw new Error(`acl: need ${POLICY_ACL_LEN} bytes`);
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const discriminator = u64le(view, 0);
+  if (discriminator !== ACCOUNT_DISCRIMINATOR.policyAcl) {
+    throw new Error("acl: bad discriminator");
+  }
+  const recipientCount = data[44]!;
+  if (recipientCount > POLICY_ACL_MAX_RECIPIENTS) {
+    throw new Error("acl: recipientCount out of range");
+  }
+  const recipients: Uint8Array[] = [];
+  for (let i = 0; i < POLICY_ACL_MAX_RECIPIENTS; i++) {
+    recipients.push(bytes(data, 48 + i * 32, 32));
+  }
+  return {
+    discriminator,
+    policy: bytes(data, 8, 32),
+    categoryMask: view.getUint32(40, true),
+    recipientCount,
+    bump: data[45]!,
+    recipients,
   };
 }
 

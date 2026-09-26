@@ -3,6 +3,7 @@
 //!
 //! 1 create_pool → 2 deposit → 3 register_policy → 4 open_line →
 //! 5 allow draw → 6 deny over-cap → 7 revoke → deny → repay.
+//! Plus P4 ACL allow/deny (no reserve on deny).
 
 use credit_vault::process_instruction as vault_process;
 use policy_registry::process_instruction as policy_process;
@@ -10,9 +11,9 @@ use solana_program::{
     account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey,
 };
 use zeta_interface::{
-    line_seeds, policy_seeds, pool_seeds, CreditLine, CreditVaultIx, Denial, DrawArgs,
-    OpenLineArgs, Policy, Pool, RegisterPolicyArgs, RepayArgs, CREDIT_LINE_LEN, POLICY_LEN,
-    POOL_LEN,
+    acl_seeds, line_seeds, policy_seeds, pool_seeds, CreditLine, CreditVaultIx, Denial, DrawArgs,
+    OpenLineArgs, Policy, PolicyAcl, Pool, RegisterPolicyArgs, RepayArgs, SetAclArgs,
+    CREDIT_LINE_LEN, POLICY_ACL_LEN, POLICY_LEN, POOL_LEN,
 };
 
 fn clock_bytes(slot: u64, unix: i64) -> [u8; 40] {
@@ -43,7 +44,7 @@ fn seven_step_demo_path_processors() {
     let vault_ata = Pubkey::new_from_array([3; 32]);
     let agent = Pubkey::new_from_array([9; 32]);
     let payee = Pubkey::new_from_array([8; 32]);
-    let clock = Pubkey::new_from_array([11; 32]);
+    let clock = solana_program::sysvar::clock::id();
 
     let auth_b = authority.to_bytes();
     let mint_b = mint.to_bytes();
@@ -128,7 +129,7 @@ fn seven_step_demo_path_processors() {
         assert!(!p.revoked);
     }
 
-    // 4. open_line
+    // 4. open_line (policy owned by Policy Registry)
     {
         let mut l0 = 1u64;
         let mut l1 = 1u64;
@@ -142,7 +143,7 @@ fn seven_step_demo_path_processors() {
             &[
                 account(&authority, true, false, &mut l0, &mut d0, &vault_pid),
                 account(&pool_pda, false, false, &mut l1, &mut pool_data, &vault_pid),
-                account(&policy_pda, false, false, &mut l2, &mut policy_data, &vault_pid),
+                account(&policy_pda, false, false, &mut l2, &mut policy_data, &policy_pid),
                 account(&agent, false, false, &mut l3, &mut d3, &vault_pid),
                 account(&line_pda, false, true, &mut l4, &mut line_data, &vault_pid),
             ],
@@ -160,6 +161,7 @@ fn seven_step_demo_path_processors() {
         salt: 1,
         grace_period: 60,
         open_slot: 10,
+        category: 0,
     };
 
     // 5. allow draw
@@ -181,7 +183,7 @@ fn seven_step_demo_path_processors() {
                 account(&agent, true, false, &mut l0, &mut d0, &vault_pid),
                 account(&pool_pda, false, true, &mut l1, &mut pool_data, &vault_pid),
                 account(&line_pda, false, true, &mut l2, &mut line_data, &vault_pid),
-                account(&policy_pda, false, false, &mut l3, &mut policy_data, &vault_pid),
+                account(&policy_pda, false, false, &mut l3, &mut policy_data, &policy_pid),
                 account(&payee, false, false, &mut l4, &mut d4, &vault_pid),
                 account(&agent, true, false, &mut l5, &mut d5, &vault_pid),
                 account(&clock, false, false, &mut l6, &mut clock_data, &vault_pid),
@@ -212,7 +214,7 @@ fn seven_step_demo_path_processors() {
                 account(&agent, true, false, &mut l0, &mut d0, &vault_pid),
                 account(&pool_pda, false, true, &mut l1, &mut pool_data, &vault_pid),
                 account(&line_pda, false, true, &mut l2, &mut line_data, &vault_pid),
-                account(&policy_pda, false, false, &mut l3, &mut policy_data, &vault_pid),
+                account(&policy_pda, false, false, &mut l3, &mut policy_data, &policy_pid),
                 account(&payee, false, false, &mut l4, &mut d4, &vault_pid),
                 account(&agent, true, false, &mut l5, &mut d5, &vault_pid),
                 account(&clock, false, false, &mut l6, &mut clock_data, &vault_pid),
@@ -222,6 +224,7 @@ fn seven_step_demo_path_processors() {
                 salt: 2,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             })
             .encode(),
         )
@@ -267,7 +270,7 @@ fn seven_step_demo_path_processors() {
                 account(&agent, true, false, &mut a0, &mut e0, &vault_pid),
                 account(&pool_pda, false, true, &mut a1, &mut pool_data, &vault_pid),
                 account(&line_pda, false, true, &mut a2, &mut line_data, &vault_pid),
-                account(&policy_pda, false, false, &mut a3, &mut policy_data, &vault_pid),
+                account(&policy_pda, false, false, &mut a3, &mut policy_data, &policy_pid),
                 account(&payee, false, false, &mut a4, &mut e4, &vault_pid),
                 account(&agent, true, false, &mut a5, &mut e5, &vault_pid),
                 account(&clock, false, false, &mut a6, &mut clock_data, &vault_pid),
@@ -277,6 +280,7 @@ fn seven_step_demo_path_processors() {
                 salt: 3,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             })
             .encode(),
         )
@@ -314,5 +318,227 @@ fn seven_step_demo_path_processors() {
         assert_eq!(line.reserved, 0);
         assert_eq!(pool.outstanding, 0);
         assert_eq!(pool.deposited, 9_880);
+    }
+}
+
+#[test]
+fn p4_acl_allow_and_deny_no_reserve() {
+    let vault_pid = Pubkey::new_from_array(zeta_interface::ids::CREDIT_VAULT_ID);
+    let policy_pid = Pubkey::new_from_array(zeta_interface::ids::POLICY_REGISTRY_ID);
+
+    let authority = Pubkey::new_from_array([1; 32]);
+    let mint = Pubkey::new_from_array([2; 32]);
+    let vault_ata = Pubkey::new_from_array([3; 32]);
+    let agent = Pubkey::new_from_array([9; 32]);
+    let payee = Pubkey::new_from_array([8; 32]);
+    let bad_payee = Pubkey::new_from_array([7; 32]);
+    let clock = solana_program::sysvar::clock::id();
+
+    let auth_b = authority.to_bytes();
+    let mint_b = mint.to_bytes();
+    let (pool_pda, _) =
+        Pubkey::find_program_address(&pool_seeds(&auth_b, &mint_b), &vault_pid);
+
+    let seed = 42u64;
+    let seed_b = seed.to_le_bytes();
+    let (policy_pda, _) =
+        Pubkey::find_program_address(&policy_seeds(&auth_b, &seed_b), &policy_pid);
+    let policy_bytes = policy_pda.to_bytes();
+    let (acl_pda, _) = Pubkey::find_program_address(&acl_seeds(&policy_bytes), &policy_pid);
+
+    let pool_key = pool_pda.to_bytes();
+    let agent_b = agent.to_bytes();
+    let (line_pda, _) =
+        Pubkey::find_program_address(&line_seeds(&pool_key, &agent_b), &vault_pid);
+
+    let mut pool_data = [0u8; POOL_LEN];
+    let mut policy_data = [0u8; POLICY_LEN];
+    let mut line_data = [0u8; CREDIT_LINE_LEN];
+    let mut acl_data = [0u8; POLICY_ACL_LEN];
+
+    // create_pool + deposit
+    {
+        let mut l0 = 1u64;
+        let mut l1 = 1u64;
+        let mut l2 = 1u64;
+        let mut l3 = 1u64;
+        let mut d0 = [];
+        let mut d1 = [];
+        let mut d3 = [];
+        vault_process(
+            &vault_pid,
+            &[
+                account(&authority, true, true, &mut l0, &mut d0, &vault_pid),
+                account(&mint, false, false, &mut l1, &mut d1, &vault_pid),
+                account(&pool_pda, false, true, &mut l2, &mut pool_data, &vault_pid),
+                account(&vault_ata, false, false, &mut l3, &mut d3, &vault_pid),
+            ],
+            &CreditVaultIx::CreatePool.encode(),
+        )
+        .unwrap();
+        let mut a0 = 1u64;
+        let mut a1 = 1u64;
+        let mut e0 = [];
+        vault_process(
+            &vault_pid,
+            &[
+                account(&authority, true, false, &mut a0, &mut e0, &vault_pid),
+                account(&pool_pda, false, true, &mut a1, &mut pool_data, &vault_pid),
+            ],
+            &CreditVaultIx::Deposit { amount: 10_000 }.encode(),
+        )
+        .unwrap();
+    }
+
+    // register_policy + set_acl (category 2, payee allowlisted)
+    {
+        let mut l0 = 1u64;
+        let mut l1 = 1u64;
+        let mut d0 = [];
+        policy_process(
+            &policy_pid,
+            &[
+                account(&authority, true, true, &mut l0, &mut d0, &policy_pid),
+                account(&policy_pda, false, true, &mut l1, &mut policy_data, &policy_pid),
+            ],
+            &zeta_interface::PolicyRegistryIx::RegisterPolicy(RegisterPolicyArgs {
+                seed,
+                per_call_cap: 500,
+                expires_at: 0,
+            })
+            .encode(),
+        )
+        .unwrap();
+
+        let mut recipients = [[0u8; 32]; 8];
+        recipients[0] = payee.to_bytes();
+        let mut i0 = 1u64;
+        let mut i1 = 1u64;
+        let mut i2 = 1u64;
+        let mut id0 = [];
+        policy_process(
+            &policy_pid,
+            &[
+                account(&authority, true, true, &mut i0, &mut id0, &policy_pid),
+                account(&policy_pda, false, true, &mut i1, &mut policy_data, &policy_pid),
+                account(&acl_pda, false, true, &mut i2, &mut acl_data, &policy_pid),
+            ],
+            &zeta_interface::PolicyRegistryIx::SetAcl(SetAclArgs {
+                category_mask: 1u32 << 2,
+                recipient_count: 1,
+                recipients,
+            })
+            .encode(),
+        )
+        .unwrap();
+        assert_eq!(Policy::unpack(&policy_data).unwrap().acl_version, 1);
+        assert!(PolicyAcl::unpack(&acl_data).unwrap().allows(&payee.to_bytes(), 2));
+    }
+
+    // open_line
+    {
+        let mut l0 = 1u64;
+        let mut l1 = 1u64;
+        let mut l2 = 1u64;
+        let mut l3 = 1u64;
+        let mut l4 = 1u64;
+        let mut d0 = [];
+        let mut d3 = [];
+        vault_process(
+            &vault_pid,
+            &[
+                account(&authority, true, false, &mut l0, &mut d0, &vault_pid),
+                account(&pool_pda, false, false, &mut l1, &mut pool_data, &vault_pid),
+                account(&policy_pda, false, false, &mut l2, &mut policy_data, &policy_pid),
+                account(&agent, false, false, &mut l3, &mut d3, &vault_pid),
+                account(&line_pda, false, true, &mut l4, &mut line_data, &vault_pid),
+            ],
+            &CreditVaultIx::OpenLine(OpenLineArgs { limit: 2_000 }).encode(),
+        )
+        .unwrap();
+    }
+
+    // ACL deny (wrong payee) — no reserve
+    {
+        let mut clock_data = clock_bytes(10, 1);
+        let mut l0 = 1u64;
+        let mut l1 = 1u64;
+        let mut l2 = 1u64;
+        let mut l3 = 1u64;
+        let mut l4 = 1u64;
+        let mut l5 = 1u64;
+        let mut l6 = 1u64;
+        let mut l7 = 1u64;
+        let mut d0 = [];
+        let mut d4 = [];
+        let mut d5 = [];
+        let err = vault_process(
+            &vault_pid,
+            &[
+                account(&agent, true, false, &mut l0, &mut d0, &vault_pid),
+                account(&pool_pda, false, true, &mut l1, &mut pool_data, &vault_pid),
+                account(&line_pda, false, true, &mut l2, &mut line_data, &vault_pid),
+                account(&policy_pda, false, false, &mut l3, &mut policy_data, &policy_pid),
+                account(&bad_payee, false, false, &mut l4, &mut d4, &vault_pid),
+                account(&agent, true, false, &mut l5, &mut d5, &vault_pid),
+                account(&clock, false, false, &mut l6, &mut clock_data, &vault_pid),
+                account(&acl_pda, false, false, &mut l7, &mut acl_data, &policy_pid),
+            ],
+            &CreditVaultIx::Draw(DrawArgs {
+                amount: 100,
+                salt: 1,
+                grace_period: 60,
+                open_slot: 10,
+                category: 2,
+            })
+            .encode(),
+        )
+        .unwrap_err();
+        assert_eq!(
+            err,
+            ProgramError::Custom(Denial::NotAllowlisted.program_error_code())
+        );
+        assert_eq!(CreditLine::unpack(&line_data).unwrap().reserved, 0);
+        assert_eq!(Pool::unpack(&pool_data).unwrap().outstanding, 0);
+    }
+
+    // ACL allow
+    {
+        let mut clock_data = clock_bytes(10, 1);
+        let mut l0 = 1u64;
+        let mut l1 = 1u64;
+        let mut l2 = 1u64;
+        let mut l3 = 1u64;
+        let mut l4 = 1u64;
+        let mut l5 = 1u64;
+        let mut l6 = 1u64;
+        let mut l7 = 1u64;
+        let mut d0 = [];
+        let mut d4 = [];
+        let mut d5 = [];
+        vault_process(
+            &vault_pid,
+            &[
+                account(&agent, true, false, &mut l0, &mut d0, &vault_pid),
+                account(&pool_pda, false, true, &mut l1, &mut pool_data, &vault_pid),
+                account(&line_pda, false, true, &mut l2, &mut line_data, &vault_pid),
+                account(&policy_pda, false, false, &mut l3, &mut policy_data, &policy_pid),
+                account(&payee, false, false, &mut l4, &mut d4, &vault_pid),
+                account(&agent, true, false, &mut l5, &mut d5, &vault_pid),
+                account(&clock, false, false, &mut l6, &mut clock_data, &vault_pid),
+                account(&acl_pda, false, false, &mut l7, &mut acl_data, &policy_pid),
+            ],
+            &CreditVaultIx::Draw(DrawArgs {
+                amount: 100,
+                salt: 2,
+                grace_period: 60,
+                open_slot: 10,
+                category: 2,
+            })
+            .encode(),
+        )
+        .unwrap();
+        assert_eq!(CreditLine::unpack(&line_data).unwrap().reserved, 100);
+        assert_eq!(Pool::unpack(&pool_data).unwrap().outstanding, 100);
     }
 }

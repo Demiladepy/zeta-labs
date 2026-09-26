@@ -58,14 +58,21 @@ pub fn open_line(
     open_line_with_keys(pool, pool.authority, agent, policy.issuer, args, bump)
 }
 
-pub fn evaluate_draw(policy: &Policy, payee: [u8; 32], args: &DrawArgs, now_unix: i64) -> Denial {
+pub fn evaluate_draw(
+    policy: &Policy,
+    payee: [u8; 32],
+    args: &DrawArgs,
+    now_unix: i64,
+    acl_allows: Option<bool>,
+) -> Denial {
     evaluate(
         policy,
         EvaluateInput {
             amount: args.amount,
             now_unix,
             recipient: payee,
-            category: 0,
+            category: args.category,
+            acl_allows,
         },
     )
 }
@@ -112,7 +119,7 @@ pub fn draw(
     args: DrawArgs,
     now_unix: i64,
 ) -> Result<DrawChannelSpec, VaultError> {
-    let denial = evaluate_draw(policy, payee, &args, now_unix);
+    let denial = evaluate_draw(policy, payee, &args, now_unix, None);
     if !denial.is_allow() {
         return Err(VaultError::PolicyDenied(denial));
     }
@@ -213,6 +220,7 @@ mod tests {
                 salt: 1,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             },
             1,
         )
@@ -257,6 +265,7 @@ mod tests {
                 salt: 1,
                 grace_period: 60,
                 open_slot: 10,
+                category: 0,
             },
             1,
         )

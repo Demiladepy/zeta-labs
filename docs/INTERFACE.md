@@ -55,13 +55,15 @@ x402 `upto` roles we lock:
 
 ## Programs
 
-| Program | Placeholder ID (replace on deploy) |
+| Program | ID (Devnet live) |
 | --- | --- |
-| Policy Registry | `Pol1cyReg1stry11111111111111111111111111111` |
-| Credit Vault | `Cred1tVau1t1111111111111111111111111111111` |
+| Policy Registry | `G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk` |
+| Credit Vault | `4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi` |
 | Payment Channels | `CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX` |
 
 Devnet USDC: `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`.
+
+`INTERFACE_VERSION` = **2** (PolicyAcl + `set_acl` + evaluate P4 + `DrawArgs.category`).
 
 ---
 
@@ -89,8 +91,27 @@ Invariant (P1): `drawn + reserved + new_draw ≤ limit`.
 
 v1 live: `per_call_cap`, `expires_at` (`i64`, `0` = none), `revoked`.
 
-v2 reserved (zero = unused): `rolling_cap`, `total_cap`, `acl_version`.
-Do not reuse these bytes.
+v2 (`INTERFACE_VERSION = 2`): `acl_version` gates P4. `rolling_cap` /
+`total_cap` reserved for P5 (`0` = unused). Do not reuse these bytes.
+
+### `PolicyAcl` — seeds `["acl", policy]` (v2 / P4)
+
+Sibling PDA owned by Policy Registry. Fixed **304** bytes:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `discriminator` | `u64` | `ZETAPACL` |
+| `policy` | `[u8;32]` | parent policy PDA |
+| `category_mask` | `u32` | bit `N` ⇒ category `N` allowed (0–31) |
+| `recipient_count` | `u8` | `0..=8` |
+| `bump` | `u8` | |
+| `_pad` | `[u8;2]` | |
+| `recipients` | `[[u8;32];8]` | first `recipient_count` slots live |
+
+When `policy.acl_version != 0`: ACL account required; category bit must be
+set **and** recipient must match → else `Denial::NotAllowlisted` (6).
+When `acl_version == 0`: v1 behavior (ignore recipient/category); no ACL
+account required.
 
 ### `AuditRecord` — event, not an account
 
@@ -111,32 +132,40 @@ Ordered checks. First failure wins. Always emit `AuditRecord`.
 | 1 | `revoked == true` | `Revoked` | 1 |
 | 2 | `expires_at != 0 && now >= expires_at` | `Expired` | 1 |
 | 3 | `amount == 0 \|\| amount > per_call_cap` | `PerCallCap` | 1 |
-| 4 | rolling window | `RollingCap` | 2 |
-| 5 | lifetime total | `TotalCap` | 2 |
-| 6 | recipient / category ACL | `NotAllowlisted` | 2 |
+| 4 | rolling window | `RollingCap` | 2 / P5 |
+| 5 | lifetime total | `TotalCap` | 2 / P5 |
+| 6 | recipient / category ACL (`acl_version != 0`) | `NotAllowlisted` | 2 / P4 |
 
-`recipient` and `category` are in the v1 signature so the CPI does
-not change in Phase 2. v1 ignores them.
+`recipient` and `category` are in the wire signature. v1 (`acl_version == 0`)
+ignores them. Vault `draw` inlines the same shared `evaluate` (ACL bytes
+fed via `EvaluateInput.acl_allows` after unpacking the ACL account).
 
 `Denial` is a `u8`. `0` = allow. SDK maps these to typed errors.
 
 ---
 
-## Instruction set (v1)
+## Instruction set
 
 ### Policy Registry
 
 - `register_policy(per_call_cap, expires_at, seed)`
 - `evaluate(amount, recipient, category)`
 - `revoke()` — issuer only. Immediate. P3.
+- `set_acl(category_mask, recipient_count, recipients[8])` — tag `3`. Issuer
+  signer; creates/updates ACL PDA; sets `policy.acl_version = 1` (or bumps).
 
 ### Credit Vault
 
 - `create_pool()`
 - `deposit(amount)`
-- `open_line(limit)` — line points at an existing policy
-- `draw(amount, salt, grace_period, open_slot)` — frozen `evaluate` first (audit always), then reserve + Payment Channels `open` CPI
-- `repay(settled, reserved)` — books actual spend, releases unused reservation
+- `open_line(limit)` — line points at an existing policy; policy must be
+  owned by Policy Registry
+- `draw(amount, salt, grace_period, open_slot, category)` — `DrawArgs` is
+  **30** bytes (v2 adds `category: u16`). Evaluate first (audit always),
+  then reserve + Payment Channels `open` CPI. Clock key must be the Clock
+  sysvar. When `acl_version != 0`, ACL account follows clock.
+- `repay(reserved_this_draw, settled)` — books actual spend, releases unused
+  reservation; `line.pool` must match the pool account
 
 `draw` reserves `amount` on the line (`reserved += amount`,
 `pool.outstanding += amount`) **before** the channel CPI.
@@ -145,7 +174,7 @@ not change in Phase 2. v1 ignores them.
 `drawn += settled`, `outstanding -= reserved_this_draw`,
 `deposited -= settled`.
 
-### Instruction accounts (v1, layouts unchanged)
+### Instruction accounts
 
 Little-endian. First byte is the tag (`crates/zeta-interface` encode/decode).
 Client **does not** pre-create PDA accounts. Init instructions take a trailing
@@ -155,9 +184,11 @@ on already-owned accounts.
 
 **Policy `register_policy`** — `0` issuer (signer, writable) · `1` policy PDA (writable) · `2` system program
 
-**Policy `evaluate`** — `0` policy · `1` line (audit) · `2` agent (audit) · `3` clock
+**Policy `evaluate`** — `0` policy · `1` line (audit) · `2` agent (audit) · `3` clock · optional `4` acl (when `acl_version != 0`)
 
 **Policy `revoke`** — `0` issuer (signer) · `1` policy (writable)
+
+**Policy `set_acl`** — `0` issuer (signer, writable) · `1` policy (writable) · `2` acl PDA (writable) · `3` system program
 
 **Vault `create_pool`** — `0` authority (signer, writable) · `1` mint · `2` pool PDA (writable) · `3` vault ATA · `4` system program
 
@@ -165,7 +196,7 @@ on already-owned accounts.
 
 **Vault `open_line`** — `0` authority (signer, writable) · `1` pool · `2` policy · `3` agent · `4` line PDA (writable) · `5` system program
 
-**Vault `draw`** — `0` agent (signer) · `1` pool (writable) · `2` line (writable) · `3` policy · `4` payee · `5` rent_payer (signer) · `6` clock. Optional CPI: `7` Payment Channels program + the 14 `open` accounts below. Trailing ix bytes after the 29-byte draw header are the distribution preimage.
+**Vault `draw`** — `0` agent (signer) · `1` pool (writable) · `2` line (writable) · `3` policy · `4` payee · `5` rent_payer (signer) · `6` clock · optional `7` acl (when `acl_version != 0`). Optional CPI: next account is Payment Channels program + the 14 `open` accounts below. Trailing ix bytes after the 30-byte draw header are the distribution preimage.
 
 **Vault `repay`** — `0` signer (agent or pool authority) · `1` pool (writable) · `2` line (writable)
 
@@ -203,6 +234,7 @@ createPool({ authority, mint })
 openLine({ pool, agent, policy, limit })
 spend({ line, amount, endpoint })   // evaluate + draw + x402 fetch
 revoke({ policy })
+setAcl({ policy, categoryMask, recipients })
 proof({ tx })                       // explorer + audit decode
 ```
 
