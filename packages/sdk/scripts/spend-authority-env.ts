@@ -6,6 +6,7 @@ import {
   spendAuthorityFromAgentKeypair,
   type SwigDelegateSpendAuthority,
 } from "../src/spend-authority.js";
+import { loadSwigLineGrantState } from "../src/swig/state.js";
 import type { DevnetEnv } from "./load-devnet-env.js";
 import { loadKeypair } from "./spend-config.js";
 
@@ -32,6 +33,19 @@ export function loadSwigDelegateFromEnv(): SwigDelegateSpendAuthority | null {
 export function resolveSpendAuthority(env: DevnetEnv, spendAgent: Keypair): SpendAuthority {
   const swig = loadSwigDelegateFromEnv();
   if (swig) return swig;
+  const grant = loadSwigLineGrantState();
+  if (grant) {
+    if (grant.delegate !== spendAgent.publicKey.toBase58()) {
+      throw new Error(
+        `spend-agent ${spendAgent.publicKey.toBase58()} does not match Swig grant delegate ${grant.delegate}`,
+      );
+    }
+    return {
+      kind: "swig-delegate",
+      swigWallet: new PublicKey(grant.swigWallet),
+      delegate: spendAgent,
+    };
+  }
   void env;
   return spendAuthorityFromAgentKeypair(spendAgent);
 }

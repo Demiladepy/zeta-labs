@@ -1,40 +1,47 @@
-# Swig integration (Phase 2 — blocked on contributor input)
+# Swig integration (Phase 2)
 
-Zeta does **not** need a vault program change if Swig’s execute path signs as
-`CreditLine.agent`. All client-side wiring lives under `packages/sdk/src/swig/`.
+Swig smart-wallet delegation for `CreditLine.agent`. Vault program unchanged.
 
-## Blocked — need from Swig / team owner
+## Pinned artifacts (M1)
 
-| Item | Who | Why |
-| --- | --- | --- |
-| Devnet **Swig program id** | Swig or integrator | `assertSwigReady`, execute txs |
-| **TS or Rust SDK** (npm/git pin) | Swig | `createSwigWallet`, delegate ACL, execute wrapper |
-| Confirmed **execute** account layout for CPI to credit-vault `draw` | Swig + Anurag | `buildSwigExecuteDrawTransaction` |
-| One **Fair explorer** sig: open_line(agent=swig) + delegate draw | Anurag after M1 | `docs/PROOF.md` + `STATUS.md` |
+| Item | Value |
+| --- | --- |
+| npm | `@swig-wallet/classic@2.1.0`, `@swig-wallet/lib@2.1.0` |
+| Program id (devnet/mainnet) | `swigypWHEksbC64pWKwah1WTeh9JXwx8H1rJHLdbQMB` |
+| State file (gitignored) | `.keys/swig-line-grant.json` |
 
-Until the first row is in this file, milestones **M1–M5** in `docs/PHASE2-ANURAG.md` cannot close.
+Docs: https://build.onswig.com/reference/typescript
 
-## Env (after M1)
+## On-chain flow
 
-In `scripts/devnet.env`:
+1. **Setup** — lender creates Swig; delegate (`spend-agent`) gets `programLimit` on Credit Vault + Payment Channels.
+2. **open_line** — `agent` = **Swig wallet** address (`getSwigWalletAddress`), not the Swig account PDA.
+3. **draw / repay** — inner vault ixs wrapped with `getSignInstructions` (delegate signs).
+
+## Commands
+
+```powershell
+cd packages\sdk
+npm run devnet:swig-setup -- --submit
+npm run devnet:swig-line-open -- --submit
+npm run devnet:swig-spend -- --submit --skip-x402
+```
+
+Requires funded lender + `OPERATOR_KEYPAIR_PATH`.
+
+**RPC:** use `RPC_URL=https://api.devnet.solana.com` or `HELIUS_API_KEY` in `scripts/devnet.env`.
+Do **not** use Tatum’s public gateway for submits (5 req/min → 429). The SDK auto-rewrites Tatum to Solana Labs.
+
+## Env (optional override)
 
 ```env
-SWIG_WALLET_PUBKEY=<swig wallet PDA base58>
+SWIG_WALLET_PUBKEY=<from swig-line-grant.json>
 SWIG_DELEGATE_KEYPAIR_PATH=C:\Projects\zeta-labs\.keys\spend-agent.json
 ```
 
-## Code map (ready vs stub)
+If `swig-line-grant.json` exists, `resolveSpendAuthority` picks Swig mode automatically.
 
-| File | Status |
-| --- | --- |
-| `packages/sdk/src/spend-authority.ts` | Done — raw vs Swig delegate model |
-| `packages/sdk/src/swig/wrap-draw.ts` | Done — inner draw spec; execute tx **stub** |
-| `packages/sdk/src/swig/index.ts` | Stub — wallet create / ready check |
-| `packages/sdk/scripts/spend-authority-env.ts` | Done — env → `SpendAuthority` |
-| `packages/sdk/scripts/devnet-agent-spend.ts` | Done — lender **not** in spend txs (raw agent) |
-| `packages/sdk/scripts/devnet-phase2-preflight.ts` | Done — local checklist |
+## Remaining for M5
 
-## Demilade / Joshna
-
-- **Demilade:** no action unless draw account metas change (unlikely).
-- **Joshna:** dashboard already treats `line.agent` as opaque pubkey; Swig wallet is fine.
+- Explorer signatures in `docs/PROOF.md`
+- Move row to Done in `docs/STATUS.md` after you run the three commands successfully on devnet

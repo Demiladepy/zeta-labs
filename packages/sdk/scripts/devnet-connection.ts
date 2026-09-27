@@ -1,43 +1,53 @@
 /**
- * Devnet RPC with timeout + fallbacks (official endpoint often hangs on some networks).
+ * Devnet RPC with timeout + fallbacks. Re-exports HTTP helpers from src.
  */
 import { Connection, type ConnectionConfig } from "@solana/web3.js";
+import { createHttpConnection, sendTransactionHttp } from "../src/devnet-rpc.js";
 
-export const DEVNET_RPC_FALLBACKS = [
-  "https://solana-devnet.gateway.tatum.io",
-  "https://api.devnet.solana.com",
-] as const;
+export { sendTransactionHttp } from "../src/devnet-rpc.js";
 
-const RPC_TIMEOUT_MS = 30_000;
+/** Tatum free tier is 5 req/min — do not use for submit scripts. */
+export const DEVNET_RPC_FALLBACKS = ["https://api.devnet.solana.com"] as const;
 
-async function fetchWithTimeout(
-  input: Parameters<typeof fetch>[0],
-  init?: Parameters<typeof fetch>[1],
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
+async function probeRpc(url: string, attempts = 3): Promise<boolean> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const connection = createDevnetConnection(url);
+      await connection.getVersion();
+      return true;
+    } catch {
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
   }
+  return false;
 }
 
 export function createDevnetConnection(
   rpcUrl: string,
   commitment: ConnectionConfig["commitment"] = "confirmed",
 ): Connection {
-  return new Connection(rpcUrl, {
-    commitment,
-    fetch: fetchWithTimeout,
-  });
+  return createHttpConnection(rpcUrl, commitment);
 }
 
 function candidateRpcUrls(primary: string): string[] {
   const trimmed = primary.trim();
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const url of [trimmed, ...DEVNET_RPC_FALLBACKS]) {
+  const heliusKey = process.env.HELIUS_API_KEY?.trim();
+  if (heliusKey) {
+    const helius = `https://devnet.helius-rpc.com/?api-key=${heliusKey}`;
+    if (!seen.has(helius)) {
+      seen.add(helius);
+      out.push(helius);
+    }
+  }
+  const ordered =
+    trimmed.includes("tatum.io")
+      ? [...DEVNET_RPC_FALLBACKS, trimmed]
+      : [trimmed, ...DEVNET_RPC_FALLBACKS];
+  for (const url of ordered) {
     if (!url || seen.has(url)) continue;
     seen.add(url);
     out.push(url);
@@ -45,7 +55,6 @@ function candidateRpcUrls(primary: string): string[] {
   return out;
 }
 
-/** Pick the first RPC that answers getVersion (logs when falling back). */
 export async function createResilientDevnetConnection(
   rpcUrl: string,
   commitment: ConnectionConfig["commitment"] = "confirmed",
@@ -53,20 +62,24 @@ export async function createResilientDevnetConnection(
   const candidates = candidateRpcUrls(rpcUrl);
   let lastError: unknown;
   for (const url of candidates) {
-    const connection = createDevnetConnection(url, commitment);
-    try {
-      await connection.getVersion();
-      if (url !== candidates[0]) {
-        console.warn(`RPC fallback: using ${url} (${candidates[0]} unreachable)`);
-      }
-      return { connection, rpcUrl: url };
-    } catch (error) {
-      lastError = error;
+    if (!(await probeRpc(url))) {
+      lastError = new Error(`probe failed for ${url}`);
+      continue;
     }
+    const connection = createDevnetConnection(url, commitment);
+    if (url !== candidates[0]) {
+      console.warn(`RPC: using ${url}`);
+    }
+    if (url.includes("tatum.io")) {
+      console.warn(
+        "warn: Tatum free RPC is rate-limited — set RPC_URL=https://api.devnet.solana.com or HELIUS_API_KEY",
+      );
+    }
+    return { connection, rpcUrl: url };
   }
   throw new Error(
     `No devnet RPC reachable. Tried:\n  - ${candidates.join("\n  - ")}\n` +
       `Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}\n` +
-      "Set RPC_URL in scripts/devnet.env (Helius/QuickNode key URL also works).",
+      "Set RPC_URL=https://api.devnet.solana.com or HELIUS_API_KEY in scripts/devnet.env",
   );
 }

@@ -42,7 +42,7 @@ describe("wrap-draw", () => {
       keys: [{ pubkey: other, isSigner: true, isWritable: false }],
       data: Buffer.alloc(8),
     };
-    assert.throws(() => buildSwigWrappedDrawSpec(swig, drawIx));
+    assert.throws(() => buildSwigWrappedDrawSpec(swig, drawIx as import("@solana/web3.js").TransactionInstruction));
     const ok = buildSwigWrappedDrawSpec(swig, {
       ...drawIx,
       keys: [{ pubkey: swig, isSigner: true, isWritable: false }],

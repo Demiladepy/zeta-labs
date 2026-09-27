@@ -42,6 +42,9 @@
     "devnet:policy-demos": "tsx scripts/devnet-policy-demos.ts",
     "devnet:phase2-preflight": "tsx scripts/devnet-phase2-preflight.ts",
     "devnet:agent-spend": "tsx scripts/devnet-agent-spend.ts",
+    "devnet:swig-setup": "tsx scripts/devnet-swig-setup.ts",
+    "devnet:swig-line-open": "tsx scripts/devnet-swig-line-open.ts",
+    "devnet:swig-spend": "tsx scripts/devnet-swig-spend.ts",
     "clawpump:smoke": "tsx scripts/clawpump-smoke.ts",
     "pyth:aapl-compare": "tsx scripts/pyth-aapl-compare.ts"
   },
@@ -55,6 +58,8 @@
     "@solana/kit": "^6.10.0",
     "@solana/pay-kit": "^0.12.0",
     "@solana/spl-token": "^0.4.15",
-    "@solana/web3.js": "^1.99.0"
+    "@solana/web3.js": "^1.99.0",
+    "@swig-wallet/classic": "^2.1.0",
+    "@swig-wallet/lib": "^2.1.0"
   }
 }

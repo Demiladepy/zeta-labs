@@ -1,0 +1,102 @@
+import { randomBytes } from "node:crypto";
+import { Actions, createEd25519AuthorityInfo } from "@swig-wallet/lib";
+import {
+  fetchSwig,
+  findSwigPda,
+  getAddAuthorityInstructions,
+  getCreateSwigInstruction,
+  getSignInstructions,
+  getSwigWalletAddress,
+  type Swig,
+} from "@swig-wallet/classic";
+import { Connection, Keypair, PublicKey, type TransactionInstruction } from "@solana/web3.js";
+import { sendTransactionHttp } from "../devnet-rpc.js";
+import { PAYMENT_CHANNELS_PROGRAM_ID, CREDIT_VAULT_PROGRAM_ID } from "../types.js";
+import { saveSwigLineGrantState, type SwigLineGrantState } from "./state.js";
+
+export type SetupSwigLineGrantParams = {
+  connection: Connection;
+  lender: Keypair;
+  delegate: Keypair;
+};
+
+export type SetupSwigLineGrantResult = {
+  state: SwigLineGrantState;
+  createSignature: string;
+  addDelegateSignature: string;
+};
+
+function delegateActionsForZetaSpend() {
+  const vault = new PublicKey(CREDIT_VAULT_PROGRAM_ID);
+  const channels = new PublicKey(PAYMENT_CHANNELS_PROGRAM_ID);
+  return Actions.set()
+    .programLimit({ programId: vault })
+    .programLimit({ programId: channels })
+    .get();
+}
+
+async function sendIxs(connection: Connection, payer: Keypair, instructions: TransactionInstruction[]) {
+  return sendTransactionHttp(connection, payer, instructions);
+}
+
+/** Create Swig wallet (lender root) + delegate role for vault/channel CPI draw path. */
+export async function setupSwigLineGrant(
+  params: SetupSwigLineGrantParams,
+): Promise<SetupSwigLineGrantResult> {
+  const { connection, lender, delegate } = params;
+  const swigId = randomBytes(32);
+  const swigAccount = findSwigPda(swigId);
+
+  const createIx = await getCreateSwigInstruction({
+    payer: lender.publicKey,
+    id: swigId,
+    actions: Actions.set().all().get(),
+    authorityInfo: createEd25519AuthorityInfo(lender.publicKey),
+  });
+  const createSignature = await sendIxs(connection, lender, [createIx]);
+  await new Promise((r) => setTimeout(r, 2000));
+
+  let swig = await fetchSwig(connection, swigAccount);
+  const rootRole = swig.findRolesByEd25519SignerPk(lender.publicKey)[0];
+  if (!rootRole) throw new Error("Swig root role not found for lender");
+
+  const addIx = await getAddAuthorityInstructions(
+    swig,
+    rootRole.id,
+    createEd25519AuthorityInfo(delegate.publicKey),
+    delegateActionsForZetaSpend(),
+  );
+  const addDelegateSignature = await sendIxs(connection, lender, addIx);
+
+  swig = await fetchSwig(connection, swigAccount);
+  const delegateRole = swig.findRolesByEd25519SignerPk(delegate.publicKey)[0];
+  if (!delegateRole) throw new Error("Swig delegate role not found");
+
+  const swigWallet = await getSwigWalletAddress(swig);
+  const state: SwigLineGrantState = {
+    swigId: [...swigId],
+    swigAccount: swigAccount.toBase58(),
+    swigWallet: swigWallet.toBase58(),
+    rootRoleId: rootRole.id,
+    delegateRoleId: delegateRole.id,
+    lender: lender.publicKey.toBase58(),
+    delegate: delegate.publicKey.toBase58(),
+    createdAt: new Date().toISOString(),
+  };
+  saveSwigLineGrantState(state);
+
+  return { state, createSignature, addDelegateSignature };
+}
+
+export async function fetchSwigForState(connection: Connection, state: SwigLineGrantState): Promise<Swig> {
+  return fetchSwig(connection, new PublicKey(state.swigAccount));
+}
+
+/** Wrap inner instructions (draw, repay) with Swig Sign for the delegate role. */
+export async function swigSignInstructions(
+  swig: Swig,
+  delegateRoleId: number,
+  inner: TransactionInstruction[],
+): Promise<TransactionInstruction[]> {
+  return getSignInstructions(swig, delegateRoleId, inner);
+}

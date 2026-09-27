@@ -118,7 +118,7 @@ export {
 } from "./swig/index.js";
 
 export {
-  buildSwigExecuteDrawTransaction,
+  buildSwigExecuteInstructions,
   buildSwigWrappedDrawSpec,
   type SwigWrappedDrawSpec,
 } from "./swig/wrap-draw.js";

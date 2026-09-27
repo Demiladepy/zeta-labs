@@ -50,7 +50,16 @@ export function loadDevnetEnv(
     if (!process.env[key]) process.env[key] = value;
   }
 
-  const rpcUrl = process.env.RPC_URL;
+  const heliusKey = process.env.HELIUS_API_KEY?.trim();
+  let rpcUrl =
+    process.env.RPC_URL?.trim() ||
+    (heliusKey ? `https://devnet.helius-rpc.com/?api-key=${heliusKey}` : undefined);
+  if (rpcUrl?.includes("tatum.io")) {
+    console.warn(
+      "scripts/devnet.env: Tatum free RPC is 5 req/min — switching to https://api.devnet.solana.com",
+    );
+    rpcUrl = "https://api.devnet.solana.com";
+  }
   const agentKeypairPath = process.env.AGENT_KEYPAIR_PATH;
   if (!rpcUrl) throw new Error("RPC_URL missing in scripts/devnet.env");
   if ((options.requireAgent ?? true) && !agentKeypairPath) {

@@ -36,8 +36,9 @@ import {
   spendAuthorityFromAgentKeypair,
   type SpendAuthority,
 } from "./spend-authority.js";
-import { buildSwigWrappedDrawSpec, buildSwigExecuteDrawTransaction } from "./swig/wrap-draw.js";
-import { SwigNotConfiguredError } from "./swig/index.js";
+import { fetchSwigForState, loadSwigLineGrantState, SwigNotConfiguredError } from "./swig/index.js";
+import { buildSwigExecuteInstructions, buildSwigWrappedDrawSpec } from "./swig/wrap-draw.js";
+import { swigSignInstructions } from "./swig/wallet.js";
 import {
   formatSpendPlan,
   planSevenStepSpend,
@@ -525,13 +526,15 @@ export async function submitAgentSpend(
 
   const drawIx = stepByName(plan, "draw_open_channel");
   if (authority.kind === "swig-delegate") {
+    const grant = loadSwigLineGrantState();
+    if (!grant) throw new SwigNotConfiguredError();
+    const swig = await fetchSwigForState(connection, grant);
     const spec = buildSwigWrappedDrawSpec(authority.swigWallet, drawIx);
-    try {
-      buildSwigExecuteDrawTransaction(spec);
-    } catch (e) {
-      if (e instanceof SwigNotConfiguredError) throw e;
-      throw e;
-    }
+    const signIxs = await buildSwigExecuteInstructions(swig, grant.delegateRoleId, spec);
+    record(
+      "draw_open_channel",
+      await sendStep(connection, signingAgent, [signingAgent], signIxs),
+    );
   } else {
     record(
       "draw_open_channel",
@@ -591,15 +594,27 @@ export async function submitAgentSpend(
   );
 
   record("distribute", await sendStep(connection, signingAgent, [], [stepByName(plan, "distribute")]));
-  record(
-    "repay",
-    await sendStep(
-      connection,
-      signingAgent,
-      signersFor([lineAgentKey.toBase58()]),
-      [stepByName(plan, "repay")],
-    ),
-  );
+  const repayIx = stepByName(plan, "repay");
+  if (authority.kind === "swig-delegate") {
+    const grant = loadSwigLineGrantState();
+    if (!grant) throw new SwigNotConfiguredError();
+    const swig = await fetchSwigForState(connection, grant);
+    const repaySignIxs = await swigSignInstructions(swig, grant.delegateRoleId, [repayIx]);
+    record(
+      "repay",
+      await sendStep(connection, signingAgent, [signingAgent], repaySignIxs),
+    );
+  } else {
+    record(
+      "repay",
+      await sendStep(
+        connection,
+        signingAgent,
+        signersFor([lineAgentKey.toBase58()]),
+        [repayIx],
+      ),
+    );
+  }
 
   return { plan, dryRun: false, steps: results };
 }

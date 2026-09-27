@@ -28,13 +28,14 @@ Target:
 No vault program change is required **if** Swig’s execute path presents the wallet
 account as `agent` signer and `agent.key == line.agent` (same as today).
 
-## Progress snapshot (~40% of Anurag Phase 2 in-repo)
+## Progress snapshot (~85% in-repo; on-chain = run scripts on devnet)
 
-**Done without Swig:** spend-authority types, env loader, `submitAgentSpend` authority
-hook, `devnet:agent-spend` (raw spend-agent — lender not in spend txs), Swig
-`wrap-draw` spec + execute stub, `docs/SWIG.md`, unit tests.
+**Done:** `@swig-wallet/classic` integration, `devnet:swig-setup`, `devnet:swig-line-open`,
+`devnet:swig-spend`, Swig Sign on draw+repay, `.keys/swig-line-grant.json` state.
 
-**Blocked:** M1–M5 below until Swig program id + SDK land (see `docs/SWIG.md`).
+**You run on devnet:** the three `devnet:swig-*` commands (need SOL + stable RPC).
+
+**M5:** paste explorer links into `PROOF.md` + flip `STATUS.md` after success.
 
 ## Milestones
 

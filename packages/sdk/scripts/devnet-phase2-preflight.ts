@@ -66,15 +66,17 @@ async function main() {
   console.log("\n--- Phase 2 progress (Anurag lane) ---");
   const done = [
     "Spend authority model + tests",
-    "Delegated agent spend script (lender not in spend txs)",
-    "Swig wrap-draw spec (execute tx stub)",
-    "docs/SWIG.md contributor blockers",
+    "Delegated agent spend (raw spend-agent)",
+    "@swig-wallet/classic + program id pinned (docs/SWIG.md)",
+    "devnet:swig-setup | swig-line-open | swig-spend scripts",
+    "Swig Sign on draw + repay in submitAgentSpend",
     "Zcash dropped",
   ];
+  const grant = await import("../src/swig/state.js").then((m) => m.loadSwigLineGrantState());
   const blocked = [
-    "M1: Swig program id + SDK pin",
-    "M2–M4: on-chain Swig wallet + delegate draw/revoke",
-    "M5: STATUS.md + PROOF.md explorer evidence",
+    ...(grant ? [] : ["M2: run devnet:swig-setup + swig-line-open on devnet"]),
+    "M4: revoke delegate demo (optional)",
+    "M5: STATUS.md + PROOF.md explorer evidence after successful swig-spend",
   ];
   console.log("Done in repo:");
   for (const item of done) console.log("  [x]", item);

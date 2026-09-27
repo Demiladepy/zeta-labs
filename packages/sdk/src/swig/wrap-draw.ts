@@ -1,19 +1,16 @@
 /**
- * Spec for wrapping credit-vault `draw` inside a Swig execute transaction.
- * Implementation blocked until M1 (program id + SDK) — see docs/SWIG.md.
+ * Wrap credit-vault instructions in Swig Sign for a delegate role.
  */
+import type { Swig } from "@swig-wallet/classic";
 import { PublicKey, type TransactionInstruction } from "@solana/web3.js";
 import { CREDIT_VAULT_PROGRAM_ID } from "../types.js";
+import { swigSignInstructions } from "./wallet.js";
 
 const CREDIT_VAULT_ID = new PublicKey(CREDIT_VAULT_PROGRAM_ID);
-import { SwigNotConfiguredError } from "./index.js";
 
 export type SwigWrappedDrawSpec = {
-  /** Swig smart-wallet PDA — must be `CreditLine.agent` and draw account #0 signer. */
   swigWallet: PublicKey;
-  /** Inner vault instruction (from seven-step plan `draw_open_channel`). */
   drawInstruction: TransactionInstruction;
-  /** Programs Swig must allow for this delegate role. */
   allowedProgramIds: PublicKey[];
 };
 
@@ -35,7 +32,17 @@ export function buildSwigWrappedDrawSpec(
   };
 }
 
-/** Build the outer Swig execute tx — stub until SDK is pinned. */
-export function buildSwigExecuteDrawTransaction(_spec: SwigWrappedDrawSpec): never {
-  throw new SwigNotConfiguredError();
+export async function buildSwigExecuteInstructions(
+  swig: Swig,
+  delegateRoleId: number,
+  spec: SwigWrappedDrawSpec,
+): Promise<TransactionInstruction[]> {
+  return swigSignInstructions(swig, delegateRoleId, [spec.drawInstruction]);
+}
+
+/** @deprecated use buildSwigExecuteInstructions */
+export function buildSwigExecuteDrawTransaction(
+  _spec: SwigWrappedDrawSpec,
+): never {
+  throw new Error("use buildSwigExecuteInstructions with a fetched Swig account");
 }
