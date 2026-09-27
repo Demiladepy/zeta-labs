@@ -17,18 +17,30 @@ Developer toolkit for Zeta's policy-bounded Solana-agent credit flow.
 ```ts
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { createZetaClient } from "@zeta/sdk";
+const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.ZETA_KEY!)));
+const zeta = createZetaClient({ connection: new Connection("https://api.devnet.solana.com"), payer });
+const pool = await zeta.pool(new PublicKey(process.env.ZETA_POOL!));
+const proof = await zeta.proof(process.env.ZETA_SIGNATURE!);
+console.log({ deposited: pool.deposited, outstanding: pool.outstanding });
+console.log(proof.explorerUrl, proof.allowed);
+```
 
-const payer = Keypair.fromSecretKey(/* local devnet keypair bytes */);
-const zeta = createZetaClient({
-  connection: new Connection("https://api.devnet.solana.com", "confirmed"),
-  payer,
-});
+The snippet is read-only. Set `ZETA_KEY`, `ZETA_POOL`, and `ZETA_SIGNATURE` to
+your Devnet values. Transaction methods use the same configured client.
 
-const pool = await zeta.pool(new PublicKey("POOL_ADDRESS"));
-console.log(pool.deposited, pool.outstanding);
+Policy rejections are typed, so callers can handle a denial without parsing an
+RPC message:
 
-const receipt = await zeta.proof("TRANSACTION_SIGNATURE");
-console.log(receipt.explorerUrl, receipt.audits);
+```ts
+import { Denial, PolicyDeniedError, spend } from "@zeta/sdk";
+
+try {
+  await spend({ line, amount, endpoint });
+} catch (error) {
+  if (error instanceof PolicyDeniedError && error.denial === Denial.PerCallCap) {
+    console.log("The request is above this agent's per-call limit.");
+  }
+}
 ```
 
 ## Devnet prerequisite

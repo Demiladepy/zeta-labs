@@ -15,11 +15,13 @@ import {
   findPoolPda,
 } from "./instructions.js";
 import { OPEN_SLOT_WINDOW } from "./paykit/constants.js";
+import { PolicyDeniedError } from "./errors.js";
 import { planVaultDrawOpen } from "./paykit/draw.js";
 import { buildRepayInstruction } from "./paykit/instructions.js";
 import { planOperatorSettle } from "./paykit/settle.js";
 import {
   CREDIT_VAULT_PROGRAM_ID,
+  Denial,
   DEVNET_USDC,
   PAYMENT_CHANNELS_PROGRAM_ID,
   POLICY_REGISTRY_PROGRAM_ID,
@@ -136,7 +138,7 @@ export function planSevenStepSpend(params: PlanSevenStepSpendParams): SevenStepS
   };
 
   if (params.drawAmount > params.perCallCap) {
-    throw new Error("drawAmount exceeds perCallCap");
+    throw new PolicyDeniedError(Denial.PerCallCap);
   }
   if (params.drawAmount > params.lineLimit) {
     throw new Error("drawAmount exceeds lineLimit");

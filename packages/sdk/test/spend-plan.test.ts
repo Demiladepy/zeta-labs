@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { describe, it } from "node:test";
+import { PolicyDeniedError } from "../src/errors.js";
 import { planSevenStepSpend } from "../src/spend-plan.js";
-import { DEVNET_USDC } from "../src/types.js";
+import { Denial, DEVNET_USDC } from "../src/types.js";
 
 describe("planSevenStepSpend", () => {
   it("builds lender setup, draw, settle, and repay steps", () => {
@@ -34,8 +35,8 @@ describe("planSevenStepSpend", () => {
   });
 
   it("rejects draw above per-call cap", () => {
-    assert.throws(() =>
-      planSevenStepSpend({
+    assert.throws(
+      () => planSevenStepSpend({
         lender: Keypair.generate().publicKey,
         agent: Keypair.generate().publicKey,
         operator: Keypair.generate().publicKey,
@@ -49,6 +50,7 @@ describe("planSevenStepSpend", () => {
         settledEstimate: 50n,
         x402Endpoint: "http://example.test",
       }),
+      (error) => error instanceof PolicyDeniedError && error.denial === Denial.PerCallCap,
     );
   });
 });

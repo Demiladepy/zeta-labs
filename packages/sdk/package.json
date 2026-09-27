@@ -28,8 +28,17 @@
     "README.md"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Demiladepy/zeta-labs.git",
+    "directory": "packages/sdk"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc",
+    "clean": "node scripts/clean-dist.mjs",
+    "build": "npm run clean && tsc",
     "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.check.json",
     "test": "tsx --test test/**/*.test.ts",
@@ -49,12 +58,12 @@
     "pyth:aapl-compare": "tsx scripts/pyth-aapl-compare.ts"
   },
   "devDependencies": {
+    "@pythnetwork/hermes-client": "^3.1.0",
     "@types/node": "^26.6.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@pythnetwork/hermes-client": "^3.1.0",
     "@solana/kit": "^6.10.0",
     "@solana/pay-kit": "^0.12.0",
     "@solana/spl-token": "^0.4.15",

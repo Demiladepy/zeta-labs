@@ -39,8 +39,15 @@ export {
   ZetaDecodeError,
 } from "./decoder.js";
 
-/** Pack helpers (wire fixtures). Prefer Anurag's decoder for reads. */
-export { packPolicy, packPool } from "./decode.js";
+export { packPolicy, packPool } from "./pack.js";
+
+export {
+  PolicyDeniedError,
+  asPolicyDeniedError,
+  policyDenialFromError,
+  policyDenialMessage,
+  type PolicyDenial,
+} from "./errors.js";
 
 export {
   buildCreatePoolInstruction,

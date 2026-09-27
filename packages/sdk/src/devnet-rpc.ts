@@ -8,6 +8,7 @@ import {
   Transaction,
   type TransactionInstruction,
 } from "@solana/web3.js";
+import { asPolicyDeniedError } from "./errors.js";
 
 const RPC_TIMEOUT_MS = 90_000;
 const CONFIRM_TIMEOUT_MS = 120_000;
@@ -67,15 +68,22 @@ export async function sendTransactionHttp(
   tx.recentBlockhash = blockhash;
   tx.feePayer = payer.publicKey;
   tx.sign(payer, ...extraSigners);
-  const signature = await connection.sendRawTransaction(tx.serialize(), {
-    skipPreflight: false,
-    maxRetries: 3,
-  });
+  let signature: string;
+  try {
+    signature = await connection.sendRawTransaction(tx.serialize(), {
+      skipPreflight: false,
+      maxRetries: 3,
+    });
+  } catch (error) {
+    throw asPolicyDeniedError(error) ?? error;
+  }
   const deadline = Date.now() + CONFIRM_TIMEOUT_MS;
   while (Date.now() < deadline) {
     const { value } = await connection.getSignatureStatuses([signature]);
     const status = value[0];
     if (status?.err) {
+      const denied = asPolicyDeniedError(status.err, signature);
+      if (denied) throw denied;
       throw new Error(`Transaction failed: ${JSON.stringify(status.err)}`);
     }
     if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") {
