@@ -7,6 +7,25 @@ import {
 } from "../src/types.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
 
+async function getAccountInfoWithRetry(
+  connection: Connection,
+  pubkey: PublicKey,
+  attempts = 4,
+): Promise<Awaited<ReturnType<Connection["getAccountInfo"]>>> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await connection.getAccountInfo(pubkey);
+    } catch (e) {
+      last = e;
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+      }
+    }
+  }
+  throw last;
+}
+
 async function main() {
   const env = loadDevnetEnv({ requireAgent: false });
   const connection = new Connection(env.rpcUrl, "confirmed");
@@ -21,7 +40,7 @@ async function main() {
   console.log("Network:", env.network ?? "devnet");
   let ready = true;
   for (const [name, programId] of targets) {
-    const account = await connection.getAccountInfo(new PublicKey(programId));
+    const account = await getAccountInfoWithRetry(connection, new PublicKey(programId));
     const executable = account?.executable === true;
     console.log(`${name}: ${executable ? "ready" : "NOT DEPLOYED"} (${programId})`);
     ready &&= executable;
@@ -33,5 +52,8 @@ async function main() {
 
 main().catch((error) => {
   console.error(error);
+  console.error(
+    "\nIf you see fetch failed, set RPC_URL in scripts/devnet.env to a devnet provider (Helius, QuickNode, etc.).",
+  );
   process.exitCode = 1;
 });

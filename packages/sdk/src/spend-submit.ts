@@ -30,6 +30,15 @@ import {
   CREDIT_LINE_LEN,
 } from "./types.js";
 import {
+  assertAuthorityOwnsLine,
+  drawSignerKeypair,
+  lineAgentPubkey,
+  spendAuthorityFromAgentKeypair,
+  type SpendAuthority,
+} from "./spend-authority.js";
+import { buildSwigWrappedDrawSpec, buildSwigExecuteDrawTransaction } from "./swig/wrap-draw.js";
+import { SwigNotConfiguredError } from "./swig/index.js";
+import {
   formatSpendPlan,
   planSevenStepSpend,
   type PlanSevenStepSpendParams,
@@ -405,7 +414,10 @@ export async function submitSevenStepSpend(
 
 export type AgentSpendConfig = {
   connection: Connection;
+  /** Raw agent key; ignored when `authority` is set. */
   agent: Keypair;
+  /** Phase 2: Swig delegate or explicit raw authority. */
+  authority?: SpendAuthority;
   operator: Keypair;
   line: PublicKey;
   amount: bigint;
@@ -438,6 +450,10 @@ export async function submitAgentSpend(
     cluster = "devnet",
   } = config;
 
+  const authority = config.authority ?? spendAuthorityFromAgentKeypair(agent);
+  const signingAgent = drawSignerKeypair(authority);
+  const lineAgentKey = lineAgentPubkey(authority);
+
   await assertProgramsDeployed(connection);
 
   const lineAccount = await connection.getAccountInfo(lineKey);
@@ -449,11 +465,7 @@ export async function submitAgentSpend(
   const policyKey = new PublicKey(line.policy);
   const agentKey = new PublicKey(line.agent);
 
-  if (!agentKey.equals(agent.publicKey)) {
-    throw new Error(
-      `configured agent ${agent.publicKey.toBase58()} does not own line ${lineKey.toBase58()}`,
-    );
-  }
+  assertAuthorityOwnsLine(agentKey, authority);
 
   const poolAccount = await connection.getAccountInfo(poolKey);
   if (!poolAccount) throw new Error(`pool not found: ${poolKey.toBase58()}`);
@@ -470,7 +482,7 @@ export async function submitAgentSpend(
 
   const plan = planSevenStepSpend({
     lender: lenderKey,
-    agent: agentKey,
+    agent: lineAgentKey,
     operator: operator.publicKey,
     mint,
     policySeed: policy.seed,
@@ -490,7 +502,12 @@ export async function submitAgentSpend(
   const results: StepResult[] = [];
   const signersFor = (names: string[]): Keypair[] => {
     const out: Keypair[] = [];
-    if (names.includes(agent.publicKey.toBase58())) out.push(agent);
+    const signerPk = signingAgent.publicKey.toBase58();
+    if (names.includes(signerPk) || names.includes(lineAgentKey.toBase58())) {
+      if (authority.kind === "raw-keypair") {
+        out.push(signingAgent);
+      }
+    }
     if (names.includes(operator.publicKey.toBase58())) out.push(operator);
     return out;
   };
@@ -504,17 +521,32 @@ export async function submitAgentSpend(
   };
 
   const evaluateIx = stepByName(plan, "evaluate");
-  record("evaluate", await sendStep(connection, agent, [], [evaluateIx]));
+  record("evaluate", await sendStep(connection, signingAgent, [], [evaluateIx]));
 
   const drawIx = stepByName(plan, "draw_open_channel");
-  record(
-    "draw_open_channel",
-    await sendStep(connection, agent, signersFor([agent.publicKey.toBase58()]), [drawIx]),
-  );
+  if (authority.kind === "swig-delegate") {
+    const spec = buildSwigWrappedDrawSpec(authority.swigWallet, drawIx);
+    try {
+      buildSwigExecuteDrawTransaction(spec);
+    } catch (e) {
+      if (e instanceof SwigNotConfiguredError) throw e;
+      throw e;
+    }
+  } else {
+    record(
+      "draw_open_channel",
+      await sendStep(
+        connection,
+        signingAgent,
+        signersFor([lineAgentKey.toBase58()]),
+        [drawIx],
+      ),
+    );
+  }
 
   if (!skipX402) {
     const { createKeyPairSignerFromBytes } = await import("@solana/kit");
-    const signer = await createKeyPairSignerFromBytes(agent.secretKey);
+    const signer = await createKeyPairSignerFromBytes(signingAgent.secretKey);
     const isPost = endpoint.includes("summarize");
     let x402Status = 0;
     let x402BodyText = "";
@@ -558,13 +590,13 @@ export async function submitAgentSpend(
     await sendStep(connection, operator, signersFor([operator.publicKey.toBase58()]), [settleIx]),
   );
 
-  record("distribute", await sendStep(connection, agent, [], [stepByName(plan, "distribute")]));
+  record("distribute", await sendStep(connection, signingAgent, [], [stepByName(plan, "distribute")]));
   record(
     "repay",
     await sendStep(
       connection,
-      agent,
-      signersFor([agent.publicKey.toBase58()]),
+      signingAgent,
+      signersFor([lineAgentKey.toBase58()]),
       [stepByName(plan, "repay")],
     ),
   );

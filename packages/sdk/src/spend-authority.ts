@@ -34,3 +34,14 @@ export function drawSignerKeypair(auth: SpendAuthority): Keypair {
 export function spendAuthorityFromAgentKeypair(agent: Keypair): SpendAuthority {
   return { kind: "raw-keypair", agent };
 }
+
+/** Ensure on-chain `CreditLine.agent` matches this authority. */
+export function assertAuthorityOwnsLine(lineAgent: PublicKey, authority: SpendAuthority): void {
+  const expected = lineAgentPubkey(authority);
+  if (!lineAgent.equals(expected)) {
+    const mode = authority.kind === "swig-delegate" ? "Swig wallet" : "agent key";
+    throw new Error(
+      `line.agent ${lineAgent.toBase58()} does not match ${mode} ${expected.toBase58()}`,
+    );
+  }
+}

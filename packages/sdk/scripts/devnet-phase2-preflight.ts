@@ -63,12 +63,33 @@ async function main() {
     }
   }
 
-  console.log("\n--- Phase 1 regression (run before claiming Phase 2) ---");
+  console.log("\n--- Phase 2 progress (Anurag lane) ---");
+  const done = [
+    "Spend authority model + tests",
+    "Delegated agent spend script (lender not in spend txs)",
+    "Swig wrap-draw spec (execute tx stub)",
+    "docs/SWIG.md contributor blockers",
+    "Zcash dropped",
+  ];
+  const blocked = [
+    "M1: Swig program id + SDK pin",
+    "M2–M4: on-chain Swig wallet + delegate draw/revoke",
+    "M5: STATUS.md + PROOF.md explorer evidence",
+  ];
+  console.log("Done in repo:");
+  for (const item of done) console.log("  [x]", item);
+  console.log("Blocked on contributors:");
+  for (const item of blocked) console.log("  [ ]", item);
+
+  console.log("\n--- How to verify (no Swig required) ---");
+  console.log(" npm test");
+  console.log(" npm run devnet:agent-spend            # dry-run");
+  console.log(" npm run devnet:agent-spend -- --submit --skip-x402   # needs RPC + existing line");
+
+  console.log("\n--- Phase 1 regression ---");
   console.log(" npm run devnet:preflight");
   console.log(" npm run devnet:spend-submit -- --submit --skip-x402");
-  console.log(" npm run devnet:policy-demos -- --submit");
-  console.log("\nDocs: docs/PHASE2-ANURAG.md");
-  console.log("Zcash: dropped for sprint (see PHASE2-ANURAG.md).");
+  console.log("\nDocs: docs/PHASE2-ANURAG.md  docs/SWIG.md");
 }
 
 async function assertSwigSdk(connection: Connection): Promise<void> {

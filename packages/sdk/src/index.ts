@@ -100,6 +100,7 @@ export type {
 export * from "./paykit/index.js";
 
 export {
+  assertAuthorityOwnsLine,
   drawSignerKeypair,
   lineAgentPubkey,
   spendAuthorityFromAgentKeypair,
@@ -115,6 +116,12 @@ export {
   planSwigLineGrant,
   type SwigLineGrantPlan,
 } from "./swig/index.js";
+
+export {
+  buildSwigExecuteDrawTransaction,
+  buildSwigWrappedDrawSpec,
+  type SwigWrappedDrawSpec,
+} from "./swig/wrap-draw.js";
 
 export type {
   AuditRecord,

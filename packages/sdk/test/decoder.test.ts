@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Keypair, SystemProgram } from "@solana/web3.js";
+import { Keypair, SystemProgram, SYSVAR_CLOCK_PUBKEY } from "@solana/web3.js";
 import {
   ACCOUNT_DISCRIMINATOR,
   Denial,
@@ -172,9 +172,15 @@ test("builders match the frozen instruction tags, widths, and account order", ()
   assert.equal(line.data.readBigUInt64LE(1), 1_000n);
   assert.deepEqual(
     line.keys.map((key) => key.pubkey.toBase58()),
-    [authority, pool, policy, agent, findLinePda(pool, agent), SystemProgram.programId].map((key) =>
-      key.toBase58(),
-    ),
+    [
+      authority,
+      pool,
+      policy,
+      agent,
+      findLinePda(pool, agent),
+      SystemProgram.programId,
+      SYSVAR_CLOCK_PUBKEY,
+    ].map((key) => key.toBase58()),
   );
 
   const revoke = buildRevokeInstruction({ issuer: authority, policy });
