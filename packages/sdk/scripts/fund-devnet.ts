@@ -1,12 +1,7 @@
 /** Fund the configured demo agent with devnet SOL and optional playground USDC. */
 import { readFileSync } from "node:fs";
-import {
-  Connection,
-  Keypair,
-  LAMPORTS_PER_SOL,
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL, SystemProgram, Transaction } from "@solana/web3.js";
+import { createResilientDevnetConnection } from "./devnet-connection.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
 
 async function main() {
@@ -17,7 +12,8 @@ async function main() {
 
   const secret = JSON.parse(readFileSync(env.agentKeypairPath, "utf8")) as number[];
   const agent = Keypair.fromSecretKey(Uint8Array.from(secret));
-  const connection = new Connection(env.rpcUrl, "confirmed");
+  const { connection, rpcUrl } = await createResilientDevnetConnection(env.rpcUrl);
+  console.log("rpc:", rpcUrl);
 
   const signature = await connection.requestAirdrop(agent.publicKey, LAMPORTS_PER_SOL);
   await connection.confirmTransaction(signature, "confirmed");

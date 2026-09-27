@@ -1,5 +1,6 @@
 /** Check whether devnet is ready for the real Zeta demo without changing state. */
-import { Connection, PublicKey } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
+import { createDevnetConnection, createResilientDevnetConnection } from "./devnet-connection.js";
 import {
   CREDIT_VAULT_PROGRAM_ID,
   PAYMENT_CHANNELS_PROGRAM_ID,
@@ -8,10 +9,10 @@ import {
 import { loadDevnetEnv } from "./load-devnet-env.js";
 
 async function getAccountInfoWithRetry(
-  connection: Connection,
+  connection: ReturnType<typeof createDevnetConnection>,
   pubkey: PublicKey,
   attempts = 4,
-): Promise<Awaited<ReturnType<Connection["getAccountInfo"]>>> {
+): Promise<Awaited<ReturnType<ReturnType<typeof createDevnetConnection>["getAccountInfo"]>>> {
   let last: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
@@ -28,7 +29,7 @@ async function getAccountInfoWithRetry(
 
 async function main() {
   const env = loadDevnetEnv({ requireAgent: false });
-  const connection = new Connection(env.rpcUrl, "confirmed");
+  const { connection, rpcUrl } = await createResilientDevnetConnection(env.rpcUrl);
   const targets = [
     ["Policy Registry", POLICY_REGISTRY_PROGRAM_ID],
     ["Credit Vault", CREDIT_VAULT_PROGRAM_ID],
@@ -36,7 +37,7 @@ async function main() {
   ] as const;
 
   console.log("=== Zeta devnet preflight ===");
-  console.log("RPC:", env.rpcUrl);
+  console.log("RPC:", rpcUrl);
   console.log("Network:", env.network ?? "devnet");
   let ready = true;
   for (const [name, programId] of targets) {

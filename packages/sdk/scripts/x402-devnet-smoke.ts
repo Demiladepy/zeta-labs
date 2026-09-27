@@ -9,8 +9,9 @@
 
 import { readFileSync } from "node:fs";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
-import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { fetchPaidEndpoint } from "../src/paykit/x402.js";
+import { createResilientDevnetConnection } from "./devnet-connection.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
 
 async function loadSigner(keypairPath: string) {
@@ -41,7 +42,8 @@ async function main() {
   }
 
   const signer = await loadSigner(env.agentKeypairPath);
-  const connection = new Connection(env.rpcUrl, "confirmed");
+  const { connection, rpcUrl } = await createResilientDevnetConnection(env.rpcUrl);
+  console.log("rpc:", rpcUrl);
   const pubkey = new PublicKey(signer.address);
   const balance = await connection.getBalance(pubkey);
 

@@ -7,7 +7,7 @@
  *   npm run devnet:spend-submit -- --submit --skip-x402
  */
 
-import { Connection } from "@solana/web3.js";
+import { createResilientDevnetConnection } from "./devnet-connection.js";
 import { submitSevenStepSpend } from "../src/spend-submit.js";
 import { buildDemoSpendParams, loadKeypair } from "./spend-config.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
@@ -31,7 +31,7 @@ async function main() {
   const network = env.network ?? "devnet";
   const cluster = network === "mainnet" ? "mainnet-beta" : network === "localnet" ? "devnet" : "devnet";
 
-  const connection = new Connection(env.rpcUrl, "confirmed");
+  const { connection, rpcUrl } = await createResilientDevnetConnection(env.rpcUrl);
   const operator = env.operatorKeypairPath
     ? loadKeypair(env.operatorKeypairPath)
     : buildDemoSpendParams(env).operator;
@@ -50,7 +50,7 @@ async function main() {
 
   console.log("=== Zeta devnet spend submit ===");
   console.log("mode:", submit ? "SUBMIT" : "dry-run");
-  console.log("rpc:", env.rpcUrl);
+  console.log("rpc:", rpcUrl);
   console.log("network:", network);
   console.log("lender:", lender.publicKey.toBase58());
   console.log("agent:", agent.publicKey.toBase58());

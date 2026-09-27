@@ -5,6 +5,7 @@
  *   npm run devnet:policy-demos -- --submit
  */
 import { Connection, Transaction } from "@solana/web3.js";
+import { createResilientDevnetConnection } from "./devnet-connection.js";
 import { buildEvaluateInstruction, findPolicyPda } from "../src/instructions.js";
 import { ZetaClient } from "../src/client.js";
 import { loadKeypair } from "./spend-config.js";
@@ -54,7 +55,7 @@ async function sendExpectedDeny(
 async function main() {
   const env = loadDevnetEnv();
   const submit = hasFlag("--submit");
-  const connection = new Connection(env.rpcUrl, "confirmed");
+  const { connection } = await createResilientDevnetConnection(env.rpcUrl);
   const operator = env.operatorKeypairPath
     ? loadKeypair(env.operatorKeypairPath)
     : loadKeypair(env.agentKeypairPath);

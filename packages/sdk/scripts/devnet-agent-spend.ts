@@ -4,7 +4,7 @@
  *
  *   npm run devnet:agent-spend -- --submit --skip-x402
  */
-import { Connection } from "@solana/web3.js";
+import { createResilientDevnetConnection } from "./devnet-connection.js";
 import { submitAgentSpend } from "../src/spend-submit.js";
 import { DEMO_AMOUNTS, loadKeypair } from "./spend-config.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
@@ -22,7 +22,7 @@ async function main() {
   const env = loadDevnetEnv();
   const submit = hasFlag("--submit");
   const skipX402 = hasFlag("--skip-x402");
-  const connection = new Connection(env.rpcUrl, "confirmed");
+  const { connection, rpcUrl } = await createResilientDevnetConnection(env.rpcUrl);
   const operator = env.operatorKeypairPath
     ? loadKeypair(env.operatorKeypairPath)
     : (() => {
