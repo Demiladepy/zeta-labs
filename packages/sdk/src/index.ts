@@ -99,6 +99,23 @@ export type {
 
 export * from "./paykit/index.js";
 
+export {
+  drawSignerKeypair,
+  lineAgentPubkey,
+  spendAuthorityFromAgentKeypair,
+  type LineAgentPubkey,
+  type RawKeySpendAuthority,
+  type SpendAuthority,
+  type SwigDelegateSpendAuthority,
+} from "./spend-authority.js";
+
+export {
+  SwigNotConfiguredError,
+  createSwigWalletForLineGrant,
+  planSwigLineGrant,
+  type SwigLineGrantPlan,
+} from "./swig/index.js";
+
 export type {
   AuditRecord,
   CreditLine,

@@ -51,5 +51,13 @@ enough. Phase 3: swap in a real World's Fair x402 endpoint.
 
 ## Phase 2
 
-Swig delegated authority for the line→agent grant. Zcash only if
-confidential repay is load-bearing from this build — otherwise drop it.
+**Playbook:** `docs/PHASE2-ANURAG.md`
+
+- Swig delegated authority: `CreditLine.agent` = Swig wallet; hot **delegate**
+  signs `draw` (lender not in every spend tx).
+- Zcash: **dropped** unless a partner needs confidential repay (not for Fair demo).
+- Preflight: `npm run devnet:phase2-preflight` (from `packages/sdk`).
+- Code: `packages/sdk/src/spend-authority.ts`, `packages/sdk/src/swig/`.
+
+Demilade’s P4/P5/underwriting work is already on devnet — your spend path should
+keep using ACL/caps-aware `draw` accounts from the SDK builders.

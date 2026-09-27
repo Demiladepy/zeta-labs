@@ -40,6 +40,7 @@
     "devnet:spend-plan": "tsx scripts/devnet-spend-plan.ts",
     "devnet:spend-submit": "tsx scripts/devnet-spend-submit.ts",
     "devnet:policy-demos": "tsx scripts/devnet-policy-demos.ts",
+    "devnet:phase2-preflight": "tsx scripts/devnet-phase2-preflight.ts",
     "clawpump:smoke": "tsx scripts/clawpump-smoke.ts",
     "pyth:aapl-compare": "tsx scripts/pyth-aapl-compare.ts"
   },
