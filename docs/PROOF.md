@@ -35,16 +35,45 @@ Related (optional):
 | Line | `AYP2yiFLn25QhHKv3hw4yS8xNLbcwKEVjDtabjQypsZ9` |
 | Lender / agent | `9qPcrwU5BL7kXMYQzndg1J1BguK7mhx1AvqD6ACmFABd` |
 
+## Phase 2 — Swig Delegated Authority (On-Chain Proof Set)
+
+Pinned **2026-09-28** after Swig smart wallet delegation e2e on Devnet.
+Cluster: **devnet**.
+
+### Accounts
+| Account | Pubkey |
+| --- | --- |
+| Swig Smart Wallet (line.agent) | `6cGd2NAc2Ce1PXj7XurfwHKF7GXhiFH9HWvxpNkBB7nU` |
+| Delegate (spend-agent hot key) | `FumddriDZBEisrSq9fNNUDYySmB6yZV5aTWBvaio7uyH` |
+| Credit Line | `9nc1MRMEoxKs9GQvTtk72xDa4zqzpCX9qTknBj1RdjpF` |
+| Lender / Authority | `qoGVDF9jB2xoCDmuSfVYBYgGoLyNVpDtxqzK8zkR1eZ` |
+| Pool | `4tPUrLPZpsBv2J6YnkdAthQGbXNG7moiNCHVCKFKcz2j` |
+
+### Live Transactions (Lender absent from spend txs)
+1. **evaluate** (agent preflight)  
+   https://explorer.solana.com/tx/31W3GDLMyCjUvQGFbpZ841gHtNQdwdVDyWnqKbtX6in4ugP7yWdSBtPh9r7nSucGt3keBKDiLsxUNW4evTpXrSjX?cluster=devnet
+2. **draw_open_channel** (Swig Sign CPI → Credit Vault draw → Payment Channels open)  
+   https://explorer.solana.com/tx/4LRv3B8WZ27QYY7afJtQL8fF7kYWS7ax3rMNVektTJXWKz3bSwxU8C9GgrxxusoeC6RamUopdhx287AjPLFRhtGw?cluster=devnet
+3. **settle_and_seal** (operator settle)  
+   https://explorer.solana.com/tx/RHhgVzURneHf92YSHG8m2nBcbeEnFhx2p1ezYCfr8Z6xtFBirP2SafA5kxBNYU76VpAXG3puT4zsviUU73o78zE?cluster=devnet
+4. **distribute** (channel distribution)  
+   https://explorer.solana.com/tx/HSA7JSP4UbWoYZjYT7QhhzocCrCYdL3ShQ6bPHk61sDUvDFdgW35hJfxnpAc3KsSAVcfjdJLkqpC4ADAD3SZ7kX?cluster=devnet
+5. **repay** (Swig Sign CPI → Credit Vault repay)  
+   https://explorer.solana.com/tx/yAevYUyGJU2eZshRBp2hdXSRTTAfAtNnEMaCqP5UfLQvgr4XWTdJmyNMxQWyP94LaNtcyEwAK4vfAoU4vUmxFPZ?cluster=devnet
+
 ## Reproduce
 
 ```powershell
-cd C:\Users\User\zeta-labs\packages\sdk
+cd packages\sdk
 npm run devnet:fund
-# Circle faucet → Solana Devnet → paste lender pubkey (≥10 USDC)
-# Mint: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
 npm run devnet:preflight
 npm run devnet:spend-submit -- --submit --skip-x402
 npm run devnet:policy-demos -- --submit
+
+# Phase 2 Swig:
+npm run devnet:swig-setup -- --submit
+npm run devnet:swig-line-open -- --submit
+npm run devnet:swig-spend -- --submit --skip-x402
 ```
 
-Honest non-claims: no Swig, no production x402 merchant (demo uses `--skip-x402`). See `docs/STATUS.md`.
+Honest non-claims: no production x402 merchant (demo uses `--skip-x402`). See `docs/STATUS.md`.

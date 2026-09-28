@@ -19,6 +19,8 @@ function hasFlag(flag: string): boolean {
   return process.argv.includes(flag);
 }
 
+const MAX_RETRIES = 3;
+
 async function main() {
   const env = loadDevnetEnv();
   const submit = hasFlag("--submit");
@@ -52,24 +54,61 @@ async function main() {
   const { connection, rpcUrl } = await createResilientDevnetConnection(env.rpcUrl);
   console.log("rpc:", rpcUrl);
 
-  const result = await submitAgentSpend({
-    connection,
-    agent: delegate,
-    authority,
-    operator,
-    line,
-    amount: DEMO_AMOUNTS.draw,
-    endpoint: env.x402Endpoint ?? "",
-    settledEstimate: DEMO_AMOUNTS.settledEstimate,
-    skipX402,
-    network: "devnet",
-    cluster: "devnet",
-  });
-
-  for (const step of result.steps) {
-    if (step.explorerUrl) console.log(`  ${step.name}: ${step.explorerUrl}`);
+  // Ensure swigWallet has sufficient lamports for channel account creation
+  const swigBalance = await connection.getBalance(swigWallet, "confirmed");
+  if (swigBalance < 20_000_000) {
+    console.log("swigWallet balance low, topping up from lender...");
+    const { sendTransactionHttp } = await import("../src/devnet-rpc.js");
+    const { SystemProgram } = await import("@solana/web3.js");
+    await sendTransactionHttp(connection, lender, [
+      SystemProgram.transfer({
+        fromPubkey: lender.publicKey,
+        toPubkey: swigWallet,
+        lamports: 50_000_000,
+      }),
+    ]);
   }
-  console.log("OK — Swig delegate spend finished.");
+
+  // Retry the entire spend flow on transient devnet failures (blockhash expiry)
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const result = await submitAgentSpend({
+        connection,
+        agent: delegate,
+        authority,
+        operator,
+        line,
+        amount: DEMO_AMOUNTS.draw,
+        endpoint: env.x402Endpoint ?? "",
+        settledEstimate: DEMO_AMOUNTS.settledEstimate,
+        skipX402,
+        network: "devnet",
+        cluster: "devnet",
+      });
+
+      for (const step of result.steps) {
+        if (step.explorerUrl) console.log(`  ${step.name}: ${step.explorerUrl}`);
+      }
+      console.log("OK — Swig delegate spend finished.");
+      return;
+    } catch (error) {
+      lastError = error;
+      const msg = error instanceof Error ? error.message : String(error);
+      const isTransient =
+        msg.includes("expired") ||
+        msg.includes("block height") ||
+        msg.includes("429") ||
+        msg.includes("timeout");
+      if (isTransient && attempt < MAX_RETRIES) {
+        console.warn(`\nSpend attempt ${attempt} failed (${msg.slice(0, 80)})`);
+        console.warn(`Retrying (${attempt + 1}/${MAX_RETRIES}) in 5s...\n`);
+        await new Promise((r) => setTimeout(r, 5000));
+        continue;
+      }
+    }
+  }
+  throw lastError;
 }
 
 main().catch((e) => {

@@ -20,6 +20,7 @@ import {
   type PdaAccountProvisioner,
 } from "./client.js";
 import { decodeLine, decodePool, decodePolicy } from "./decoder.js";
+import { sendTransactionHttp, retryOn429 } from "./devnet-rpc.js";
 import { fetchPaidEndpoint } from "./paykit/x402.js";
 import {
   CREDIT_VAULT_PROGRAM_ID,
@@ -92,7 +93,20 @@ async function assertProgramsDeployed(connection: Connection): Promise<void> {
 
   const missing: string[] = [];
   for (const [name, id] of ids) {
-    const info = await connection.getAccountInfo(new PublicKey(id));
+    let info = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        info = await connection.getAccountInfo(new PublicKey(id));
+        break;
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("429") && attempt < 2) {
+          await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+          continue;
+        }
+        throw error;
+      }
+    }
     if (!info?.executable) missing.push(`${name} (${id})`);
   }
   if (missing.length > 0) {
@@ -117,9 +131,7 @@ async function ensureSol(
     toPubkey: recipient,
     lamports: needed,
   });
-  await sendAndConfirmTransaction(connection, new Transaction().add(ix), [payer], {
-    commitment: "confirmed",
-  });
+  await sendTransactionHttp(connection, payer, [ix]);
 }
 
 async function ensureAta(
@@ -135,7 +147,7 @@ async function ensureAta(
   if (info || !submit) return ata;
 
   const ix = createAssociatedTokenAccountInstruction(payer.publicKey, ata, owner, mint);
-  await sendAndConfirmTransaction(connection, new Transaction().add(ix), [payer]);
+  await sendTransactionHttp(connection, payer, [ix]);
   return ata;
 }
 
@@ -145,15 +157,25 @@ async function sendStep(
   signers: Keypair[],
   instructions: TransactionInstruction[],
 ): Promise<string> {
-  const unique = new Map<string, Keypair>();
-  unique.set(feePayer.publicKey.toBase58(), feePayer);
-  for (const signer of signers) {
-    unique.set(signer.publicKey.toBase58(), signer);
+  const extraSigners = signers.filter(
+    (s) => !s.publicKey.equals(feePayer.publicKey),
+  );
+  const MAX_RETRIES = 3;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await sendTransactionHttp(connection, feePayer, instructions, extraSigners);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const expired = msg.includes("expired") || msg.includes("block height") || msg.includes("timeout");
+      if (expired && attempt < MAX_RETRIES) {
+        console.warn(`  tx expired — retrying (${attempt + 1}/${MAX_RETRIES})...`);
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+      throw error;
+    }
   }
-  const tx = new Transaction().add(...instructions);
-  return sendAndConfirmTransaction(connection, tx, [...unique.values()], {
-    commitment: "confirmed",
-  });
+  throw new Error("unreachable");
 }
 
 function stepByName(plan: SevenStepSpendPlan, name: string) {
@@ -457,7 +479,7 @@ export async function submitAgentSpend(
 
   await assertProgramsDeployed(connection);
 
-  const lineAccount = await connection.getAccountInfo(lineKey);
+  const lineAccount = await retryOn429(() => connection.getAccountInfo(lineKey));
   if (!lineAccount) throw new Error(`credit line not found: ${lineKey.toBase58()}`);
 
   const { decodeLine, decodePool, decodePolicy } = await import("./decoder.js");
@@ -468,17 +490,17 @@ export async function submitAgentSpend(
 
   assertAuthorityOwnsLine(agentKey, authority);
 
-  const poolAccount = await connection.getAccountInfo(poolKey);
+  const poolAccount = await retryOn429(() => connection.getAccountInfo(poolKey));
   if (!poolAccount) throw new Error(`pool not found: ${poolKey.toBase58()}`);
   const pool = decodePool(poolAccount.data);
   const mint = new PublicKey(pool.mint);
 
-  const policyAccount = await connection.getAccountInfo(policyKey);
+  const policyAccount = await retryOn429(() => connection.getAccountInfo(policyKey));
   if (!policyAccount) throw new Error(`policy not found: ${policyKey.toBase58()}`);
   const policy = decodePolicy(policyAccount.data);
 
   const lenderKey = new PublicKey(pool.authority);
-  const openSlot = BigInt(await connection.getSlot("confirmed"));
+  const openSlot = BigInt(await retryOn429(() => connection.getSlot("confirmed")));
   const settledEstimate = config.settledEstimate ?? amount / 4n;
 
   const plan = planSevenStepSpend({

@@ -50,7 +50,7 @@ export function createHttpConnection(
   const connection = new Connection(rpcUrl, {
     commitment,
     fetch: fetchWithTimeout,
-    disableRetryOnRateLimit: true,
+    disableRetryOnRateLimit: false,
     confirmTransactionInitialTimeout: CONFIRM_TIMEOUT_MS,
   });
   disableWebSocketSubscriptions(connection);
@@ -63,23 +63,29 @@ export async function sendTransactionHttp(
   instructions: TransactionInstruction[],
   extraSigners: Keypair[] = [],
 ): Promise<string> {
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+  const { blockhash, lastValidBlockHeight } = await retryOn429(
+    () => connection.getLatestBlockhash("confirmed"),
+  );
   const tx = new Transaction().add(...instructions);
   tx.recentBlockhash = blockhash;
   tx.feePayer = payer.publicKey;
   tx.sign(payer, ...extraSigners);
   let signature: string;
   try {
-    signature = await connection.sendRawTransaction(tx.serialize(), {
-      skipPreflight: false,
-      maxRetries: 3,
-    });
+    signature = await retryOn429(() =>
+      connection.sendRawTransaction(tx.serialize(), {
+        skipPreflight: false,
+        maxRetries: 3,
+      }),
+    );
   } catch (error) {
     throw asPolicyDeniedError(error) ?? error;
   }
   const deadline = Date.now() + CONFIRM_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const { value } = await connection.getSignatureStatuses([signature]);
+    const { value } = await retryOn429(() =>
+      connection.getSignatureStatuses([signature]),
+    );
     const status = value[0];
     if (status?.err) {
       const denied = asPolicyDeniedError(status.err, signature);
@@ -89,11 +95,30 @@ export async function sendTransactionHttp(
     if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") {
       return signature;
     }
-    const height = await connection.getBlockHeight("confirmed");
+    const height = await retryOn429(() =>
+      connection.getBlockHeight("confirmed"),
+    );
     if (height > lastValidBlockHeight) {
       throw new Error(`Transaction expired (block height exceeded): ${signature}`);
     }
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 2000));
   }
   throw new Error(`Confirmation timeout: ${signature}`);
+}
+
+export async function retryOn429<T>(fn: () => Promise<T>, maxRetries = 5): Promise<T> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("429") && attempt < maxRetries - 1) {
+        const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s, 8s, 16s
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("unreachable");
 }

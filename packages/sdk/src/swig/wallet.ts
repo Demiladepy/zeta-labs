@@ -9,7 +9,7 @@ import {
   getSwigWalletAddress,
   type Swig,
 } from "@swig-wallet/classic";
-import { Connection, Keypair, PublicKey, type TransactionInstruction } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, SystemProgram, type TransactionInstruction } from "@solana/web3.js";
 import { sendTransactionHttp } from "../devnet-rpc.js";
 import { PAYMENT_CHANNELS_PROGRAM_ID, CREDIT_VAULT_PROGRAM_ID } from "../types.js";
 import { saveSwigLineGrantState, type SwigLineGrantState } from "./state.js";
@@ -27,12 +27,9 @@ export type SetupSwigLineGrantResult = {
 };
 
 function delegateActionsForZetaSpend() {
-  const vault = new PublicKey(CREDIT_VAULT_PROGRAM_ID);
-  const channels = new PublicKey(PAYMENT_CHANNELS_PROGRAM_ID);
-  return Actions.set()
-    .programLimit({ programId: vault })
-    .programLimit({ programId: channels })
-    .get();
+  // Delegate can sign inner instructions (credit vault + channels CPIs)
+  // but cannot manage or reassign authorities
+  return Actions.set().allButManageAuthority().get();
 }
 
 async function sendIxs(connection: Connection, payer: Keypair, instructions: TransactionInstruction[]) {
@@ -73,6 +70,19 @@ export async function setupSwigLineGrant(
   if (!delegateRole) throw new Error("Swig delegate role not found");
 
   const swigWallet = await getSwigWalletAddress(swig);
+
+  // Fund swigWallet PDA with SOL so it can pay rent for channel accounts opened by the delegate
+  try {
+    const fundIx = SystemProgram.transfer({
+      fromPubkey: lender.publicKey,
+      toPubkey: swigWallet,
+      lamports: 50_000_000,
+    });
+    await sendIxs(connection, lender, [fundIx]);
+  } catch (err) {
+    console.warn("Could not pre-fund swigWallet with rent lamports:", err);
+  }
+
   const state: SwigLineGrantState = {
     swigId: [...swigId],
     swigAccount: swigAccount.toBase58(),

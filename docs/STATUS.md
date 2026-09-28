@@ -23,12 +23,12 @@ Do not claim anything in the "Not done" column in demos, Builder Feed, or the su
 | SDK `spend()` / `submitAgentSpend` | Anurag | `packages/sdk/src/index.ts`, `spend-submit.ts` |
 | Dashboard live Devnet panels | Joshna | `packages/dashboard` — auto-discovers pool/line/policy |
 | Shared TS decoder | team | `decodePool` / `decodeLine` / `decodePolicy` / `decodePolicyAcl` / `decodeLineUsage` / `decodeAudit` |
+| Swig delegated authority | Anurag | `npm run devnet:swig-setup`, `swig-line-open`, `swig-spend` on devnet (`docs/PROOF.md`) |
 
 ## Not done (do not claim)
 
 | Piece | Why |
 | --- | --- |
-| Swig delegated authority | Anurag Phase 2/3 |
 | Formally verified LTL policy | roadmap |
 | Production x402 merchant endpoint | demo uses playground / `--skip-x402` path |
 

@@ -198,14 +198,17 @@ export function planSevenStepSpend(params: PlanSevenStepSpendParams): SevenStepS
       2,
       "deposit",
       [params.lender],
-      buildDepositInstruction({
-        authority: params.lender,
-        pool,
-        amount: params.depositAmount,
-        sourceAta: lenderAta,
-        vaultAta,
-        programId: creditVault,
-      }),
+      params.depositAmount > 0n
+        ? buildDepositInstruction({
+            authority: params.lender,
+            pool,
+            amount: params.depositAmount,
+            sourceAta: lenderAta,
+            vaultAta,
+            programId: creditVault,
+          })
+        : undefined,
+      params.depositAmount === 0n ? "Skipped: pool already funded." : undefined,
     ),
     ixStep(
       3,

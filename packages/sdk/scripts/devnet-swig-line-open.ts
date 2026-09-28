@@ -19,6 +19,23 @@ function hasFlag(flag: string): boolean {
   return process.argv.includes(flag);
 }
 
+const MAX_RETRIES = 3;
+const INTER_STEP_DELAY_MS = 3000;
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isExpiredError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return (
+    msg.includes("expired") ||
+    msg.includes("block height") ||
+    msg.includes("Blockhash not found") ||
+    msg.includes("timeout")
+  );
+}
+
 async function main() {
   const env = loadDevnetEnv();
   const submit = hasFlag("--submit");
@@ -55,10 +72,28 @@ async function main() {
   }
 
   const client = new ZetaClient({ connection, payer: lender });
+
+  // --- Step 1: Ensure pool exists ---
   const poolInfo = await connection.getAccountInfo(pool);
   if (!poolInfo) {
-    await client.createPool({ mint });
-    console.log("created pool");
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await client.createPool({ mint });
+        console.log("created pool");
+        break;
+      } catch (error) {
+        if (isExpiredError(error) && attempt < MAX_RETRIES) {
+          console.warn(`  create_pool attempt ${attempt} expired — checking if landed...`);
+          await sleep(INTER_STEP_DELAY_MS);
+          const check = await connection.getAccountInfo(pool);
+          if (check) { console.log("  pool confirmed on-chain (landed despite timeout)"); break; }
+          console.warn(`  retrying (${attempt + 1}/${MAX_RETRIES})...`);
+          continue;
+        }
+        throw error;
+      }
+    }
+    await sleep(INTER_STEP_DELAY_MS);
   }
 
   const poolState = decodePool((await connection.getAccountInfo(pool))!.data);
@@ -66,23 +101,76 @@ async function main() {
     console.warn("warn: pool deposit low — run devnet:spend-submit or fund pool before draw");
   }
 
+  // --- Step 2: Register policy ---
   const policyInfo = await connection.getAccountInfo(policy);
   if (!policyInfo) {
-    await client.registerPolicy({
-      seed: policySeed,
-      perCallCap: DEMO_AMOUNTS.draw,
-      expiresAt: BigInt(Math.floor(Date.now() / 1000) + 86_400 * 30),
-    });
-    console.log("registered policy");
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await client.registerPolicy({
+          seed: policySeed,
+          perCallCap: DEMO_AMOUNTS.draw,
+          expiresAt: BigInt(Math.floor(Date.now() / 1000) + 86_400 * 30),
+        });
+        console.log("registered policy");
+        break;
+      } catch (error) {
+        if (isExpiredError(error) && attempt < MAX_RETRIES) {
+          console.warn(`  register_policy attempt ${attempt} expired — checking if landed...`);
+          await sleep(INTER_STEP_DELAY_MS);
+          const check = await connection.getAccountInfo(policy);
+          if (check) { console.log("  policy confirmed on-chain (landed despite timeout)"); break; }
+          console.warn(`  retrying (${attempt + 1}/${MAX_RETRIES})...`);
+          continue;
+        }
+        throw error;
+      }
+    }
+    await sleep(INTER_STEP_DELAY_MS);
   }
 
-  const { signature } = await client.openLine({
-    pool,
-    policy,
-    agent: swigWallet,
-    limit: DEMO_AMOUNTS.lineLimit,
-  });
-  console.log("open_line signature:", signature);
+  // --- Step 3: Open line (with retry) ---
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    // Re-check in case a prior expired attempt actually landed
+    const existingLine = await connection.getAccountInfo(line);
+    if (existingLine) {
+      console.log("line confirmed on-chain (landed despite prior timeout)");
+      break;
+    }
+    try {
+      const { signature } = await client.openLine({
+        pool,
+        policy,
+        agent: swigWallet,
+        limit: DEMO_AMOUNTS.lineLimit,
+      });
+      console.log("open_line signature:", signature);
+      break;
+    } catch (error) {
+      if (isExpiredError(error) && attempt < MAX_RETRIES) {
+        console.warn(`  open_line attempt ${attempt} expired — will retry...`);
+        await sleep(INTER_STEP_DELAY_MS);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  // --- Step 4: Ensure swigWallet has SOL for paying channel rent ---
+  const swigBalance = await connection.getBalance(swigWallet, "confirmed");
+  if (swigBalance < 50_000_000) {
+    console.log("funding swigWallet with rent lamports...");
+    const { sendTransactionHttp } = await import("../src/devnet-rpc.js");
+    const { SystemProgram } = await import("@solana/web3.js");
+    await sendTransactionHttp(connection, lender, [
+      SystemProgram.transfer({
+        fromPubkey: lender.publicKey,
+        toPubkey: swigWallet,
+        lamports: 50_000_000 - swigBalance,
+      }),
+    ]);
+    console.log("swigWallet funded.");
+  }
+
   console.log("\nNext: npm run devnet:swig-spend -- --submit --skip-x402");
 }
 

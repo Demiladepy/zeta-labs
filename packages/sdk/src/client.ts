@@ -28,6 +28,7 @@ import {
   findPolicyPda,
   findPoolPda,
 } from "./instructions.js";
+import { sendTransactionHttp } from "./devnet-rpc.js";
 
 export type ZetaClientConfig = {
   connection: Connection | string;
@@ -143,12 +144,9 @@ export class ZetaClient {
 
   async submit(instructions: readonly TransactionInstruction[]): Promise<string> {
     if (instructions.length === 0) throw new Error("at least one instruction is required");
-    const transaction = new Transaction().add(...instructions);
-    return sendAndConfirmTransaction(this.connection, transaction, [this.payer], {
-      // web3's confirmation helper accepts Finality, while account reads also
-      // accept "processed". Confirm at least at confirmed level on submission.
-      commitment: this.commitment === "processed" ? "confirmed" : this.commitment,
-    });
+    // Use HTTP-based polling (sendTransactionHttp) on devnet to avoid
+    // websocket 429 rate-limiting that causes "block height exceeded" failures.
+    return sendTransactionHttp(this.connection, this.payer, [...instructions]);
   }
 
   async createPool(args: {
