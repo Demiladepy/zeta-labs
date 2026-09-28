@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Landing from "./Landing.js";
 import {
   Button,
   Dialog,
@@ -530,7 +531,7 @@ function SettingsDialog(props: {
   );
 }
 
-export default function App() {
+function DashboardApp({ onHome }: { onHome: () => void }) {
   const [view, setView] = useState<View>("overview");
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [config, setConfig] = useState<DashboardConfig>(() => loadSavedConfig());
@@ -604,10 +605,10 @@ export default function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand">
+        <button className="brand brand-button" type="button" onClick={onHome} aria-label="Return to Zeta Labs home">
           <img className="brand-mark" src="/logo-zeta.png" width={34} height={34} alt="" />
           <div><strong>Zeta</strong><span>Credit control</span></div>
-        </div>
+        </button>
         <nav aria-label="Dashboard sections">
           {navItems.map((item) => (
             <button key={item.id} className={view === item.id ? "nav-active" : ""} onClick={() => setView(item.id)}>
@@ -673,4 +674,28 @@ export default function App() {
       />
     </div>
   );
+}
+
+export default function App() {
+  const [path, setPath] = useState(() => window.location.pathname);
+
+  useEffect(() => {
+    const handlePopState = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const navigate = useCallback((nextPath: string) => {
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, "", nextPath);
+    }
+    setPath(nextPath);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  if (path === "/dashboard" || path.startsWith("/dashboard/")) {
+    return <DashboardApp onHome={() => navigate("/")} />;
+  }
+
+  return <Landing onOpenDashboard={() => navigate("/dashboard")} />;
 }
