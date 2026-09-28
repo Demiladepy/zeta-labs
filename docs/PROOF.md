@@ -63,7 +63,15 @@ Cluster: **devnet**.
 
 ### M4 — revoke delegate (lender removes spend-agent from Swig)
 
-Run `npm run devnet:swig-revoke-delegate -- --submit --expect-spend-fail` and paste the **remove_delegate** explorer URL here after you run it (one-time proof; revoking is destructive for repeat spends on the same grant).
+Pinned **2026-09-28**. After this tx, delegate spend correctly fails (`Role not found for ID: 1`).
+
+1. **remove_delegate** (lender revokes spend-agent Swig role)  
+   https://explorer.solana.com/tx/3xnfNJqPWmhw6DN5tVJWtDdEio1QdfXv4zxj7cSUwm8EsgJTR5d7TzoLqb2ojhTkXwh6vXHkbjnH9WjLAMBrZUBo?cluster=devnet
+
+2. **Follow-up spend attempt** (expected failure — proof only, no separate explorer tx required)  
+   `npm run devnet:swig-revoke-delegate -- --submit --expect-spend-fail`
+
+This is a **one-time demo proof**. You do **not** need to run setup again unless you want to **re-demo** a full Swig spend on devnet.
 
 ## Reproduce
 
