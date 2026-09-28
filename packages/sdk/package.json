@@ -54,6 +54,8 @@
     "devnet:swig-setup": "tsx scripts/devnet-swig-setup.ts",
     "devnet:swig-line-open": "tsx scripts/devnet-swig-line-open.ts",
     "devnet:swig-spend": "tsx scripts/devnet-swig-spend.ts",
+    "devnet:swig-revoke-delegate": "tsx scripts/devnet-swig-revoke-delegate.ts",
+    "devnet:swig-dashboard-config": "tsx scripts/print-swig-dashboard-config.ts",
     "clawpump:smoke": "tsx scripts/clawpump-smoke.ts",
     "pyth:aapl-compare": "tsx scripts/pyth-aapl-compare.ts"
   },

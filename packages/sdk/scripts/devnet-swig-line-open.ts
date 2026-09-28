@@ -5,10 +5,11 @@
  */
 import { PublicKey } from "@solana/web3.js";
 import { ZetaClient } from "../src/client.js";
-import { decodePool } from "../src/decoder.js";
+import { decodeLine, decodePool } from "../src/decoder.js";
+import type { SwigLineGrantState } from "../src/swig/state.js";
 import { findLinePda, findPoolPda, findPolicyPda } from "../src/instructions.js";
 import { DEVNET_USDC } from "../src/types.js";
-import { loadSwigLineGrantState, swigWalletFromState } from "../src/swig/state.js";
+import { loadSwigLineGrantState, saveSwigLineGrantState, swigWalletFromState } from "../src/swig/state.js";
 import { SwigNotConfiguredError } from "../src/swig/index.js";
 import { createResilientDevnetConnection } from "./devnet-connection.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
@@ -24,6 +25,21 @@ const INTER_STEP_DELAY_MS = 3000;
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function persistGrantAddresses(
+  grant: SwigLineGrantState,
+  pool: PublicKey,
+  line: PublicKey,
+  lineInfo: { data: Buffer },
+): void {
+  const decoded = decodeLine(lineInfo.data);
+  saveSwigLineGrantState({
+    ...grant,
+    pool: pool.toBase58(),
+    creditLine: line.toBase58(),
+    policy: new PublicKey(decoded.policy).toBase58(),
+  });
 }
 
 function isExpiredError(error: unknown): boolean {
@@ -59,6 +75,7 @@ async function main() {
   const lineInfo = await connection.getAccountInfo(line);
   if (lineInfo) {
     console.log("line already exists — nothing to do");
+    persistGrantAddresses(grant, pool, line, lineInfo);
     return;
   }
 
@@ -169,6 +186,12 @@ async function main() {
       }),
     ]);
     console.log("swigWallet funded.");
+  }
+
+  const finalLine = await connection.getAccountInfo(line);
+  if (finalLine) {
+    persistGrantAddresses(grant, pool, line, finalLine);
+    console.log("saved pool/line/policy to swig-line-grant.json (for dashboard + M4)");
   }
 
   console.log("\nNext: npm run devnet:swig-spend -- --submit --skip-x402");

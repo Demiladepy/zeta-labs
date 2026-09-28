@@ -72,6 +72,7 @@ export {
 } from "./state.js";
 export {
   fetchSwigForState,
+  removeSwigSpendDelegate,
   setupSwigLineGrant,
   swigSignInstructions,
   type SetupSwigLineGrantResult,

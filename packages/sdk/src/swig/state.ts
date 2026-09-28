@@ -11,6 +11,13 @@ export type SwigLineGrantState = {
   lender: string;
   delegate: string;
   createdAt: string;
+  /** Set after devnet:swig-line-open */
+  creditLine?: string;
+  policy?: string;
+  pool?: string;
+  /** Set after devnet:swig-revoke-delegate */
+  delegateRevokedAt?: string;
+  removeDelegateSignature?: string;
 };
 
 const STATE_PATH = resolve(import.meta.dirname, "../../../../.keys/swig-line-grant.json");

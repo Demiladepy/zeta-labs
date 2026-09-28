@@ -5,6 +5,7 @@ import {
   findSwigPda,
   getAddAuthorityInstructions,
   getCreateSwigInstruction,
+  getRemoveAuthorityInstructions,
   getSignInstructions,
   getSwigWalletAddress,
   type Swig,
@@ -109,4 +110,28 @@ export async function swigSignInstructions(
   inner: TransactionInstruction[],
 ): Promise<TransactionInstruction[]> {
   return getSignInstructions(swig, delegateRoleId, inner);
+}
+
+/** Lender removes the spend delegate role (M4 — delegate can no longer Swig-sign). */
+export async function removeSwigSpendDelegate(params: {
+  connection: Connection;
+  lender: Keypair;
+  state: SwigLineGrantState;
+}): Promise<{ signature: string; swig: Swig }> {
+  const { connection, lender, state } = params;
+  if (state.delegateRevokedAt) {
+    throw new Error("delegate already revoked at " + state.delegateRevokedAt);
+  }
+  let swig = await fetchSwig(connection, new PublicKey(state.swigAccount));
+  const rootRole = swig.findRolesByEd25519SignerPk(lender.publicKey)[0];
+  if (!rootRole) throw new Error("Swig root role not found for lender");
+
+  const removeIx = await getRemoveAuthorityInstructions(
+    swig,
+    rootRole.id,
+    state.delegateRoleId,
+  );
+  const signature = await sendIxs(connection, lender, removeIx);
+  swig = await fetchSwig(connection, new PublicKey(state.swigAccount));
+  return { signature, swig };
 }
