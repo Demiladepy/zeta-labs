@@ -10,7 +10,18 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. Live account discovery runs automatically. Use **Connection settings** to select a different RPC or paste a specific pool, credit-line, and policy account set. Labelled demo data remains available when devnet is unavailable.
+Open the local URL printed by Vite (usually http://localhost:5173). Live account discovery runs automatically.
+
+Use **Connection settings** to:
+- **Find live accounts** (auto-discovery)
+- **Swig proof line** (Anurag Phase 2 devnet line from `docs/PROOF.md`)
+- Paste pool / line / policy manually (`npm run devnet:swig-dashboard-config` in `packages/sdk` prints values)
+
+Build the SDK first if the dashboard cannot resolve `@zeta/sdk`:
+
+```bash
+cd packages/sdk && npm run build
+```
 
 ## Checks
 

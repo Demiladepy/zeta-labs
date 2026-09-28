@@ -25,7 +25,11 @@ cd packages\sdk
 npm run devnet:swig-setup -- --submit
 npm run devnet:swig-line-open -- --submit
 npm run devnet:swig-spend -- --submit --skip-x402
+npm run devnet:swig-revoke-delegate -- --submit --expect-spend-fail
+npm run devnet:swig-dashboard-config
 ```
+
+Dashboard UI: **Connection settings → Swig proof line** (or paste output of `devnet:swig-dashboard-config`).
 
 Requires funded lender + `OPERATOR_KEYPAIR_PATH`.
 

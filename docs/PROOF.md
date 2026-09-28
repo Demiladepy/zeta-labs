@@ -61,6 +61,10 @@ Cluster: **devnet**.
 5. **repay** (Swig Sign CPI → Credit Vault repay)  
    https://explorer.solana.com/tx/yAevYUyGJU2eZshRBp2hdXSRTTAfAtNnEMaCqP5UfLQvgr4XWTdJmyNMxQWyP94LaNtcyEwAK4vfAoU4vUmxFPZ?cluster=devnet
 
+### M4 — revoke delegate (lender removes spend-agent from Swig)
+
+Run `npm run devnet:swig-revoke-delegate -- --submit --expect-spend-fail` and paste the **remove_delegate** explorer URL here after you run it (one-time proof; revoking is destructive for repeat spends on the same grant).
+
 ## Reproduce
 
 ```powershell
@@ -74,6 +78,8 @@ npm run devnet:policy-demos -- --submit
 npm run devnet:swig-setup -- --submit
 npm run devnet:swig-line-open -- --submit
 npm run devnet:swig-spend -- --submit --skip-x402
+npm run devnet:swig-revoke-delegate -- --submit --expect-spend-fail
+npm run devnet:swig-dashboard-config
 ```
 
 Honest non-claims: no production x402 merchant (demo uses `--skip-x402`). See `docs/STATUS.md`.

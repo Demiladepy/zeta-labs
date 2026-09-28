@@ -43,6 +43,7 @@ import {
   type DashboardConfig,
   type DashboardSnapshot,
 } from "./data.js";
+import { loadSwigDevnetPreset } from "./presets.js";
 
 type View = "overview" | "lender" | "agent" | "policy" | "audit";
 type AuditFilter = "all" | "allowed" | "denied";
@@ -502,6 +503,7 @@ function SettingsDialog(props: {
   onConnect: (config: DashboardConfig) => void;
   onDiscover: (rpcUrl: string) => void;
   onDemo: () => void;
+  onSwigProof: (rpcUrl: string) => void;
 }) {
   const [draft, setDraft] = useState(props.config);
   useEffect(() => {
@@ -523,6 +525,7 @@ function SettingsDialog(props: {
           <DialogActions>
             <Button appearance="secondary" onClick={props.onDemo}>Use demo data</Button>
             <Button appearance="secondary" disabled={!draft.rpcUrl} onClick={() => props.onDiscover(draft.rpcUrl)}>Find live accounts</Button>
+            <Button appearance="secondary" disabled={!draft.rpcUrl} onClick={() => props.onSwigProof(draft.rpcUrl)}>Swig proof line</Button>
             <Button appearance="primary" disabled={!complete} onClick={() => props.onConnect(draft)}>Use these addresses</Button>
           </DialogActions>
         </DialogBody>
@@ -572,6 +575,22 @@ function DashboardApp({ onHome }: { onHome: () => void }) {
       setLoading(false);
     }
   }, []);
+
+  const loadSwigProof = useCallback(
+    async (rpcUrl: string) => {
+      setSettingsOpen(false);
+      setLoading(true);
+      setError(null);
+      try {
+        const preset = await loadSwigDevnetPreset(rpcUrl);
+        await connect(preset);
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : "Unable to load Swig proof line");
+        setLoading(false);
+      }
+    },
+    [connect],
+  );
 
   useEffect(() => {
     if (autoLoadStarted.current) return;
@@ -671,6 +690,7 @@ function DashboardApp({ onHome }: { onHome: () => void }) {
         onConnect={(next) => void connect(next)}
         onDiscover={(rpcUrl) => void discover(rpcUrl)}
         onDemo={showDemo}
+        onSwigProof={(rpcUrl) => void loadSwigProof(rpcUrl)}
       />
     </div>
   );
