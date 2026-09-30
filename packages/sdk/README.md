@@ -1,6 +1,41 @@
-# @zeta/sdk
+# @zetasdk/sdk
 
 Developer toolkit for Zeta's policy-bounded Solana-agent credit flow.
+
+## Install
+
+```bash
+npm install @zetasdk/sdk @solana/web3.js
+```
+
+Registry: [npmjs.com/package/@zetasdk/sdk](https://www.npmjs.com/package/@zetasdk/sdk) (npm org **`zetasdk`**).
+
+Peer: Node 20+ and a Solana RPC (Devnet for the shipped program IDs below).
+
+### Package exports
+
+| Import | Use |
+| --- | --- |
+| `@zetasdk/sdk` | Decoders, instruction builders, `createZetaClient`, `spend`, Swig helpers, pay-kit re-exports |
+| `@zetasdk/sdk/types` | Frozen layouts and program IDs only |
+| `@zetasdk/sdk/paykit` | Payment Channels + x402 helpers |
+| `@zetasdk/sdk/dashboard` | Shared dashboard decode helpers |
+
+Devnet scripts (`devnet:spend-submit`, Swig setup, etc.) live in the
+[GitHub repo](https://github.com/Demiladepy/zeta-labs/tree/main/packages/sdk) — not in the npm tarball.
+
+## Devnet program IDs
+
+These constants are exported from `@zetasdk/sdk` (`POLICY_REGISTRY_PROGRAM_ID`, etc.):
+
+| Program | ID |
+| --- | --- |
+| Policy Registry | `G1KqFJPuxkCDGxTMjSPSsD6hh3ZBA6hqv2NGpfhfc6gk` |
+| Credit Vault | `4M9eej8FKXzwgwRKKN3uy5bUfuAXp1aS7ewc7he9mMHi` |
+| Payment Channels | `CHNLxYvVA28MJP9PrFuDXccuoGXAx7jBacfLEkahyGsX` |
+| Devnet USDC | `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` |
+
+Full deploy notes: [`docs/PROGRAM_IDS.md`](https://github.com/Demiladepy/zeta-labs/blob/main/docs/PROGRAM_IDS.md).
 
 ## What it does today
 
@@ -16,7 +51,7 @@ Developer toolkit for Zeta's policy-bounded Solana-agent credit flow.
 
 ```ts
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { createZetaClient } from "@zeta/sdk";
+import { createZetaClient } from "@zetasdk/sdk";
 const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.ZETA_KEY!)));
 const zeta = createZetaClient({ connection: new Connection("https://api.devnet.solana.com"), payer });
 const pool = await zeta.pool(new PublicKey(process.env.ZETA_POOL!));
@@ -32,7 +67,7 @@ Policy rejections are typed, so callers can handle a denial without parsing an
 RPC message:
 
 ```ts
-import { Denial, PolicyDeniedError, spend } from "@zeta/sdk";
+import { Denial, PolicyDeniedError, spend } from "@zetasdk/sdk";
 
 try {
   await spend({ line, amount, endpoint });

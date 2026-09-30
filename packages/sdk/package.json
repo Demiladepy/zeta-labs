@@ -1,7 +1,17 @@
 {
-  "name": "@zeta/sdk",
+  "name": "@zetasdk/sdk",
   "version": "0.1.0",
   "description": "Zeta Labs agent credit SDK. Types mirror crates/zeta-interface.",
+  "keywords": [
+    "solana",
+    "agent",
+    "credit",
+    "x402",
+    "payment-channels",
+    "policy",
+    "zeta-labs"
+  ],
+  "sideEffects": false,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -40,6 +50,7 @@
     "clean": "node scripts/clean-dist.mjs",
     "build": "npm run clean && tsc",
     "prepack": "npm run build",
+    "publish:public": "npm publish --access public",
     "typecheck": "tsc -p tsconfig.check.json",
     "test": "tsx --test test/**/*.test.ts",
     "devnet:preflight": "tsx scripts/devnet-preflight.ts",
