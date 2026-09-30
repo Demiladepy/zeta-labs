@@ -104,19 +104,21 @@ Pinned **2026-09-30**. Playground: `http://127.0.0.1:3000` (`NETWORK=devnet`).
 - **upto / summarize:** `POST /api/v1/summarize` — HTTP 200, billed metered usage (agent wallet pays).
 - **exact / fortune:** `GET /api/v1/fortune` — HTTP 200 (see integrated run below).
 
-### Integrated seven-step + live x402 (`X402_ENDPOINT=…/fortune`, no `--skip-x402`)
+### Integrated seven-step + live x402 (`POST /summarize`, no `--skip-x402`) — canonical Anurag path
 
-| Step | Explorer |
+| Step | Explorer / result |
 | --- | --- |
-| evaluate | https://explorer.solana.com/tx/4fphGoyHidMiafFzDTN5hNzveRcF2x2ha6qPGE2qyojQbUySayMiK61a7jmkmikJiRwqqBtnHwwQcebLobFWnKLV?cluster=devnet |
-| draw_open_channel | https://explorer.solana.com/tx/45WmH8hAdDB7qFgXqo7amWvsomp4tQrphpAjfaz7XjgGrv2gQL45yHBiKJy3KUp4VhcN4vfNor2ZFUyrkr48n2Se?cluster=devnet |
-| x402_upto | HTTP 200 — `{"fortune":"The settlement you await will confirm on-chain."}` |
-| settle_and_seal | https://explorer.solana.com/tx/45vzAtvhRpvSVAiR7yQ4Cy5iSvmudFgL4ZJD5xFi46bjkHQSZPWDPRLjtobvM9MAwRsX2jQsPJ8sGNJcWKqGCQhQ?cluster=devnet |
-| distribute | https://explorer.solana.com/tx/ac3TZ81GHFApAuG2HihwzTqA8bB1gjj4fv3urRMnZgwVADNin8hNFjMznrxc2YfFwL3EeVKoZ8KigrLpw36fPLZ?cluster=devnet |
-| repay | https://explorer.solana.com/tx/2TSYGHxvER6umGZ3EBEhQ51amouguHgn8jr8pQXg3rjwqcbEUE4umt6Uo76Csq4eq8mmvWZoSaQfv4KKbSPrQSSw?cluster=devnet |
+| evaluate | https://explorer.solana.com/tx/xL5XQr38XZYj4yGvgPn5QkdD5xU5GHMmZiAMHGEYsubyTB4jTU8d5SvrhTiHfuow58Rwm3qzWGnRRWqykegHkvj?cluster=devnet |
+| draw_open_channel | https://explorer.solana.com/tx/2NkAUKyxBNqF7X7TkWvoGT9W1Jjex7TpEWHK6pk3DHMN5FRdw6QpfhSauJKGmAJaEj3o7ZTAJkfVFLMt3MVGofTs?cluster=devnet |
+| x402_upto | HTTP 200 — `{"billedBaseUnits":"800","summarizedBytes":34,"tokens":"8"}` |
+| settle_and_seal | https://explorer.solana.com/tx/4tSf9mXBV1vSQsVC78YeiQ7QgsLxus9nKbhwKj8yCGjGggVmeM1PyaK8GYreDaR1e6HbAg3154mU3UU39LHKgDe4?cluster=devnet |
+| distribute | https://explorer.solana.com/tx/2LeiGcNxZBFSd4LAeBsM9Pq674a6qEvyVpUpZxfgpcru97H1qd5nfhr9zaJF2YW9bhLiNR2VCkfpaWaXN71zXAaC?cluster=devnet |
+| repay | https://explorer.solana.com/tx/2rByKcP8XcrbUiaBc4EVgrf4gdMJXkS2UfT5ADvgn2uReqhKkuFNZVvXEhJnGi2nEdv8RENpjbWQi78hzcxWmLmG?cluster=devnet |
+
+Also verified: `GET /fortune` integrated run (exact x402) in same Phase 3 session.
 
 Accounts: pool `4tPUrLPZpsBv2J6YnkdAthQGbXNG7moiNCHVCKFKcz2j`, spend-agent `FumddriDZBEisrSq9fNNUDYySmB6yZV5aTWBvaio7uyH`, lender `qoGVDF9jB2xoCDmuSfVYBYgGoLyNVpDtxqzK8zkR1eZ`.
 
-See `docs/X402.md` (fortune vs summarize, one-time playground setup).
+See `docs/X402.md`.
 
 Honest non-claims: no separately hosted production merchant (playground is local). See `docs/STATUS.md`.

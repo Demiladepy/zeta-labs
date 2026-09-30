@@ -18,7 +18,7 @@ Channels + SDK + dashboard. Fair Explorer links live in `docs/PROOF.md`.
 - Fair proof set (`docs/PROOF.md`)
 
 ### Anurag (pay-kit / spend)
-- Phase 1 pay-kit + x402 smoke (playground / `--skip-x402` — not production merchant)
+- Pay-kit + x402 on devnet (`docs/X402.md`; Phase 3 live merchant complete)
 - Complete devnet spend submit (`submitAgentSpend` / `spend()`)
 - Repeat-run harden + policy deny/revoke demo scripts
 - Agent rotation after revoke

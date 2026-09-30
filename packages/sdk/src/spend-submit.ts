@@ -22,7 +22,6 @@ import {
 import { decodeLine, decodePool, decodePolicy } from "./decoder.js";
 import { sendTransactionHttp, retryOn429 } from "./devnet-rpc.js";
 import { performX402HttpStep } from "./paykit/x402-http.js";
-import { x402IsMeteredUptoEndpoint } from "./x402-merchant.js";
 import {
   CREDIT_VAULT_PROGRAM_ID,
   PAYMENT_CHANNELS_PROGRAM_ID,
@@ -216,7 +215,8 @@ export async function submitSevenStepSpend(
   const plan = planSevenStepSpend({
     ...config.planParams,
     openSlot,
-    metered: skipX402 ? false : x402IsMeteredUptoEndpoint(config.planParams.x402Endpoint),
+    // Vault channel settle does not bundle playground ed25519 vouchers (HTTP x402 is separate).
+    metered: false,
   });
   const results: StepResult[] = [];
 
@@ -492,7 +492,7 @@ export async function submitAgentSpend(
     salt: config.salt,
     gracePeriod: config.gracePeriod,
     settledEstimate,
-    metered: !skipX402 && x402IsMeteredUptoEndpoint(endpoint),
+    metered: false,
     x402Endpoint: endpoint,
   });
 

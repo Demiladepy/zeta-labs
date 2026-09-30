@@ -27,4 +27,4 @@ npm run devnet:swig-dashboard-config
 
 ## Phase 3 (Anurag)
 
-Production / Fair **x402 merchant** (replace `--skip-x402` in demo). See `docs/SPRINT.md`.
+**Done** — live playground x402; see `docs/PHASE3-ANURAG.md`, `docs/PROOF.md`.

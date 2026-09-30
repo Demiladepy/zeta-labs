@@ -1,11 +1,11 @@
 /**
  * HTTP x402 helpers for the seven-step path.
  *
- * Vault `draw` opens a Payment Channel with the **pool PDA** as token payer.
- * Playground `upto` (summarize) expects PayKitClient to open a **wallet** channel,
- * so integrated submit uses fixed-price routes (`fortune`, `quote`) with `exact`.
- * Standalone `npm run x402:smoke` can target summarize when the agent holds USDC.
+ * Vault `draw` opens a pool-funded Payment Channel for credit + operator settle.
+ * The HTTP x402 leg (exact or upto) is a separate pay-kit payment from the agent wallet.
+ * Operator `settle_and_seal` on the vault channel uses `hasVoucher=false` (see spend-submit).
  */
+import { PLAYGROUND_SUMMARIZE_CAP_BASE_UNITS } from "../x402-merchant.js";
 import { createAssociatedTokenAccountInstruction, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { sendTransactionHttp } from "../devnet-rpc.js";
@@ -57,32 +57,42 @@ export async function performX402HttpStep(args: {
 }): Promise<{ status: number; body: string }> {
   const { connection, usdcFunder, payingAgent, mint, endpoint, network } = args;
 
-  if (x402IsMeteredUptoEndpoint(endpoint)) {
-    throw new Error(
-      "Seven-step submit cannot use playground upto (POST /summarize) after vault draw: " +
-        "upto opens a wallet-funded channel, but draw already opened a pool-funded channel. " +
-        "Use X402_ENDPOINT=http://127.0.0.1:3000/api/v1/fortune for integrated live x402, " +
-        "or run npm run x402:smoke for standalone summarize.",
-    );
-  }
-
-  await ensureAgentUsdcForExactX402(
-    connection,
-    usdcFunder,
-    payingAgent.publicKey,
-    mint,
-    20_000n,
-  );
+  const minUsdc = x402IsMeteredUptoEndpoint(endpoint)
+    ? PLAYGROUND_SUMMARIZE_CAP_BASE_UNITS
+    : 20_000n;
+  await ensureAgentUsdcForExactX402(connection, usdcFunder, payingAgent.publicKey, mint, minUsdc);
 
   const { createKeyPairSignerFromBytes } = await import("@solana/kit");
   const signer = await createKeyPairSignerFromBytes(payingAgent.secretKey);
-  const response = await fetchPaidEndpoint({
-    endpoint,
-    rpcUrl: connection.rpcEndpoint,
-    network,
-    signer,
-    protocol: "x402",
-  });
+
+  let response: { status: number; body: string };
+  if (x402IsMeteredUptoEndpoint(endpoint)) {
+    const payKitClient = await import("@solana/pay-kit/client");
+    const client = await payKitClient.PayKitClient.builder()
+      .signer(signer)
+      .rpcUrl(connection.rpcEndpoint)
+      .network(network)
+      .permissions(false)
+      .build();
+    const httpRes = await client.fetch(
+      endpoint,
+      {
+        method: "POST",
+        body: args.body ?? "Zeta vault draw + metered x402 request.",
+        headers: { "Content-Type": "text/plain" },
+      },
+      "x402",
+    );
+    response = { status: httpRes.status, body: await httpRes.text() };
+  } else {
+    response = await fetchPaidEndpoint({
+      endpoint,
+      rpcUrl: connection.rpcEndpoint,
+      network,
+      signer,
+      protocol: "x402",
+    });
+  }
   if (response.status >= 200 && response.status < 300) {
     return { status: response.status, body: response.body };
   }
