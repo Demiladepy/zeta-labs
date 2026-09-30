@@ -537,7 +537,7 @@ function CtaSection({ onOpenDashboard }: { onOpenDashboard: () => void }) {
             <strong>Fund once. Set rules.</strong> Let agents pay securely in seconds.
           </h2>
           <div className="cta-actions">
-            <button className="landing-button landing-button-light" type="button" onClick={onOpenDashboard}>
+            <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
               <span>Open dashboard</span><ArrowRightRegular />
             </button>
             <a className="landing-button cta-button-outline" href="https://github.com/Demiladepy/zeta-labs" target="_blank" rel="noreferrer">
@@ -590,7 +590,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
           <a href="#features">Features</a>
           <a href="#developers">Developers</a>
         </nav>
-        <button className="landing-button landing-button-dark" type="button" onClick={onOpenDashboard}>
+        <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
           <span>Open dashboard</span><ArrowRightRegular />
         </button>
       </header>
@@ -602,7 +602,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
             <h1 id="landing-title">Credit for agents.<br />Control for humans.</h1>
             <p>Fund once, set the rules, and let autonomous software pay safely.</p>
             <div className="hero-actions">
-              <button className="landing-button landing-button-light" type="button" onClick={onOpenDashboard}>
+              <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
                 <span>Open dashboard</span><ArrowRightRegular />
               </button>
               <a className="landing-button landing-button-outline" href="#developers"><span>Read the SDK guide</span></a>
@@ -633,11 +633,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
           </div>
         </div>
 
-        <div className="landing-principles" aria-label="Zeta product principles">
-          <span>One shared capital pool</span>
-          <span>Rules checked before every draw</span>
-          <span>Proof for every decision</span>
-        </div>
+
 
         <section className="landing-section reveal" id="how-it-works" aria-labelledby="flow-title">
           <div className="section-heading section-heading-centered">
@@ -682,7 +678,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
             <p>Each decision leaves an on-chain record with the amount, result, reason, and transaction proof.</p>
           </div>
           <VerifyProofPreview />
-          <button className="landing-button landing-button-dark product-cta" type="button" onClick={onOpenDashboard}>
+          <button className="landing-button landing-button-primary product-cta" type="button" onClick={onOpenDashboard}>
             <span>Open dashboard</span><ArrowRightRegular />
           </button>
         </section>
@@ -718,7 +714,7 @@ console.log(proof.explorerUrl, proof.allowed);`}</code></pre>
             <div><span>03</span><strong>Verify</strong><p>Read the decision and its transaction proof after each draw.</p></div>
           </div>
           <div className="developer-actions">
-            <button className="landing-button landing-button-dark" type="button" onClick={onOpenDashboard}>
+            <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
               <span>Open dashboard</span><ArrowRightRegular />
             </button>
             <a href="https://github.com/Demiladepy/zeta-labs/tree/main/packages/sdk" target="_blank" rel="noreferrer">Read the SDK guide</a>

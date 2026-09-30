@@ -382,6 +382,17 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
 .landing-button-dark:hover { background: #133324; }
 .landing-button-light { color: var(--forest); background: var(--mint); border-color: var(--mint); }
 .landing-button-light:hover { background: #c1f9d6; }
+.landing-button-primary {
+  color: #000 !important;
+  background: var(--mint) !important;
+  border-color: var(--mint) !important;
+  font-weight: 600;
+}
+.landing-button-primary:hover {
+  background: #96f0b8 !important;
+  border-color: #96f0b8 !important;
+}
+
 .landing-button-outline { color: #f6faf6 !important; background: transparent; border-color: rgba(255,255,255,.28); }
 .landing-button-outline:hover { border-color: var(--mint); color: var(--mint) !important; }
 
@@ -499,18 +510,18 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
   height: 8px;
   background: var(--mint);
 }
-.cta-section .testimonial-card { background: var(--paper-strong); color: var(--ink); }
+.cta-section .testimonial-card { background: var(--ink); color: #fff; }
 .cta-section .testimonial-content { max-width: 700px; margin: 0; }
-.cta-heading { margin: 0 0 24px; font-size: clamp(20px, 2.5vw, 28px); line-height: 1.4; letter-spacing: -0.02em; color: var(--ink); }
+.cta-heading { margin: 0 0 24px; font-size: clamp(20px, 2.5vw, 28px); line-height: 1.4; letter-spacing: -0.02em; color: #fff; }
 .cta-heading strong { font-weight: 700; }
 .cta-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
-.cta-button-outline { background: transparent !important; border: 1px solid var(--ink) !important; color: var(--ink) !important; }
-.cta-button-outline:hover { background: var(--ink) !important; color: #fff !important; }
+.cta-button-outline { background: transparent !important; border: 1px solid rgba(255,255,255,0.4) !important; color: #fff !important; }
+.cta-button-outline:hover { background: rgba(255,255,255,0.1) !important; border-color: #fff !important; color: #fff !important; }
 .cta-subtext { margin: 0; font-size: 13px; color: var(--mint); }
 .feature-heading { margin-bottom: 50px; text-align: left; }
 .feature-heading h2 { font-family: "Segoe UI Variable", "Segoe UI", sans-serif; font-size: clamp(32px, 4vw, 48px); font-weight: 700; letter-spacing: -0.04em; color: var(--ink); margin: 0 0 16px; display: flex; align-items: center; gap: 16px; }
 .feature-step { color: #aeb8b0; font-family: "Cascadia Code", monospace; font-weight: 600; }
-.feature-heading p { font-size: 18px; line-height: 1.6; color: var(--mint); margin: 0; max-width: 650px; }
+.feature-heading p { font-size: 18px; line-height: 1.6; color: #566158; margin: 0; max-width: 650px; }
 .mac-dots { display: flex; gap: 8px; margin-bottom: 24px; padding-left: 10px; }
 .mac-dot { width: 12px; height: 12px; border-radius: 50%; }
 
@@ -625,7 +636,7 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
 .developer-principles { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #a6dec0; border-bottom: 1px solid #a6dec0; margin-left: -24px; margin-right: -24px; }
 .developer-principles > div { min-height: 160px; padding: 24px; display: grid; align-content: start; gap: 8px; transition: all 0.25s ease; cursor: pointer; border-left: 1px solid transparent; }
 .developer-principles > div + div { border-left-color: #a6dec0; }
-.developer-principles > div:hover, .developer-principles > div:active { background: var(--paper-strong); border-color: var(--forest); box-shadow: 0 10px 20px rgba(59, 123, 74, 0.2); border-radius: 8px; transform: scale(1.02); z-index: 2; position: relative; }
+.developer-principles > div:hover, .developer-principles > div:active { background: var(--ink); border-color: var(--ink); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); border-radius: 8px; transform: scale(1.02); z-index: 2; position: relative; }
 .developer-principles span { color: #5a7d66; font: 650 10px/1 "Cascadia Code", monospace; transition: color 0.2s; }
 .developer-principles strong { margin-top: 12px; font-size: 16px; letter-spacing: -.02em; color: var(--ink); transition: color 0.2s; }
 .developer-principles p { max-width: 270px; margin: 0; color: #4b6a55; font-size: 12px; line-height: 1.5; transition: color 0.2s; }
@@ -652,7 +663,7 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
 .footer-brand-desc {
   margin-top: 20px;
   line-height: 1.5;
-  color: var(--mint);
+  color: #566158;
 }
 .footer-links {
   display: flex;
@@ -694,7 +705,6 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
   color: var(--ink);
 }
 .footer-bottom {
-  border-top: 1px solid var(--paper-line);
   padding-top: 30px;
   margin-top: 10px;
   font-size: 13px;
