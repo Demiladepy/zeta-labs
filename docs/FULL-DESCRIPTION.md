@@ -43,7 +43,7 @@ We are not building a fiat on-ramp, merchant network, or human consumer wallet. 
 6. Operator `settle_and_seal` + `distribute`; vault `repay` books actual settled and releases unused reservation.
 7. Ops dashboard + explorer links show happy path, one deny, one revoke.
 
-**Phase 1+ (live):** Policy Registry + Credit Vault on Devnet with P4 ACL, P5 caps, Underwriting v1, and hot-path harden; seven-step spend submit; Fair Explorer proof set (`docs/PROOF.md`); live dashboard. **Phase 2:** Swig delegated authority on devnet (`docs/PROOF.md` Swig section). Honest non-claims: **no production merchant x402** (playground / `--skip-x402` OK for demo).
+**Phase 1+ (live):** Policy Registry + Credit Vault on Devnet with P4 ACL, P5 caps, Underwriting v1, and hot-path harden; seven-step spend submit; Fair Explorer proof set (`docs/PROOF.md`); live dashboard. **Phase 2:** Swig delegated authority on devnet (`docs/PROOF.md` Swig section). **Phase 3:** live x402 via local pay-kit playground (`docs/X402.md`); integrated submit uses `/fortune` (exact). Honest non-claims: **no hosted production merchant**; vault + upto `/summarize` in one flow is not wired yet.
 
 ---
 

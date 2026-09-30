@@ -88,6 +88,19 @@ npm run devnet:swig-line-open -- --submit
 npm run devnet:swig-spend -- --submit --skip-x402
 npm run devnet:swig-revoke-delegate -- --submit --expect-spend-fail
 npm run devnet:swig-dashboard-config
+
+# Phase 3 — live x402 (pay-kit playground, devnet):
+.\scripts\start-paykit-playground.ps1
+npm run devnet:phase3-preflight
+npm run x402:smoke
+npm run devnet:spend-submit -- --submit
 ```
 
-Honest non-claims: no production x402 merchant (demo uses `--skip-x402`). See `docs/STATUS.md`.
+## Phase 3 — live x402 `upto` (playground merchant)
+
+Merchant: `POST http://127.0.0.1:3000/api/v1/summarize` (draw / deposit **100_000** USDC base units).
+See `docs/X402.md` and `docs/PHASE3-ANURAG.md`.
+
+After a successful run, paste the `x402_upto` step log and full seven-step explorer URLs here.
+
+Honest non-claims: no separately hosted production merchant (playground is local). See `docs/STATUS.md`.

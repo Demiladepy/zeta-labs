@@ -6,7 +6,8 @@
  */
 import { createResilientDevnetConnection } from "./devnet-connection.js";
 import { submitAgentSpend } from "../src/spend-submit.js";
-import { DEMO_AMOUNTS, loadKeypair } from "./spend-config.js";
+import { DEMO_AMOUNTS, drawForEndpoint, loadKeypair } from "./spend-config.js";
+import { DEFAULT_X402_ENDPOINT, x402SettledEstimate } from "../src/x402-merchant.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
 import { loadOrCreateSpendAgent, printDashboardConfig, resolveActiveSpendParams } from "./resolve-spend-context.js";
 import { resolveSpendAuthority } from "./spend-authority-env.js";
@@ -57,7 +58,9 @@ async function main() {
     return;
   }
 
-  const resolved = await resolveActiveSpendParams(connection, env, operator);
+  const resolved = await resolveActiveSpendParams(connection, env, operator, { skipX402 });
+  const x402Endpoint = resolved.planParams.x402Endpoint ?? env.x402Endpoint ?? DEFAULT_X402_ENDPOINT;
+  const drawAmount = drawForEndpoint(x402Endpoint, skipX402);
   if (resolved.agent.publicKey.equals(resolved.lender.publicKey)) {
     console.warn(
       "warn: agent is the lender key — run full devnet:spend-submit once to provision .keys/spend-agent.json",
@@ -71,9 +74,9 @@ async function main() {
     authority: submitAuthority,
     operator,
     line: resolved.accounts.line,
-    amount: DEMO_AMOUNTS.draw,
-    endpoint: resolved.planParams.x402Endpoint ?? env.x402Endpoint ?? "",
-    settledEstimate: DEMO_AMOUNTS.settledEstimate,
+    amount: drawAmount,
+    endpoint: x402Endpoint,
+    settledEstimate: x402SettledEstimate(drawAmount),
     skipX402,
     network: env.network === "mainnet" ? "mainnet" : env.network === "localnet" ? "localnet" : "devnet",
     cluster: "devnet",

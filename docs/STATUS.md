@@ -25,13 +25,14 @@ Do not claim anything in the "Not done" column in demos, Builder Feed, or the su
 | Shared TS decoder | team | `decodePool` / `decodeLine` / `decodePolicy` / `decodePolicyAcl` / `decodeLineUsage` / `decodeAudit` |
 | **SDK on npm (`@zetasdk/sdk`)** | Joshna | `npm install @zetasdk/sdk` · final name · `docs/SDK-PUBLISH.md` |
 | Swig delegated authority | Anurag | `npm run devnet:swig-setup`, `swig-line-open`, `swig-spend` on devnet (`docs/PROOF.md`) |
+| Live x402 (pay-kit playground) | Anurag | `x402:smoke` (summarize); `devnet:spend-submit -- --submit` with `/fortune`; `docs/X402.md` |
 
 ## Not done (do not claim)
 
 | Piece | Why |
 | --- | --- |
 | Formally verified LTL policy | roadmap |
-| Production x402 merchant endpoint | demo uses playground / `--skip-x402` path |
+| Hosted production merchant (non-playground) | Fair demo uses local pay-kit playground on devnet |
 
 ## Verdict
 

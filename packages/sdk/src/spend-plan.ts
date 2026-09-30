@@ -15,6 +15,7 @@ import {
   findPoolPda,
 } from "./instructions.js";
 import { OPEN_SLOT_WINDOW } from "./paykit/constants.js";
+import { x402IsMeteredUptoEndpoint } from "./x402-merchant.js";
 import { PolicyDeniedError } from "./errors.js";
 import { planVaultDrawOpen } from "./paykit/draw.js";
 import { buildRepayInstruction } from "./paykit/instructions.js";
@@ -177,7 +178,7 @@ export function planSevenStepSpend(params: PlanSevenStepSpendParams): SevenStepS
     repaySigner: params.agent,
     reservedThisDraw: params.drawAmount,
     settled: params.settledEstimate,
-    hasVoucher: params.metered ?? true,
+    hasVoucher: params.metered ?? x402IsMeteredUptoEndpoint(params.x402Endpoint),
   });
 
   const steps: PlannedStep[] = [

@@ -1,16 +1,16 @@
 /**
- * Live x402 smoke: pay a real endpoint via local pay-kit playground.
+ * Live x402 smoke: pay a real pay-kit playground `upto` endpoint.
  *
  * Setup:
- *   1. copy scripts\devnet.env.example scripts\devnet.env
- *   2. Start playground API on port 3000
- *   3. npm run x402:smoke --prefix packages/sdk
+ *   1. scripts/start-paykit-playground.ps1  (NETWORK=devnet, port 3000)
+ *   2. npm run x402:smoke
  */
 
 import { readFileSync } from "node:fs";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { fetchPaidEndpoint } from "../src/paykit/x402.js";
+import { DEFAULT_X402_ENDPOINT } from "../src/x402-merchant.js";
 import { createResilientDevnetConnection } from "./devnet-connection.js";
 import { loadDevnetEnv } from "./load-devnet-env.js";
 
@@ -35,11 +35,41 @@ async function fundViaPlaygroundFaucet(
   console.log("faucet: funded sandbox USDC + SOL for", address);
 }
 
+async function payEndpoint(
+  endpoint: string,
+  rpcUrl: string,
+  network: "devnet" | "localnet" | "mainnet",
+  signer: Awaited<ReturnType<typeof loadSigner>>,
+): Promise<{ status: number; body: string }> {
+  const isPost = endpoint.includes("summarize");
+  if (isPost) {
+    const payKitClient = await import("@solana/pay-kit/client");
+    const client = await payKitClient.PayKitClient.builder()
+      .signer(signer)
+      .rpcUrl(rpcUrl)
+      .network(network)
+      .permissions(false)
+      .build();
+    const response = await client.fetch(
+      endpoint,
+      { method: "POST", body: "Zeta Phase 3 x402 smoke.", headers: { "Content-Type": "text/plain" } },
+      "x402",
+    );
+    return { status: response.status, body: await response.text() };
+  }
+  const result = await fetchPaidEndpoint({
+    endpoint,
+    rpcUrl,
+    network,
+    signer,
+    protocol: "x402",
+  });
+  return { status: result.status, body: result.body };
+}
+
 async function main() {
   const env = loadDevnetEnv();
-  if (!env.x402Endpoint) {
-    throw new Error("Set X402_ENDPOINT in scripts/devnet.env");
-  }
+  const endpoint = env.x402Endpoint ?? DEFAULT_X402_ENDPOINT;
 
   const signer = await loadSigner(env.agentKeypairPath);
   const { connection, rpcUrl } = await createResilientDevnetConnection(env.rpcUrl);
@@ -47,39 +77,35 @@ async function main() {
   const pubkey = new PublicKey(signer.address);
   const balance = await connection.getBalance(pubkey);
 
-  console.log("=== x402 smoke ===");
+  console.log("=== x402 smoke (Phase 3) ===");
   console.log("agent:", signer.address);
   console.log("network:", env.network);
-  console.log("rpc:", env.rpcUrl);
   console.log("balance:", balance / LAMPORTS_PER_SOL, "SOL");
-  console.log("endpoint:", env.x402Endpoint);
+  console.log("endpoint:", endpoint);
 
-  if (env.playgroundFaucetUrl) {
-    await fundViaPlaygroundFaucet(env.playgroundFaucetUrl, signer.address);
+  const health = await fetch(endpoint.replace(/\/api\/v1\/.*$/, "/api/v1/health")).catch(() => null);
+  if (!health?.ok) {
+    console.error("\nPlayground API not reachable. Run scripts/start-paykit-playground.ps1");
+    process.exit(1);
   }
 
-  const result = await fetchPaidEndpoint({
-    endpoint: env.x402Endpoint,
-    rpcUrl: env.rpcUrl,
-    network: env.network,
-    signer,
-    protocol: "x402",
-  });
+  if (env.network === "localnet" && env.playgroundFaucetUrl) {
+    await fundViaPlaygroundFaucet(env.playgroundFaucetUrl, signer.address);
+  } else if (env.playgroundFaucetUrl) {
+    console.log("skip: playground faucet is localnet-only (agent must hold devnet USDC)");
+  }
 
-  console.log("\nstatus:", result.status);
-  console.log("body:", result.body.slice(0, 500));
-  if (result.status >= 200 && result.status < 300) {
+  const { status, body } = await payEndpoint(endpoint, rpcUrl, env.network, signer);
+
+  console.log("\nstatus:", status);
+  console.log("body:", body.slice(0, 500));
+  if (status >= 200 && status < 300) {
     console.log("\nOK — x402 payment succeeded.");
     return;
   }
 
-  if (result.status === 404) {
-    console.error("\nEndpoint 404 — is playground running on port 3000?");
-    console.error("  cd C:\\Projects\\pay-kit\\typescript\\examples\\playground-api");
-    console.error("  $env:PORT=3000; pnpm start");
-  } else {
-    console.error("\nPayment/request failed.");
-  }
+  console.error("\nPayment/request failed (agent wallet needs devnet USDC).");
+  console.error("Fund: https://faucet.circle.com/ →", signer.address);
   process.exit(1);
 }
 

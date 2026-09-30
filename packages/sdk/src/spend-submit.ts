@@ -21,7 +21,8 @@ import {
 } from "./client.js";
 import { decodeLine, decodePool, decodePolicy } from "./decoder.js";
 import { sendTransactionHttp, retryOn429 } from "./devnet-rpc.js";
-import { fetchPaidEndpoint } from "./paykit/x402.js";
+import { performX402HttpStep } from "./paykit/x402-http.js";
+import { x402IsMeteredUptoEndpoint } from "./x402-merchant.js";
 import {
   CREDIT_VAULT_PROGRAM_ID,
   PAYMENT_CHANNELS_PROGRAM_ID,
@@ -350,45 +351,18 @@ export async function submitSevenStepSpend(
     );
 
     if (!skipX402) {
-      const { createKeyPairSignerFromBytes } = await import("@solana/kit");
-      const signer = await createKeyPairSignerFromBytes(agent.secretKey);
       const endpoint = plan.x402.endpoint;
-      const isPost = endpoint.includes("summarize");
-      let x402Status = 0;
-      let x402BodyText = "";
-
-      if (isPost) {
-        const payKitClient = await import("@solana/pay-kit/client");
-        const client = await payKitClient.PayKitClient.builder()
-          .signer(signer)
-          .rpcUrl(connection.rpcEndpoint)
-          .network(network)
-          .permissions(false)
-          .build();
-        const response = await client.fetch(
-          endpoint,
-          { method: "POST", body: x402Body, headers: { "Content-Type": "text/plain" } },
-          "x402",
-        );
-        x402Status = response.status;
-        x402BodyText = await response.text();
-      } else {
-        const response = await fetchPaidEndpoint({
-          endpoint,
-          rpcUrl: connection.rpcEndpoint,
-          network,
-          signer,
-          protocol: "x402",
-        });
-        x402Status = response.status;
-        x402BodyText = response.body;
-      }
-
-      if (x402Status < 200 || x402Status >= 300) {
-        throw new Error(`x402 failed (${x402Status}): ${x402BodyText.slice(0, 300)}`);
-      }
+      const { status, body: x402BodyText } = await performX402HttpStep({
+        connection,
+        usdcFunder: lender,
+        payingAgent: agent,
+        mint: plan.accounts.mint,
+        endpoint,
+        network,
+        body: x402Body,
+      });
       results.push({ name: "x402_upto", skipped: false });
-      console.log(`✓ x402_upto: HTTP ${x402Status}`);
+      console.log(`✓ x402_upto: HTTP ${status}`);
       console.log(`  body: ${x402BodyText.slice(0, 200)}`);
     } else {
       recordSkip("x402_upto", "--skip-x402");
@@ -518,7 +492,7 @@ export async function submitAgentSpend(
     salt: config.salt,
     gracePeriod: config.gracePeriod,
     settledEstimate,
-    metered: !skipX402,
+    metered: !skipX402 && x402IsMeteredUptoEndpoint(endpoint),
     x402Endpoint: endpoint,
   });
 
@@ -570,42 +544,15 @@ export async function submitAgentSpend(
   }
 
   if (!skipX402) {
-    const { createKeyPairSignerFromBytes } = await import("@solana/kit");
-    const signer = await createKeyPairSignerFromBytes(signingAgent.secretKey);
-    const isPost = endpoint.includes("summarize");
-    let x402Status = 0;
-    let x402BodyText = "";
-
-    if (isPost) {
-      const payKitClient = await import("@solana/pay-kit/client");
-      const client = await payKitClient.PayKitClient.builder()
-        .signer(signer)
-        .rpcUrl(connection.rpcEndpoint)
-        .network(network)
-        .permissions(false)
-        .build();
-      const response = await client.fetch(
-        endpoint,
-        { method: "POST", body: x402Body, headers: { "Content-Type": "text/plain" } },
-        "x402",
-      );
-      x402Status = response.status;
-      x402BodyText = await response.text();
-    } else {
-      const response = await fetchPaidEndpoint({
-        endpoint,
-        rpcUrl: connection.rpcEndpoint,
-        network,
-        signer,
-        protocol: "x402",
-      });
-      x402Status = response.status;
-      x402BodyText = response.body;
-    }
-
-    if (x402Status < 200 || x402Status >= 300) {
-      throw new Error(`x402 failed (${x402Status}): ${x402BodyText.slice(0, 300)}`);
-    }
+    await performX402HttpStep({
+      connection,
+      usdcFunder: signingAgent,
+      payingAgent: signingAgent,
+      mint,
+      endpoint,
+      network,
+      body: x402Body,
+    });
     results.push({ name: "x402_upto", skipped: false });
   }
 

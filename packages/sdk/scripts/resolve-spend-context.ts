@@ -9,7 +9,8 @@ import { decodeLine, decodePolicy } from "../src/decoder.js";
 import { findLinePda, findPolicyPda, findPoolPda } from "../src/instructions.js";
 import { DEVNET_USDC } from "../src/types.js";
 import type { PlanSevenStepSpendParams } from "../src/spend-plan.js";
-import { DEMO_AMOUNTS, loadKeypair } from "./spend-config.js";
+import { DEMO_AMOUNTS, drawForEndpoint, loadKeypair } from "./spend-config.js";
+import { DEFAULT_X402_ENDPOINT, x402SettledEstimate } from "../src/x402-merchant.js";
 import type { DevnetEnv } from "./load-devnet-env.js";
 
 const SPEND_AGENT_PATH = resolve(import.meta.dirname, "../../../.keys/spend-agent.json");
@@ -120,6 +121,7 @@ export async function resolveActiveSpendParams(
   connection: Connection,
   env: DevnetEnv,
   operator: Keypair,
+  options: { skipX402?: boolean } = {},
 ): Promise<{
   lender: Keypair;
   agent: Keypair;
@@ -134,6 +136,8 @@ export async function resolveActiveSpendParams(
   const { agent, policySeed } = await resolveAgentAndPolicy(connection, lender, pool);
   const policy = findPolicyPda(lender.publicKey, policySeed);
   const line = findLinePda(pool, agent.publicKey);
+  const x402Endpoint = env.x402Endpoint ?? DEFAULT_X402_ENDPOINT;
+  const drawAmount = drawForEndpoint(x402Endpoint, options.skipX402 ?? false);
 
   return {
     lender,
@@ -146,13 +150,13 @@ export async function resolveActiveSpendParams(
       operator: operator.publicKey,
       mint,
       policySeed,
-      perCallCap: DEMO_AMOUNTS.draw,
+      perCallCap: drawAmount > DEMO_AMOUNTS.draw ? drawAmount : DEMO_AMOUNTS.draw,
       expiresAt: BigInt(Math.floor(Date.now() / 1000) + 86_400 * 30),
       lineLimit: DEMO_AMOUNTS.lineLimit,
       depositAmount: DEMO_AMOUNTS.deposit,
-      drawAmount: DEMO_AMOUNTS.draw,
-      settledEstimate: DEMO_AMOUNTS.settledEstimate,
-      x402Endpoint: env.x402Endpoint ?? "http://127.0.0.1:3000/api/v1/summarize",
+      drawAmount,
+      settledEstimate: x402SettledEstimate(drawAmount),
+      x402Endpoint,
     },
   };
 }

@@ -105,6 +105,14 @@ export type {
 } from "./client.js";
 
 export * from "./paykit/index.js";
+export {
+  DEFAULT_X402_ENDPOINT,
+  PLAYGROUND_FORTUNE_CAP_BASE_UNITS,
+  PLAYGROUND_SUMMARIZE_CAP_BASE_UNITS,
+  x402DrawAmountBaseUnits,
+  x402IsMeteredUptoEndpoint,
+  x402SettledEstimate,
+} from "./x402-merchant.js";
 
 export {
   assertAuthorityOwnsLine,

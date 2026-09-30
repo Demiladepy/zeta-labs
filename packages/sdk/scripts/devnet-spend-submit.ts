@@ -37,9 +37,9 @@ async function main() {
     : buildDemoSpendParams(env).operator;
 
   const resolved = submit
-    ? await resolveActiveSpendParams(connection, env, operator)
+    ? await resolveActiveSpendParams(connection, env, operator, { skipX402 })
     : null;
-  const demo = buildDemoSpendParams(env);
+  const demo = buildDemoSpendParams(env, skipX402);
   const lender = resolved?.lender ?? demo.lender;
   const agent = resolved?.agent ?? demo.agent;
   const planParams = resolved?.planParams ?? demo.planParams;
