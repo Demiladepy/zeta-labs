@@ -17,7 +17,7 @@ Use **Connection settings** to:
 - **Swig proof line** (Anurag Phase 2 devnet line from `docs/PROOF.md`)
 - Paste pool / line / policy manually (`npm run devnet:swig-dashboard-config` in `packages/sdk` prints values)
 
-Build the SDK first if the dashboard cannot resolve `@zeta/sdk`:
+Build the SDK first if the dashboard cannot resolve `@zetasdk/sdk`:
 
 ```bash
 cd packages/sdk && npm run build
@@ -37,4 +37,4 @@ npm run build
 - It matches account relationships from the shared layouts and prefers the credit line with the most recent transaction.
 - Live accounts are checked against the expected Zeta program owners before decoding.
 - Audit history is reconstructed from the latest 50 credit-line transactions.
-- The dashboard imports the SDK's browser-safe `@zeta/sdk/dashboard` entry so account and audit decoding stays shared with the SDK.
+- The dashboard imports the SDK's browser-safe `@zetasdk/sdk/dashboard` entry so account and audit decoding stays shared with the SDK.

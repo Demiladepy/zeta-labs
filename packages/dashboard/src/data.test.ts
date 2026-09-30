@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Denial } from "@zeta/sdk/dashboard";
+import { Denial } from "@zetasdk/sdk/dashboard";
 import {
   demoSnapshot,
   denialLabels,

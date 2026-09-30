@@ -1,5 +1,5 @@
 import { Connection, PublicKey } from "@solana/web3.js";
-import { decodeLine } from "@zeta/sdk/dashboard";
+import { decodeLine } from "@zetasdk/sdk/dashboard";
 import type { DashboardConfig } from "./data.js";
 
 const SWIG_LINE = "9nc1MRMEoxKs9GQvTtk72xDa4zqzpCX9qTknBj1RdjpF";

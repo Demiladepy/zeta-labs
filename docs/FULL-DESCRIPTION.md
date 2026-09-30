@@ -49,7 +49,7 @@ We are not building a fiat on-ramp, merchant network, or human consumer wallet. 
 
 ## Positioning — Solana, Zcash, other bounties
 
-**Solana (primary).** Colosseum Crypto World's Fair is the home track. Stack is native: custom Policy Registry + Credit Vault on Devnet; settlement via Solana Foundation Payment Channels + x402 `upto`. Traction goal: other Fair teams on `@zeta/sdk`; one real capital-holder / compute-provider conversation. Final Fair submit: **12 Oct 2026**.
+**Solana (primary).** Colosseum Crypto World's Fair is the home track. Stack is native: custom Policy Registry + Credit Vault on Devnet; settlement via Solana Foundation Payment Channels + x402 `upto`. Traction goal: other Fair teams on `@zetasdk/sdk`; one real capital-holder / compute-provider conversation. Final Fair submit: **12 Oct 2026**.
 
 **Zcash (conditional, not claimed).** Phase 2 go/no-go only if a confidential repay/settlement leg is load-bearing (e.g. spend metadata leaking lender strategy). Otherwise we drop it. Depth on Solana beats a shallow third chain.
 

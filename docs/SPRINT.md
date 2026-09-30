@@ -64,7 +64,7 @@ or `evaluate`.
 - Swig delegated authority (Anurag).
 - Zcash: only if confidential repay is load-bearing. Else drop it.
 
-**Traction (scored):** ≥2–3 World's Fair teams on `@zeta/sdk`. One
+**Traction (scored):** ≥2–3 World's Fair teams on `@zetasdk/sdk`. One
 conversation with a real capital-holder / compute provider.
 
 ---

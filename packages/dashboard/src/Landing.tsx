@@ -467,7 +467,7 @@ function FaqSection() {
     { q: "How does the policy engine work?", a: "You define rules — per-transaction caps, daily frequency limits, recipient allowlists, and expiry dates. Every draw request is checked against these rules on-chain before funds move." },
     { q: "Is it safe for production?", a: "Zeta uses on-chain program validation. Every transaction generates a cryptographic proof. Agents never receive unrestricted wallet access — they can only spend within the boundaries you set." },
     { q: "What tokens are supported?", a: "Currently USDC on Solana devnet. Mainnet support and additional stablecoins are on the roadmap." },
-    { q: "How do I get started?", a: "Install the @zeta/sdk package, connect to your Solana RPC, create a pool, and set a policy. The SDK guide walks through every step." },
+    { q: "How do I get started?", a: "Install the @zetasdk/sdk package, connect to your Solana RPC, create a pool, and set a policy. The SDK guide walks through every step." },
   ];
 
   return (
@@ -701,9 +701,9 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
           </div>
           <div className="developer-example">
             <div className="code-window">
-              <div className="code-window-head"><span><CodeRegular /> @zeta/sdk</span><small>TypeScript</small></div>
+              <div className="code-window-head"><span><CodeRegular /> @zetasdk/sdk</span><small>TypeScript</small></div>
               <pre><code>{`import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { createZetaClient } from "@zeta/sdk";
+import { createZetaClient } from "@zetasdk/sdk";
 const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.ZETA_KEY!)));
 const zeta = createZetaClient({ connection: new Connection("https://api.devnet.solana.com"), payer });
 const pool = await zeta.pool(new PublicKey(process.env.ZETA_POOL!));

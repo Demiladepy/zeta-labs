@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@zeta/sdk/dashboard": fileURLToPath(new URL("../sdk/src/dashboard.ts", import.meta.url)),
+      "@zetasdk/sdk/dashboard": fileURLToPath(new URL("../sdk/src/dashboard.ts", import.meta.url)),
     },
   },
   server: {

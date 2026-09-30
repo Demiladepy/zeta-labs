@@ -14,7 +14,7 @@
     "@fluentui/react-components": "^9.72.5",
     "@fluentui/react-icons": "^2.0.320",
     "@solana/web3.js": "^1.99.0",
-    "@zeta/sdk": "file:../sdk",
+    "@zetasdk/sdk": "file:../sdk",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

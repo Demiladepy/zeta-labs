@@ -15,7 +15,7 @@ import {
   type CreditLine,
   type Policy,
   type Pool,
-} from "@zeta/sdk/dashboard";
+} from "@zetasdk/sdk/dashboard";
 
 export type DashboardConfig = {
   rpcUrl: string;

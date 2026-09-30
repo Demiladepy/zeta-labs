@@ -107,7 +107,15 @@ Payment Channels `open` → optional CPI with pool PDA as payer.
 cargo test --workspace
 ```
 
-### SDK Devnet proof
+### SDK (npm)
+
+```bash
+npm install @zetasdk/sdk @solana/web3.js
+```
+
+Docs and quickstart: [`packages/sdk/README.md`](packages/sdk/README.md).
+
+### SDK Devnet proof (from repo)
 
 ```powershell
 cd packages/sdk

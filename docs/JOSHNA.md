@@ -6,7 +6,7 @@ the three-panel dashboard.
 
 ## Phase 1 (this week)
 
-Ship `@zeta/sdk` far enough that:
+Ship `@zetasdk/sdk` far enough that:
 
 1. We can drive the seven-step demo from a script.
 2. One external team can try it.
@@ -42,7 +42,7 @@ Dashboard, three panels, live from chain state:
    safety story made visible.
 
 SDK hardening: typed `Denial` errors, 10-line quickstart, faucet
-docs, publish.
+docs, publish (`npm install @zetasdk/sdk` — see `docs/SDK-PUBLISH.md`).
 
 Implementation status: the three dashboard panels are built in
 `packages/dashboard`. It automatically discovers a connected pool, credit
