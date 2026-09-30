@@ -64,6 +64,9 @@ async function main() {
     const connection = new Connection(env.rpcUrl, "confirmed");
     const sol = await connection.getBalance(lender.publicKey);
     console.log("SOL balance:", sol / 1e9);
+    console.log("\nFirst-time playground on devnet (if x402 returns 402):");
+    console.log(" npx tsx scripts/fund-playground-fee-payer.ts");
+    console.log(" npx tsx scripts/ensure-playground-payee-usdc-ata.ts");
   }
 
   console.log("\n--- Verify Phase 3 ---");

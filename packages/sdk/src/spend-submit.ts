@@ -216,7 +216,7 @@ export async function submitSevenStepSpend(
   const plan = planSevenStepSpend({
     ...config.planParams,
     openSlot,
-    metered: !skipX402,
+    metered: skipX402 ? false : x402IsMeteredUptoEndpoint(config.planParams.x402Endpoint),
   });
   const results: StepResult[] = [];
 

@@ -96,11 +96,27 @@ npm run x402:smoke
 npm run devnet:spend-submit -- --submit
 ```
 
-## Phase 3 — live x402 `upto` (playground merchant)
+## Phase 3 — live x402 (pay-kit playground, devnet)
 
-Merchant: `POST http://127.0.0.1:3000/api/v1/summarize` (draw / deposit **100_000** USDC base units).
-See `docs/X402.md` and `docs/PHASE3-ANURAG.md`.
+Pinned **2026-09-30**. Playground: `http://127.0.0.1:3000` (`NETWORK=devnet`).
 
-After a successful run, paste the `x402_upto` step log and full seven-step explorer URLs here.
+### Standalone x402 smoke
+- **upto / summarize:** `POST /api/v1/summarize` — HTTP 200, billed metered usage (agent wallet pays).
+- **exact / fortune:** `GET /api/v1/fortune` — HTTP 200 (see integrated run below).
+
+### Integrated seven-step + live x402 (`X402_ENDPOINT=…/fortune`, no `--skip-x402`)
+
+| Step | Explorer |
+| --- | --- |
+| evaluate | https://explorer.solana.com/tx/4fphGoyHidMiafFzDTN5hNzveRcF2x2ha6qPGE2qyojQbUySayMiK61a7jmkmikJiRwqqBtnHwwQcebLobFWnKLV?cluster=devnet |
+| draw_open_channel | https://explorer.solana.com/tx/45WmH8hAdDB7qFgXqo7amWvsomp4tQrphpAjfaz7XjgGrv2gQL45yHBiKJy3KUp4VhcN4vfNor2ZFUyrkr48n2Se?cluster=devnet |
+| x402_upto | HTTP 200 — `{"fortune":"The settlement you await will confirm on-chain."}` |
+| settle_and_seal | https://explorer.solana.com/tx/45vzAtvhRpvSVAiR7yQ4Cy5iSvmudFgL4ZJD5xFi46bjkHQSZPWDPRLjtobvM9MAwRsX2jQsPJ8sGNJcWKqGCQhQ?cluster=devnet |
+| distribute | https://explorer.solana.com/tx/ac3TZ81GHFApAuG2HihwzTqA8bB1gjj4fv3urRMnZgwVADNin8hNFjMznrxc2YfFwL3EeVKoZ8KigrLpw36fPLZ?cluster=devnet |
+| repay | https://explorer.solana.com/tx/2TSYGHxvER6umGZ3EBEhQ51amouguHgn8jr8pQXg3rjwqcbEUE4umt6Uo76Csq4eq8mmvWZoSaQfv4KKbSPrQSSw?cluster=devnet |
+
+Accounts: pool `4tPUrLPZpsBv2J6YnkdAthQGbXNG7moiNCHVCKFKcz2j`, spend-agent `FumddriDZBEisrSq9fNNUDYySmB6yZV5aTWBvaio7uyH`, lender `qoGVDF9jB2xoCDmuSfVYBYgGoLyNVpDtxqzK8zkR1eZ`.
+
+See `docs/X402.md` (fortune vs summarize, one-time playground setup).
 
 Honest non-claims: no separately hosted production merchant (playground is local). See `docs/STATUS.md`.
