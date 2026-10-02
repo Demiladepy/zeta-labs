@@ -779,10 +779,12 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
             </div>
           </div>
           <div className="developer-actions">
-            <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
+            <button className="landing-button landing-button-primary dev-action-btn" type="button" onClick={onOpenDashboard}>
               <span>Open dashboard</span><ArrowRightRegular />
             </button>
-            <a href="/docs">Read the SDK guide</a>
+            <a className="landing-button landing-button-outline-dark" href="/docs">
+              <span>Read the SDK guide</span>
+            </a>
           </div>
         </section>
 

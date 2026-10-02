@@ -396,6 +396,32 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
 .landing-button-outline { color: #f6faf6 !important; background: transparent; border-color: rgba(255,255,255,.28); }
 .landing-button-outline:hover { border-color: var(--mint); color: var(--mint) !important; }
 
+.landing-button-outline-dark {
+  color: var(--ink) !important;
+  background: transparent;
+  border-color: var(--ink) !important;
+  font-weight: 500;
+}
+.landing-button-outline-dark:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.developer-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 48px;
+}
+.dev-action-btn {
+  border: 1px solid var(--ink) !important;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.dev-action-btn:active {
+  box-shadow: 0 0 0 var(--ink) !important;
+  transform: translate(2px, 2px) !important;
+}
+
+
 .landing-hero { position: relative; isolation: isolate; min-height: min(760px, calc(100dvh - 70px)); margin: 0; border-radius: 0; overflow: hidden; display: grid; place-items: center; background: #0b120d url("/hero-background-poster.jpg") center / cover no-repeat; color: #fff; }
 .landing-hero::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(5,16,11,.56), rgba(5,16,11,.74)), radial-gradient(circle at 50% 45%, rgba(12,32,21,.05), rgba(4,13,9,.52) 72%); pointer-events: none; }
 .hero-background-video { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; filter: saturate(.8) contrast(1.08) brightness(.78); }
