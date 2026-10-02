@@ -275,23 +275,22 @@ function VerifyProofPreview() {
             </div>
           </div>
         </div>
-        <div className="preview-details proof-receipt">
-          <div className="proof-receipt-header">
-            <div>
-              <span>On-chain receipt</span>
-              <h3>Payment verified</h3>
-            </div>
-            <span className="proof-receipt-seal"><CheckmarkCircleRegular /></span>
+        <div className="receipt-sheet">
+          <div className="receipt-heading">
+            <span className="receipt-eyebrow">On-chain receipt</span>
+            <div><h3>Payment verified</h3><span className="receipt-status"><CheckmarkCircleRegular /> Confirmed</span></div>
           </div>
-          <div className="proof-receipt-amount">
-            <span>Amount</span><strong>10.00 USDC</strong><small>Approved by the active spending policy</small>
+          <div className="receipt-amount">
+            <span>Agent payment</span>
+            <div><strong>10.00</strong><span>USDC</span></div>
+            <p>Approved by the active spending policy</p>
           </div>
-          <div className="proof-receipt-facts">
-            <div><span>Result</span><strong>Allowed</strong></div>
-            <div><span>Network</span><strong>Solana Devnet</strong></div>
-            <div><span>Record</span><strong>Permanent</strong></div>
-          </div>
-          <div className="proof-receipt-note"><ShieldCheckmarkRegular /><span><strong>Independent proof</strong>The decision can be checked without trusting the agent.</span></div>
+          <dl className="receipt-details">
+            <div><dt>Decision</dt><dd className="receipt-allowed">Allowed by policy</dd></div>
+            <div><dt>Network</dt><dd>Solana Devnet</dd></div>
+            <div><dt>Record</dt><dd>Permanent</dd></div>
+          </dl>
+          <div className="receipt-note"><ShieldCheckmarkRegular /><p><strong>Independently verifiable.</strong> Check the decision without trusting the agent.</p></div>
         </div>
       </div>
     </div>
@@ -313,39 +312,114 @@ function FundingPreview() {
 function ProductWalkthrough({ onOpenDashboard }: LandingProps) {
   const [active, setActive] = useState(0);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const sectionRef = useRef<HTMLElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(0);
+  const [pinned, setPinned] = useState(() => window.matchMedia("(min-width: 1051px) and (min-height: 650px)").matches);
   const anchors = ["fund", "policy", "agent", "verify"];
   const previews = [<FundingPreview />, <PolicyPreview />, <AgentSpendsPreview />, <VerifyProofPreview />];
+
+  const selectStep = (index: number) => {
+    activeRef.current = index;
+    setActive(index);
+    const section = sectionRef.current;
+    if (!section) return;
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    if (pinned) {
+      const padding = parseFloat(getComputedStyle(section).paddingTop);
+      const distance = parseFloat(section.style.getPropertyValue("--walkthrough-scroll-distance"));
+      const top = section.getBoundingClientRect().top + window.scrollY + padding - 88 + distance * (index + .15) / 4;
+      window.scrollTo({ top, behavior });
+    } else {
+      section.querySelector(`#mobile-workflow-${index}`)?.scrollIntoView({ behavior, block: "start" });
+    }
+  };
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 1051px) and (min-height: 650px)");
+    const sync = () => setPinned(query.matches);
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    const grid = gridRef.current;
+    if (!section || !grid) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      if (!pinned) return;
+      const padding = parseFloat(getComputedStyle(section).paddingTop);
+      const distance = parseFloat(section.style.getPropertyValue("--walkthrough-scroll-distance"));
+      const progress = (88 - section.getBoundingClientRect().top - padding) / distance;
+      if (progress < 0 || progress > 1) return;
+      const index = Math.min(3, Math.max(0, Math.floor(progress * 4)));
+      if (activeRef.current !== index) {
+        activeRef.current = index;
+        setActive(index);
+      }
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    const measure = () => {
+      section.style.setProperty("--walkthrough-grid-height", `${grid.offsetHeight}px`);
+      section.style.setProperty("--walkthrough-scroll-distance", `${Math.max(480, window.innerHeight * .7) * 4}px`);
+      schedule();
+    };
+    const resize = new ResizeObserver(measure);
+    resize.observe(grid);
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", measure);
+    measure();
+    const mobileObserver = new IntersectionObserver(entries => {
+      if (pinned) return;
+      const entry = entries.find(item => item.isIntersecting);
+      if (!entry) return;
+      const index = Number((entry.target as HTMLElement).dataset.step);
+      activeRef.current = index;
+      setActive(index);
+    }, { rootMargin: "-20% 0px -50% 0px", threshold: 0 });
+    section.querySelectorAll(".walkthrough-mobile-step").forEach(node => mobileObserver.observe(node));
+    return () => {
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+      mobileObserver.disconnect();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", measure);
+    };
+  }, [pinned]);
 
   useEffect(() => {
     const selectFromHash = () => {
       const index = anchors.indexOf(window.location.hash.slice(1));
-      if (index >= 0) setActive(index);
+      if (index >= 0) selectStep(index);
     };
     selectFromHash();
     window.addEventListener("hashchange", selectFromHash);
     return () => window.removeEventListener("hashchange", selectFromHash);
-  }, []);
+  }, [pinned]);
 
   return (
-    <section className="landing-section product-walkthrough reveal" id="product" aria-labelledby="walkthrough-title">
-      <div className="walkthrough-grid">
+    <section ref={sectionRef} className={`landing-section product-walkthrough${pinned ? " walkthrough-scroll-enabled" : ""}`} id="product" aria-labelledby="walkthrough-title">
+      <div ref={gridRef} className="walkthrough-grid">
         <div className="walkthrough-copy">
           <span className="section-eyebrow">Zeta in action</span>
           <h2 id="walkthrough-title">From capital<br />to confidence.</h2>
           <p className="walkthrough-intro">Follow a payment from a funded pool to a decision you can verify.</p>
-          <div className="walkthrough-tabs" role="tablist" aria-label="Explore the Zeta payment workflow" aria-orientation="vertical">
+          <div className="walkthrough-tabs" role={pinned ? "tablist" : undefined} aria-label="Explore the Zeta payment workflow" aria-orientation={pinned ? "vertical" : undefined}>
             {steps.map((step, index) => (
               <button
                 ref={element => { tabs.current[index] = element; }}
                 key={step.title}
                 id={anchors[index]}
-                role="tab"
+                role={pinned ? "tab" : undefined}
                 type="button"
-                aria-selected={active === index}
-                aria-controls="walkthrough-panel"
-                tabIndex={active === index ? 0 : -1}
+                aria-selected={pinned ? active === index : undefined}
+                aria-pressed={pinned ? undefined : active === index}
+                aria-controls={pinned ? "walkthrough-panel" : `mobile-workflow-${index}`}
+                tabIndex={!pinned || active === index ? 0 : -1}
                 className={`walkthrough-tab${active === index ? " walkthrough-tab-active" : ""}`}
-                onClick={() => setActive(index)}
+                onClick={() => selectStep(index)}
                 onKeyDown={event => {
                   let next = index;
                   if (event.key === "ArrowDown") next = (index + 1) % steps.length;
@@ -354,8 +428,8 @@ function ProductWalkthrough({ onOpenDashboard }: LandingProps) {
                   else if (event.key === "End") next = steps.length - 1;
                   else return;
                   event.preventDefault();
-                  setActive(next);
-                  tabs.current[next]?.focus();
+                  selectStep(next);
+                  tabs.current[next]?.focus({ preventScroll: true });
                 }}
               >
                 <span className="walkthrough-number">0{index + 1}</span>
@@ -365,13 +439,19 @@ function ProductWalkthrough({ onOpenDashboard }: LandingProps) {
             ))}
           </div>
         </div>
-        <div className="walkthrough-stage">
-          <div className="walkthrough-stage-label"><span>Interactive preview</span><span>Sample data</span></div>
+        {pinned ? <div className="walkthrough-stage">
+          <div className="walkthrough-stage-label"><span><img src="/logo-zeta.png" alt="" /> Zeta preview</span><span>Sample data</span></div>
           <div id="walkthrough-panel" role="tabpanel" aria-labelledby={anchors[active]} tabIndex={0}>
             <div key={active} className="walkthrough-scene">{previews[active]}</div>
           </div>
           <button className="walkthrough-cta" type="button" onClick={onOpenDashboard}>Explore the dashboard <ArrowRightRegular /></button>
-        </div>
+        </div> : <div className="walkthrough-mobile-story">
+          {steps.map((step, index) => <section key={step.title} id={`mobile-workflow-${index}`} data-step={index} className="walkthrough-mobile-step" aria-label={step.title}>
+            <div className="walkthrough-mobile-heading"><span>0{index + 1}</span><h3>{step.title}</h3></div>
+            <div className="walkthrough-stage"><div className="walkthrough-stage-label"><span><img src="/logo-zeta.png" alt="" /> Zeta preview</span><span>Sample data</span></div>{previews[index]}</div>
+          </section>)}
+          <button className="walkthrough-cta" type="button" onClick={onOpenDashboard}>Explore the dashboard <ArrowRightRegular /></button>
+        </div>}
       </div>
     </section>
   );
