@@ -39,7 +39,7 @@
 }
 @media (max-width: 700px) {
   .landing-hero { min-height: 0; }
-  .landing-hero .hero-copy { min-height: 0; padding: 54px 20px 215px; }
+  .landing-hero .hero-copy { min-height: 0; padding: 54px 20px 245px; }
   .hero-baby { width: 205px; right: calc(50% - 102.5px); bottom: 4px; }
 }
 @media (prefers-reduced-motion: reduce) {

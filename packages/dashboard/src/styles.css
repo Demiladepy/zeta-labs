@@ -481,11 +481,17 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
   inset: 0;
   pointer-events: none;
 }
+@keyframes pixelTwinkle {
+  0%, 100% { opacity: 0.1; transform: scale(0.85); }
+  50% { opacity: 0.9; transform: scale(1.1); box-shadow: 0 0 8px var(--mint); }
+}
 .testimonial-pixel {
   position: absolute;
   width: 8px;
   height: 8px;
   background: var(--mint);
+  animation: pixelTwinkle 4s infinite ease-in-out;
+  will-change: opacity, transform;
 }
 .cta-section .testimonial-card { background: var(--ink); color: #fff; }
 .cta-section .testimonial-content { max-width: 700px; margin: 0; }

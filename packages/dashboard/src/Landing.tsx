@@ -592,7 +592,8 @@ function CtaSection({ onOpenDashboard }: { onOpenDashboard: () => void }) {
               style={{
                 left: `${(p.c / p.cols) * 100}%`,
                 top: `${(p.r / p.rows) * 100}%`,
-                opacity: 0.3 + Math.random() * 0.7,
+                animationDelay: `${Math.random() * 4}s`,
+                animationDuration: `${3 + Math.random() * 3}s`,
               }}
             />
           ))}
