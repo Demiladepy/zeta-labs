@@ -1,16 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   ArrowRightRegular,
   BotRegular,
   BuildingBankRegular,
   CheckmarkCircleRegular,
-  CodeRegular,
   DatabaseRegular,
   DocumentBulletListRegular,
   ShieldCheckmarkRegular,
   ChevronDownRegular,
 } from "@fluentui/react-icons";
 import { demoSnapshot, denialLabels, formatTime, formatUsdc } from "./data.js";
+import { VPrism } from "./VPrism.js";
+import { HeroMascot } from "./HeroMascot.js";
 
 type LandingProps = {
   onOpenDashboard: () => void;
@@ -46,7 +47,7 @@ const steps = [
 function Brand() {
   return (
     <a className="landing-brand" href="#top" aria-label="Zeta Labs home">
-      <span className="landing-brand-mark"><img src="/logo-zeta.svg" alt="" /></span>
+      <span className="landing-brand-mark"><img src="/logo-zeta.png" alt="" /></span>
       <strong>Zeta Labs</strong>
     </a>
   );
@@ -101,27 +102,29 @@ function ProductPreview() {
         </div>
         <div className="preview-details">
           <div className="details-header">
-            <h3>{rows[activeRow].allowed ? "ALLOWED" : "DENIED"} <span>/decision/{rows[activeRow].signature.slice(0, 8)}</span></h3>
+            <h3>{rows[activeRow].allowed ? "Allowed" : "Denied"} <span>payment decision</span></h3>
           </div>
           <div className="details-section">
-            <h4>Headers</h4>
+            <h4>Decision details</h4>
             <div className="details-table">
               <div><span>Amount</span><span>{formatUsdc(rows[activeRow].amount)} USDC</span></div>
               <div><span>Reason</span><span>{rows[activeRow].allowed ? "Allowed by policy" : denialLabels[rows[activeRow].denial]}</span></div>
-              <div><span>Agent</span><span>0xAbCd...1234</span></div>
-              <div><span>Signature</span><span>{rows[activeRow].signature.slice(0, 32)}...</span></div>
+              <div><span>Requested by</span><span>Approved agent</span></div>
+              <div><span>Proof</span><span>Available on Solana</span></div>
             </div>
           </div>
           <div className="details-section">
-            <h4>Body</h4>
-            <pre className="details-json">
-{`{
-  "id": "evt_${rows[activeRow].signature.slice(0, 16)}",
-  "object": "decision",
-  "amount": ${rows[activeRow].amount},
-  "allowed": ${rows[activeRow].allowed}
-}`}
-            </pre>
+            <h4>Decision summary</h4>
+            <div className={`decision-summary ${rows[activeRow].allowed ? "decision-summary-approved" : "decision-summary-denied"}`}>
+              <span className="decision-summary-icon"><ShieldCheckmarkRegular /></span>
+              <div>
+                <strong>{rows[activeRow].allowed ? "Payment approved" : "Payment stopped"}</strong>
+                <p>{rows[activeRow].allowed
+                  ? "The amount and recipient matched the active policy."
+                  : denialLabels[rows[activeRow].denial]}</p>
+              </div>
+              <span className="decision-summary-proof">Recorded on Solana</span>
+            </div>
           </div>
         </div>
       </div>
@@ -215,20 +218,21 @@ function AgentSpendsPreview() {
           <div><span>Autonomous execution</span><strong>Agent Wallet</strong></div>
           <span className="preview-source">Live network</span>
         </div>
-        <div className="agent-terminal-wrapper">
-          <div className="agent-terminal">
-            <div className="terminal-header">
-              <span>agent-loop.py</span>
-              <span className="terminal-status"></span>
-            </div>
-            <div className="terminal-body">
-              <p className="terminal-line terminal-delay-1"><span className="prompt">$</span> initializing agent loop...</p>
-              <p className="terminal-line terminal-delay-2"><span className="prompt">$</span> LLM requested tool: <span className="highlight">purchase_api_credits(amount=10)</span></p>
-              <p className="terminal-line terminal-delay-3"><span className="prompt">$</span> executing on-chain draw request via Zeta...</p>
-              <p className="terminal-line terminal-delay-4 terminal-success"><span className="icon">✔</span> draw approved by Zeta policy (Tx: 0x8f...2a)</p>
-              <p className="terminal-line terminal-delay-5"><span className="prompt">$</span> API credits successfully purchased. Continuing execution.</p>
-              <p className="terminal-cursor">_</p>
-            </div>
+        <div className="agent-payment-story">
+          <div className="payment-story-request">
+            <span className="payment-story-icon"><BotRegular /></span>
+            <div><small>Agent request</small><strong>Purchase API credits</strong><span>10.00 USDC</span></div>
+          </div>
+          <div className="payment-story-route" aria-hidden="true"><span /><span /><span /></div>
+          <div className="payment-story-checks">
+            <small>Zeta policy check</small>
+            <span><CheckmarkCircleRegular /> Within payment limit</span>
+            <span><CheckmarkCircleRegular /> Approved recipient</span>
+            <span><CheckmarkCircleRegular /> Credit line active</span>
+          </div>
+          <div className="payment-story-result">
+            <CheckmarkCircleRegular />
+            <div><small>Approved</small><strong>Payment complete</strong><span>Proof saved automatically</span></div>
           </div>
         </div>
       </div>
@@ -269,35 +273,23 @@ function VerifyProofPreview() {
             </div>
           </div>
         </div>
-        <div className="preview-details" style={{ backgroundColor: "#081a12", color: "#d6f3df", gap: "24px" }}>
-          <div className="details-header" style={{ borderBottom: "1px solid #2a4334", paddingBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="preview-details proof-receipt">
+          <div className="proof-receipt-header">
             <div>
-              <h3 style={{ color: "#27c93f", fontFamily: "'Cascadia Code', monospace" }}>Cryptographic Proof</h3>
-              <span style={{ color: "#b8c9bd", fontSize: "12px" }}>On-chain Receipt</span>
+              <span>On-chain receipt</span>
+              <h3>Payment verified</h3>
             </div>
-            <span className="pulse-bg-dark" style={{ padding: "4px 8px", background: "#112b1d", borderRadius: "4px", fontSize: "11px", color: "#27c93f", border: "1px solid #2a4334" }}>Confirmed in slot 251939103</span>
+            <span className="proof-receipt-seal"><CheckmarkCircleRegular /></span>
           </div>
-          <div className="details-section">
-            <h4 style={{ color: "#fff", marginBottom: "12px", fontSize: "14px" }}>Transaction Payload</h4>
-            <pre className="details-json" style={{ background: "#0c2118", borderColor: "#2a4334", color: "#a5c2ff" }}>
-{`{
-  "signature": "3K...9fX",
-  "programId": "zeta...v2",
-  "instruction": "AgentDraw",
-  "data": {
-     "amount": 10000000,
-     "allowed": true,
-     "policyHash": "0x4b...f1"
-  }
-}`}
-            </pre>
+          <div className="proof-receipt-amount">
+            <span>Amount</span><strong>10.00 USDC</strong><small>Approved by the active spending policy</small>
           </div>
-          <div className="details-section">
-            <div style={{ display: "flex", gap: "12px", alignItems: "center", background: "#112b1d", padding: "16px", borderRadius: "8px", border: "1px solid #2a4334" }}>
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#27c93f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-               <span style={{ fontSize: "14px", fontWeight: "600", color: "#fff" }}>Cryptographically verified by Solana Network</span>
-            </div>
+          <div className="proof-receipt-facts">
+            <div><span>Result</span><strong>Allowed</strong></div>
+            <div><span>Network</span><strong>Solana Devnet</strong></div>
+            <div><span>Record</span><strong>Permanent</strong></div>
           </div>
+          <div className="proof-receipt-note"><ShieldCheckmarkRegular /><span><strong>Independent proof</strong>The decision can be checked without trusting the agent.</span></div>
         </div>
       </div>
     </div>
@@ -371,7 +363,7 @@ function Testimonial() {
         <blockquote className="testimonial-quote">
           &ldquo;Before Zeta Labs, we wasted valuable time building custom wallets and monitoring agent spends manually. Now it&rsquo;s as simple as setting a policy and we&rsquo;re secure in seconds. The on-chain audits are outstanding.&rdquo;
         </blockquote>
-        <p className="testimonial-author">&mdash; Core Developer at Demo Corp</p>
+        <p className="testimonial-author">- Core developer, pilot team</p>
       </div>
       <div className="testimonial-art" aria-hidden="true">
         {pixels.map((p) => (
@@ -391,72 +383,118 @@ function Testimonial() {
 }
 
 function FeatureCards() {
-  const cards = [
-    {
-      title: "One shared capital pool",
-      copy: "Deposit USDC once. The pool remains the single source of capital for every approved agent line.",
-      tag: "SHARED POOL",
-      color: "var(--mint)",
-      visual: (
-        <div className="visual-pool">
-          <div className="visual-ring ring-1"></div>
-          <div className="visual-ring ring-2"></div>
-          <div className="visual-ring ring-3"></div>
-          <div className="visual-ring ring-4"></div>
-          <div className="visual-line"></div>
-        </div>
-      )
-    },
-    {
-      title: "Rules checked before every draw",
-      copy: "Set caps, expiry, and allowed recipients. Each draw request is validated against the live policy.",
-      tag: "POLICY ENGINE",
-      color: "#a77ee2",
-      visual: (
-        <div className="visual-rules">
-          <div className="visual-box box-1"></div>
-          <div className="visual-box box-2"></div>
-          <div className="visual-box box-3"></div>
-        </div>
-      )
-    },
-    {
-      title: "Proof for every decision",
-      copy: "Each allowed or denied transaction generates an on-chain audit trail with a permanent explorer link.",
-      tag: "AUDIT TRAIL",
-      color: "#6cb575",
-      visual: (
-        <div className="visual-proof">
-          <div className="node center-node"></div>
-          <div className="node peripheral-node p1"></div>
-          <div className="node peripheral-node p2"></div>
-          <div className="node peripheral-node p3"></div>
-          <div className="node peripheral-node p4"></div>
-          <div className="node peripheral-node p5"></div>
-          <div className="link l1"></div>
-          <div className="link l2"></div>
-          <div className="link l3"></div>
-          <div className="link l4"></div>
-          <div className="link l5"></div>
-        </div>
-      )
-    },
-  ];
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      grid.classList.toggle("feature-visible", entry.isIntersecting);
+    }, { threshold: 0.12 });
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="feature-cards-grid">
-      {cards.map((card) => (
-        <div className="feature-card" key={card.title}>
-          <div className="feature-card-art">
-            {card.visual}
-          </div>
-          <div className="feature-card-content">
-            <span className="feature-card-tag"><span className="tag-dot" style={{ background: card.color }} />{card.tag}</span>
-            <p>{card.copy}</p>
+    <div className="feature-cards-grid" ref={gridRef}>
+      <article className="feature-card feature-card-pool">
+        <div className="feature-card-content">
+          <h3>One shared capital pool</h3>
+          <p>Deposit USDC once. Every approved agent draw comes from the same pool.</p>
+        </div>
+        <div className="feature-pool-visual" aria-hidden="true">
+          <span className="pool-path pool-path-one" />
+          <span className="pool-path pool-path-two" />
+          <span className="pool-path pool-path-three" />
+          <span className="pool-drop pool-drop-one">USDC</span>
+          <span className="pool-drop pool-drop-two">USDC</span>
+          <span className="pool-drop pool-drop-three">USDC</span>
+          <div className="pool-reservoir">
+            <span className="pool-reservoir-rim" />
+            <span className="pool-reservoir-water" />
+            <span className="pool-reservoir-label">USDC pool</span>
+            <span className="pool-reservoir-ripple" />
           </div>
         </div>
-      ))}
+      </article>
+
+      <article className="feature-card feature-card-policy">
+        <div className="feature-card-content">
+          <h3>Rules checked before every draw</h3>
+          <p>Caps, expiry, and recipients are checked before funds can move.</p>
+        </div>
+        <div className="feature-policy-visual" aria-hidden="true">
+          <span className="policy-source"><BotRegular /> Agent</span>
+          <span className="policy-wire" />
+          <span className="policy-request" />
+          <div className="policy-gate">
+            <span>Per-call cap <CheckmarkCircleRegular /></span>
+            <span>Expiry <CheckmarkCircleRegular /></span>
+            <span>Recipient <CheckmarkCircleRegular /></span>
+          </div>
+          <span className="policy-allow-line" />
+          <span className="policy-allow">Allowed</span>
+          <span className="policy-deny-line" />
+          <span className="policy-deny">Denied</span>
+        </div>
+      </article>
+
+      <article className="feature-card feature-card-proof">
+        <div className="feature-card-content">
+          <h3>Proof for every decision</h3>
+          <p>Allowed and denied requests leave an on-chain decision you can verify.</p>
+        </div>
+        <div className="feature-proof-visual" aria-hidden="true">
+          <div className="proof-events">
+            <span className="proof-event"><CheckmarkCircleRegular /> Allowed</span>
+            <span className="proof-event proof-event-denied"><ShieldCheckmarkRegular /> Denied</span>
+            <span className="proof-event"><CheckmarkCircleRegular /> Allowed</span>
+          </div>
+          <span className="proof-connector" />
+          <div className="proof-record"><DocumentBulletListRegular /><strong>On-chain record</strong><span>View transaction proof</span></div>
+        </div>
+      </article>
     </div>
+  );
+}
+
+function HeroBackgroundVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (!video) return;
+
+    const syncPlayback = () => {
+      if (motionPreference.matches) {
+        video.pause();
+        video.currentTime = 0;
+      } else {
+        void video.play().catch(() => undefined);
+      }
+    };
+
+    syncPlayback();
+    motionPreference.addEventListener("change", syncPlayback);
+    return () => motionPreference.removeEventListener("change", syncPlayback);
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      className="hero-background-video"
+      poster="/hero-background-poster.jpg"
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      aria-hidden="true"
+      tabIndex={-1}
+    >
+      <source src="/hero-background.mp4" type="video/mp4" />
+    </video>
   );
 }
 
@@ -464,8 +502,8 @@ function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const faqs = [
     { q: "What is Zeta Labs?", a: "Zeta Labs provides programmable credit infrastructure on Solana. Fund a pool, set spending policies, and let autonomous agents pay for tools and services without handing over your wallet." },
-    { q: "How does the policy engine work?", a: "You define rules — per-transaction caps, daily frequency limits, recipient allowlists, and expiry dates. Every draw request is checked against these rules on-chain before funds move." },
-    { q: "Is it safe for production?", a: "Zeta uses on-chain program validation. Every transaction generates a cryptographic proof. Agents never receive unrestricted wallet access — they can only spend within the boundaries you set." },
+    { q: "How does the policy engine work?", a: "You define per-transaction caps, daily frequency limits, recipient allowlists, and expiry dates. Every draw request is checked against these rules on-chain before funds move." },
+    { q: "Is it safe for production?", a: "Zeta uses on-chain program validation. Every transaction generates cryptographic proof. Agents never receive unrestricted wallet access. They can only spend within the boundaries you set." },
     { q: "What tokens are supported?", a: "Currently USDC on Solana devnet. Mainnet support and additional stablecoins are on the roadmap." },
     { q: "How do I get started?", a: "Install the @zetasdk/sdk package, connect to your Solana RPC, create a pool, and set a policy. The SDK guide walks through every step." },
   ];
@@ -565,6 +603,30 @@ function CtaSection({ onOpenDashboard }: { onOpenDashboard: () => void }) {
 }
 
 export default function Landing({ onOpenDashboard }: LandingProps) {
+  const [footerBurst, setFooterBurst] = useState(false);
+
+  const moveGuardian = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === "touch") return;
+    const footer = event.currentTarget;
+    const bounds = footer.getBoundingClientRect();
+    const horizontal = Math.max(-1, Math.min(1, ((event.clientX - bounds.left) / bounds.width - 0.5) * 2));
+    const vertical = Math.max(-1, Math.min(1, ((event.clientY - bounds.top) / bounds.height - 0.5) * 2));
+    footer.style.setProperty("--guardian-x", `${(horizontal * 13).toFixed(2)}px`);
+    footer.style.setProperty("--guardian-y", `${(vertical * 5).toFixed(2)}px`);
+    footer.style.setProperty("--guardian-tilt", `${(horizontal * 0.7).toFixed(2)}deg`);
+    footer.style.setProperty("--guardian-eye-x", `${(horizontal * 5).toFixed(2)}px`);
+    footer.style.setProperty("--guardian-eye-y", `${(vertical * 2).toFixed(2)}px`);
+  };
+
+  const resetGuardian = (event: ReactPointerEvent<HTMLElement>) => {
+    const footer = event.currentTarget;
+    footer.style.setProperty("--guardian-x", "0px");
+    footer.style.setProperty("--guardian-y", "0px");
+    footer.style.setProperty("--guardian-tilt", "0deg");
+    footer.style.setProperty("--guardian-eye-x", "0px");
+    footer.style.setProperty("--guardian-eye-y", "0px");
+  };
+
   useEffect(() => {
     const nodes = Array.from(document.querySelectorAll<HTMLElement>(".reveal"));
     const observer = new IntersectionObserver(
@@ -589,6 +651,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
           <a href="#how-it-works">How it works</a>
           <a href="#features">Features</a>
           <a href="#developers">Developers</a>
+          <a href="/docs">Docs</a>
         </nav>
         <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
           <span>Open dashboard</span><ArrowRightRegular />
@@ -597,6 +660,8 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
 
       <main className="landing-main">
         <section className="landing-hero" aria-labelledby="landing-title">
+          <HeroBackgroundVideo />
+          <HeroMascot />
           <div className="hero-copy">
             <span className="hero-eyebrow">Programmable credit on Solana</span>
             <h1 id="landing-title">Credit for agents.<br />Control for humans.</h1>
@@ -605,31 +670,26 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
               <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
                 <span>Open dashboard</span><ArrowRightRegular />
               </button>
-              <a className="landing-button landing-button-outline" href="#developers"><span>Read the SDK guide</span></a>
-            </div>
-          </div>
-          <div className="hero-art">
-            <img src="/zeta-credit-flow.png" alt="Capital moving through a policy gate to an autonomous agent and an audit record" />
-            <div className="hero-art-overlay" aria-hidden="true">
-              {Array.from({ length: 144 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="reveal-square"
-                  style={{ animationDelay: `${(Math.random() * 4 + (i % 12) * 0.15 + Math.floor(i / 12) * 0.12).toFixed(2)}s` }}
-                />
-              ))}
+              <a className="landing-button landing-button-outline" href="/docs"><span>Read the SDK guide</span></a>
             </div>
           </div>
         </section>
 
         <div className="landing-trusted-section">
           <p className="trusted-heading">Trusted by the dev teams at</p>
-          <div className="landing-trusted-logos">
-            <div className="trusted-logo">Axiom AI</div>
-            <div className="trusted-logo">Spectro Labs</div>
-            <div className="trusted-logo">ChainFlip</div>
-            <div className="trusted-logo">Neon DAO</div>
-            <div className="trusted-logo">Primer</div>
+          <div className="landing-trusted-logos-wrapper">
+            <div className="landing-trusted-logos">
+              <div className="trusted-logo">Axiom AI</div>
+              <div className="trusted-logo">Spectro Labs</div>
+              <div className="trusted-logo">ChainFlip</div>
+              <div className="trusted-logo">Neon DAO</div>
+              <div className="trusted-logo">Primer</div>
+              <div className="trusted-logo">Axiom AI</div>
+              <div className="trusted-logo">Spectro Labs</div>
+              <div className="trusted-logo">ChainFlip</div>
+              <div className="trusted-logo">Neon DAO</div>
+              <div className="trusted-logo">Primer</div>
+            </div>
           </div>
         </div>
 
@@ -689,23 +749,31 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
         </section>
 
         <section className="landing-section developer-section reveal" id="developers" aria-labelledby="developer-title">
-          <div className="developer-intro">
-            <span className="developer-kicker">For developers</span>
-            <h2 id="developer-title">Start with the rules.</h2>
-            <p>Give an agent a funded credit line with clear limits, then keep a record of every decision.</p>
-            <a className="developer-doc-link" href="https://github.com/Demiladepy/zeta-labs/tree/main/packages/sdk" target="_blank" rel="noreferrer">Read the SDK guide <ArrowRightRegular /></a>
+          <div className="developer-lead">
+            <div className="developer-intro">
+              <span className="developer-kicker">For developers</span>
+              <h2 id="developer-title">Start with the rules.</h2>
+              <p>Give an agent a funded credit line with clear limits, then keep a record of every decision.</p>
+              <a className="developer-doc-link" href="/docs">Read the SDK guide <ArrowRightRegular /></a>
+            </div>
+            <VPrism />
           </div>
           <div className="developer-example">
-            <div className="code-window">
-              <div className="code-window-head"><span><CodeRegular /> @zetasdk/sdk</span><small>TypeScript</small></div>
-              <pre><code>{`import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { createZetaClient } from "@zetasdk/sdk";
-const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.ZETA_KEY!)));
-const zeta = createZetaClient({ connection: new Connection("https://api.devnet.solana.com"), payer });
-const pool = await zeta.pool(new PublicKey(process.env.ZETA_POOL!));
-const proof = await zeta.proof(process.env.ZETA_SIGNATURE!);
-console.log({ deposited: pool.deposited, outstanding: pool.outstanding });
-console.log(proof.explorerUrl, proof.allowed);`}</code></pre>
+            <div className="integration-journey" aria-label="How Zeta connects a funded pool to a verified agent payment">
+              <div className="integration-journey-head">
+                <span>One connection</span>
+                <strong>From budget to proof</strong>
+                <p>Your product sets the rules. Zeta checks each payment and keeps the record.</p>
+              </div>
+              <div className="integration-journey-track" aria-hidden="true">
+                <span className="journey-pulse" />
+              </div>
+              <div className="integration-journey-stages">
+                <div><span><DatabaseRegular /></span><strong>Fund</strong><small>Shared USDC pool</small></div>
+                <div><span><ShieldCheckmarkRegular /></span><strong>Check</strong><small>Policy decides</small></div>
+                <div><span><BotRegular /></span><strong>Pay</strong><small>Agent completes work</small></div>
+                <div><span><DocumentBulletListRegular /></span><strong>Prove</strong><small>Record stays visible</small></div>
+              </div>
             </div>
           </div>
           <div className="developer-principles" aria-label="What the Zeta SDK provides">
@@ -717,7 +785,7 @@ console.log(proof.explorerUrl, proof.allowed);`}</code></pre>
             <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
               <span>Open dashboard</span><ArrowRightRegular />
             </button>
-            <a href="https://github.com/Demiladepy/zeta-labs/tree/main/packages/sdk" target="_blank" rel="noreferrer">Read the SDK guide</a>
+            <a href="/docs">Read the SDK guide</a>
           </div>
         </section>
 
@@ -725,56 +793,78 @@ console.log(proof.explorerUrl, proof.allowed);`}</code></pre>
         <CtaSection onOpenDashboard={onOpenDashboard} />
       </main>
 
-      <footer className="landing-footer-fat">
-        <div className="footer-top">
-          <div className="footer-brand-col">
-            <Brand />
-            <p className="footer-brand-desc">Programmable credit for<br />agents. Control for humans<br />on Solana.</p>
-            <div className="footer-socials">
-              <a href="https://x.com" target="_blank" rel="noreferrer" aria-label="X / Twitter">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-              </a>
-              <a href="https://github.com/Demiladepy/zeta-labs" target="_blank" rel="noreferrer" aria-label="GitHub">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-              </a>
-              <a href="https://discord.com" target="_blank" rel="noreferrer" aria-label="Discord">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-              </a>
-            </div>
+      <footer
+        className={`zeta-character-footer reveal${footerBurst ? " footer-is-bursting" : ""}`}
+        onPointerMove={moveGuardian}
+        onPointerLeave={resetGuardian}
+      >
+        <div className="character-footer-nav character-footer-left">
+          <div>
+            <strong>Product</strong>
+            <a href="#product">Dashboard</a>
+            <a href="#how-it-works">How it works</a>
+            <a href="#features">Features</a>
+            <a href="#faq">FAQ</a>
           </div>
-          <div className="footer-links">
-            <div>
-              <strong>Product</strong>
-              <a href="#product">Dashboard</a>
-              <a href="#how-it-works">How it works</a>
-              <a href="#features">Features</a>
-              <a href="#faq">FAQ</a>
-            </div>
-            <div>
-              <strong>Resources</strong>
-              <a href="#developers">SDK Guide</a>
-              <a href="https://github.com/Demiladepy/zeta-labs" target="_blank" rel="noreferrer">GitHub</a>
-              <a href="#developers">Changelog</a>
-              <a href="#developers">API Reference</a>
-            </div>
-            <div>
-              <strong>Documentation</strong>
-              <a href="#developers">Quick start</a>
-              <a href="#developers">Installation</a>
-              <a href="#developers">Policy setup</a>
-              <a href="#developers">Agent integration</a>
-              <a href="#developers">Audit trail</a>
-            </div>
-            <div>
-              <strong>Legal</strong>
-              <a href="#">Terms</a>
-              <a href="#">Privacy</a>
-              <a href="#">Security</a>
-            </div>
+          <div>
+            <strong>Developers</strong>
+            <a href="/docs">SDK guide</a>
+            <a href="/docs#devnet">Devnet setup</a>
+            <a href="/docs#reference">API reference</a>
+            <a href="https://github.com/Demiladepy/zeta-labs" target="_blank" rel="noreferrer">GitHub</a>
           </div>
         </div>
-        <div className="footer-bottom">
-          <span>&copy; 2024&ndash;{new Date().getFullYear()} Zeta Labs&trade;. All rights reserved.</span>
+
+        <button
+          className="character-footer-brand"
+          type="button"
+          aria-label="Animate the Zeta credit guardian"
+          onClick={() => setFooterBurst(true)}
+          onAnimationEnd={(event) => {
+            if (event.target === event.currentTarget) setFooterBurst(false);
+          }}
+        >
+          <img src="/logo-zeta.png" alt="" />
+          <span>Zeta Labs</span>
+          <i className="brand-particle particle-one" />
+          <i className="brand-particle particle-two" />
+          <i className="brand-particle particle-three" />
+          <i className="brand-particle particle-four" />
+          <i className="brand-particle particle-five" />
+          <i className="brand-particle particle-six" />
+        </button>
+
+        <div className="character-footer-nav character-footer-right">
+          <div>
+            <strong>Zeta</strong>
+            <button type="button" onClick={onOpenDashboard}>Open dashboard</button>
+            <a href="/docs#policy">Policy controls</a>
+            <a href="/docs#audit">Audit trail</a>
+            <a href="/docs">Documentation</a>
+          </div>
+          <div>
+            <strong>Elsewhere</strong>
+            <a href="https://x.com" target="_blank" rel="noreferrer">X / Twitter</a>
+            <a href="https://github.com/Demiladepy/zeta-labs" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="https://discord.com" target="_blank" rel="noreferrer">Discord</a>
+            <a href="#top">Back to top</a>
+          </div>
+        </div>
+
+        <div className="credit-guardian" aria-hidden="true">
+          <div className="guardian-body">
+            <img src="/zeta-credit-guardian.png" alt="" />
+            <span className="guardian-visor">
+              <i className="guardian-eye guardian-eye-left" />
+              <i className="guardian-eye guardian-eye-right" />
+            </span>
+          </div>
+        </div>
+
+        <a className="character-footer-cta" href="/docs">Read the SDK guide <ArrowRightRegular /></a>
+        <div className="character-footer-meta">
+          <span>&copy; 2024-{new Date().getFullYear()} Zeta Labs&trade;</span>
+          <span>Programmable credit on Solana</span>
         </div>
       </footer>
     </div>

@@ -1,0 +1,48 @@
+.hero-baby {
+  --baby-tilt: 0deg;
+  --baby-eye-x: 0px;
+  --baby-eye-y: 0px;
+  position: absolute;
+  z-index: 3;
+  right: clamp(24px, 5vw, 90px);
+  bottom: 14px;
+  width: 310px;
+  padding: 0;
+  border: 0;
+  border-radius: 40%;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hero-baby:focus-visible { outline: 2px solid #a6f4c5; outline-offset: 5px; }
+.hero-baby::after { content: ""; position: absolute; z-index: -1; bottom: 4%; left: 16%; width: 68%; height: 7%; border-radius: 50%; background: rgba(0, 15, 8, .5); filter: blur(9px); }
+.baby-arrival, .baby-breathe, .baby-look { display: block; position: relative; transform-origin: 50% 90%; }
+.baby-arrival { animation: babyEntrance 850ms 150ms cubic-bezier(.2,.8,.2,1) both; }
+.baby-breathe { animation: babyBreathe 4.6s ease-in-out infinite; animation-play-state: paused; }
+.baby-is-visible .baby-breathe, .baby-is-visible .baby-eye { animation-play-state: running; }
+.baby-look { transform: rotate(var(--baby-tilt)); transition: transform 350ms ease-out; }
+.baby-look img { display: block; width: 100%; height: auto; pointer-events: none; user-select: none; }
+.baby-visor { position: absolute; top: 23%; left: 30%; width: 35%; height: 15%; border-radius: 48%; background: linear-gradient(150deg, #183d2a, #061e13 60%); transform: rotate(26deg); box-shadow: inset 0 2px 4px rgba(214,255,225,.2), inset 0 -4px 8px rgba(0,0,0,.4); }
+.baby-eye { position: absolute; top: 28%; width: 7%; height: 42%; border-radius: 99px; background: #d6ffdf; box-shadow: 0 0 7px rgba(182,255,203,.65); animation: babyBlink 6.7s linear infinite; animation-play-state: paused; }
+.baby-eye-left { left: 19%; }
+.baby-eye-right { right: 18%; }
+.baby-is-delighted .baby-breathe { animation: babyDelight 850ms cubic-bezier(.25,.8,.25,1); }
+@keyframes babyEntrance { 0% { opacity: 0; transform: translateY(45px) scale(.88); } 55% { opacity: 1; transform: translateY(-13px) scale(1.02); } 78% { transform: translateY(3px) scale(1.02,.97); } 100% { opacity: 1; transform: none; } }
+@keyframes babyBreathe { 0%,100% { transform: translateY(0) scale(1); } 48% { transform: translateY(-5px) scale(1.008,1.015); } }
+@keyframes babyBlink { 0%,75%,79%,87%,91%,100% { transform: translate(var(--baby-eye-x),var(--baby-eye-y)) scaleY(1); } 77%,89% { transform: translate(var(--baby-eye-x),var(--baby-eye-y)) scaleY(.08); } }
+@keyframes babyDelight { 0%,100% { transform: none; } 18% { transform: translateY(3px) scale(1.04,.93); } 45% { transform: translateY(-22px) scale(.97,1.03) rotate(-3deg); } 72% { transform: translateY(3px) scale(1.025,.96); } 88% { transform: translateY(-3px); } }
+/* Reserve a lower row when the viewport cannot safely fit the character beside the copy. */
+@media (max-width: 1199px), (max-height: 720px) {
+  .landing-hero { min-height: 760px; }
+  .landing-hero .hero-copy { align-self: start; padding-top: 64px; padding-bottom: 270px; min-height: 760px; }
+  .hero-baby { width: 250px; bottom: 10px; right: 28px; }
+}
+@media (max-width: 700px) {
+  .landing-hero { min-height: 0; }
+  .landing-hero .hero-copy { min-height: 0; padding: 54px 20px 215px; }
+  .hero-baby { width: 205px; right: calc(50% - 102.5px); bottom: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-baby .baby-arrival, .hero-baby .baby-breathe, .hero-baby .baby-eye { animation: none; }
+  .hero-baby .baby-look { transform: none; transition: none; }
+}

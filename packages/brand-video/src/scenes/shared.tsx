@@ -1,5 +1,5 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {AbsoluteFill, Easing, interpolate, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame} from 'remotion';
 
 export const C = {
   ink: '#071a12', mint: '#a6f4c5', paper: '#eef0e8', white: '#f8faf5',
@@ -21,7 +21,7 @@ export const Kicker = ({children, style}: {children: ReactNode; style?: CSSPrope
 export const Brand = ({dark = false, compact = false}: {dark?: boolean; compact?: boolean}) => (
   <div style={{display: 'flex', alignItems: 'center', gap: compact ? 17 : 24}}>
     <div style={{width: compact ? 46 : 66, height: compact ? 46 : 66, borderRadius: '50%', backgroundColor: dark ? C.ink : C.white, display: 'grid', placeItems: 'center'}}>
-      <div style={{fontFamily: 'Zeta Sans', fontSize: compact ? 31 : 45, fontWeight: 700, letterSpacing: -9, color: dark ? C.paper : C.ink, paddingRight: 12, rotate: '-8deg'}}>Ƶ</div>
+      <Img src={staticFile('logo-zeta.png')} style={{width: compact ? 36 : 52, height: compact ? 36 : 52, objectFit: 'contain', filter: dark ? 'invert(1)' : 'none'}} />
     </div>
     <div style={{fontFamily: 'Zeta Sans', fontSize: compact ? 33 : 50, fontWeight: 700, letterSpacing: -2.3, color: dark ? C.ink : C.white}}>Zeta Labs</div>
   </div>

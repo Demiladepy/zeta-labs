@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Landing from "./Landing.js";
+import Docs from "./Docs.js";
 import {
   Button,
   Dialog,
@@ -534,7 +535,7 @@ function SettingsDialog(props: {
   );
 }
 
-function DashboardApp({ onHome }: { onHome: () => void }) {
+function DashboardApp({ onHome, onDocs }: { onHome: () => void; onDocs: () => void }) {
   const [view, setView] = useState<View>("overview");
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [config, setConfig] = useState<DashboardConfig>(() => loadSavedConfig());
@@ -628,6 +629,7 @@ function DashboardApp({ onHome }: { onHome: () => void }) {
           <img className="brand-mark" src="/logo-zeta.png" width={34} height={34} alt="" />
           <div><strong>Zeta</strong><span>Credit control</span></div>
         </button>
+        <span className="sidebar-section-label">Workspace</span>
         <nav aria-label="Dashboard sections">
           {navItems.map((item) => (
             <button key={item.id} className={view === item.id ? "nav-active" : ""} onClick={() => setView(item.id)}>
@@ -645,6 +647,7 @@ function DashboardApp({ onHome }: { onHome: () => void }) {
         <header className="topbar">
           <div><span className="workspace-label">Zeta Labs</span><span className="network-label">Credit operations · Solana devnet</span></div>
           <div className="topbar-actions">
+            <Button appearance="subtle" onClick={onDocs}>Docs</Button>
             <Tooltip content="Refresh live data" relationship="label">
               <Button appearance="subtle" icon={<ArrowSyncRegular />} aria-label="Refresh live data" onClick={refresh} disabled={loading} />
             </Tooltip>
@@ -714,7 +717,11 @@ export default function App() {
   }, []);
 
   if (path === "/dashboard" || path.startsWith("/dashboard/")) {
-    return <DashboardApp onHome={() => navigate("/")} />;
+    return <DashboardApp onHome={() => navigate("/")} onDocs={() => navigate("/docs")} />;
+  }
+
+  if (path === "/docs" || path.startsWith("/docs/")) {
+    return <Docs onHome={() => navigate("/")} onOpenDashboard={() => navigate("/dashboard")} />;
   }
 
   return <Landing onOpenDashboard={() => navigate("/dashboard")} />;

@@ -1,35 +1,37 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { FluentProvider, createDarkTheme, tokens } from "@fluentui/react-components";
+import { FluentProvider, createLightTheme, tokens } from "@fluentui/react-components";
 import App from "./App.js";
 import "./styles.css";
+import "./FeatureStories.css";
+import "./Docs.css";
 
-const zetaTheme = createDarkTheme({
-  10: "#07140d",
-  20: "#0a2114",
-  30: "#0d301b",
-  40: "#104020",
-  50: "#125126",
-  60: "#15632c",
-  70: "#187632",
-  80: "#1b8938",
-  90: "#1e9d3e",
-  100: "#23b145",
-  110: "#32c153",
-  120: "#4bce69",
-  130: "#69da81",
-  140: "#89e49b",
-  150: "#aaedb7",
-  160: "#cef5d5",
+const zetaTheme = createLightTheme({
+  10: "#e7f7ed",
+  20: "#d0f0dc",
+  30: "#b6e6c8",
+  40: "#98d9ae",
+  50: "#77c88f",
+  60: "#58b574",
+  70: "#3ca35b",
+  80: "#288f4b",
+  90: "#1d7a3f",
+  100: "#186c37",
+  110: "#145d30",
+  120: "#104e29",
+  130: "#0c4022",
+  140: "#08351c",
+  150: "#052a16",
+  160: "#031f10",
 });
 
-zetaTheme.colorNeutralBackground1 = "#0b0d0c";
-zetaTheme.colorNeutralBackground2 = "#111411";
-zetaTheme.colorNeutralBackground3 = "#171b18";
-zetaTheme.colorNeutralStroke1 = "#2a302c";
-zetaTheme.colorNeutralForeground1 = "#f4f7f4";
-zetaTheme.colorNeutralForeground2 = "#aeb8b0";
-zetaTheme.colorBrandForeground1 = "#a6f4c5";
+zetaTheme.colorNeutralBackground1 = "#f7f8f4";
+zetaTheme.colorNeutralBackground2 = "#ffffff";
+zetaTheme.colorNeutralBackground3 = "#eef1ec";
+zetaTheme.colorNeutralStroke1 = "#dce3db";
+zetaTheme.colorNeutralForeground1 = "#17231d";
+zetaTheme.colorNeutralForeground2 = "#617166";
+zetaTheme.colorBrandForeground1 = "#186c37";
 zetaTheme.fontFamilyBase = '"Segoe UI Variable", "Segoe UI", sans-serif';
 zetaTheme.fontFamilyMonospace = '"Cascadia Code", "SFMono-Regular", monospace';
 zetaTheme.borderRadiusMedium = tokens.borderRadiusMedium;
