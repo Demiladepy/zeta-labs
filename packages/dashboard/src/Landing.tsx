@@ -12,6 +12,7 @@ import {
 import { demoSnapshot, denialLabels, formatTime, formatUsdc } from "./data.js";
 import { VPrism } from "./VPrism.js";
 import { HeroMascot } from "./HeroMascot.js";
+import "./ProductWalkthrough.css";
 import { FlipFadeHeroText } from "./FlipFadeText.js";
 
 type LandingProps = {
@@ -294,6 +295,85 @@ function VerifyProofPreview() {
         </div>
       </div>
     </div>
+  );
+}
+
+function FundingPreview() {
+  return (
+    <div className="funding-preview">
+      <div className="funding-preview-heading"><span>Shared capital</span><strong>One pool. Ready for work.</strong></div>
+      <div className="funding-balance"><DatabaseRegular /><span>USDC in the pool</span><strong>12,000<span> USDC</span></strong></div>
+      <div className="funding-allocation"><div><span>Allocated to agent lines</span><strong>4,500 USDC</strong></div><div><span>Available capital</span><strong>7,500 USDC</strong></div></div>
+      <div className="funding-meter" aria-hidden="true"><span /></div>
+      <div className="funding-confirmation"><CheckmarkCircleRegular /><span>Funded once. Shared by approved agent lines.</span></div>
+    </div>
+  );
+}
+
+function ProductWalkthrough({ onOpenDashboard }: LandingProps) {
+  const [active, setActive] = useState(0);
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const anchors = ["fund", "policy", "agent", "verify"];
+  const previews = [<FundingPreview />, <PolicyPreview />, <AgentSpendsPreview />, <VerifyProofPreview />];
+
+  useEffect(() => {
+    const selectFromHash = () => {
+      const index = anchors.indexOf(window.location.hash.slice(1));
+      if (index >= 0) setActive(index);
+    };
+    selectFromHash();
+    window.addEventListener("hashchange", selectFromHash);
+    return () => window.removeEventListener("hashchange", selectFromHash);
+  }, []);
+
+  return (
+    <section className="landing-section product-walkthrough reveal" id="product" aria-labelledby="walkthrough-title">
+      <div className="walkthrough-grid">
+        <div className="walkthrough-copy">
+          <span className="section-eyebrow">Zeta in action</span>
+          <h2 id="walkthrough-title">From capital<br />to confidence.</h2>
+          <p className="walkthrough-intro">Follow a payment from a funded pool to a decision you can verify.</p>
+          <div className="walkthrough-tabs" role="tablist" aria-label="Explore the Zeta payment workflow" aria-orientation="vertical">
+            {steps.map((step, index) => (
+              <button
+                ref={element => { tabs.current[index] = element; }}
+                key={step.title}
+                id={anchors[index]}
+                role="tab"
+                type="button"
+                aria-selected={active === index}
+                aria-controls="walkthrough-panel"
+                tabIndex={active === index ? 0 : -1}
+                className={`walkthrough-tab${active === index ? " walkthrough-tab-active" : ""}`}
+                onClick={() => setActive(index)}
+                onKeyDown={event => {
+                  let next = index;
+                  if (event.key === "ArrowDown") next = (index + 1) % steps.length;
+                  else if (event.key === "ArrowUp") next = (index + steps.length - 1) % steps.length;
+                  else if (event.key === "Home") next = 0;
+                  else if (event.key === "End") next = steps.length - 1;
+                  else return;
+                  event.preventDefault();
+                  setActive(next);
+                  tabs.current[next]?.focus();
+                }}
+              >
+                <span className="walkthrough-number">0{index + 1}</span>
+                <span><strong>{step.title}</strong><span className="walkthrough-description">{index === 2 ? "Agents pay for approved tools and services autonomously without receiving unrestricted wallet access." : step.copy}</span></span>
+                <ArrowRightRegular aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="walkthrough-stage">
+          <div className="walkthrough-stage-label"><span>Interactive preview</span><span>Sample data</span></div>
+          <div id="walkthrough-panel" role="tabpanel" aria-labelledby={anchors[active]} tabIndex={0}>
+            <div key={active} className="walkthrough-scene">{previews[active]}</div>
+          </div>
+          <button className="walkthrough-cta" type="button" onClick={onOpenDashboard}>Explore the dashboard <ArrowRightRegular /></button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -663,7 +743,6 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
       <main className="landing-main">
         <section className="landing-hero" aria-labelledby="landing-title">
           <HeroBackgroundVideo />
-          <HeroMascot />
           <div className="hero-copy">
             <span className="hero-eyebrow">Programmable credit on Solana</span>
             <FlipFadeHeroText />
@@ -673,6 +752,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
                 <span>Open dashboard</span><ArrowRightRegular />
               </button>
               <a className="landing-button landing-button-outline" href="/docs"><span>Read the SDK guide</span></a>
+              <HeroMascot />
             </div>
           </div>
         </section>
@@ -710,40 +790,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
           <Testimonial />
         </section>
 
-        <section className="landing-section product-section reveal" id="product" aria-labelledby="product-title">
-          <div className="feature-heading">
-            <h2 id="product-title"><span className="feature-step">01</span> Fund the pool</h2>
-            <p>Deposit USDC once. The pool remains the single source of capital for every approved agent line.</p>
-          </div>
-          <ProductPreview />
-        </section>
-
-        <section className="landing-section product-section reveal" id="policy" aria-labelledby="policy-title">
-          <div className="feature-heading">
-            <h2 id="policy-title"><span className="feature-step">02</span> Set policy</h2>
-            <p>Choose caps, expiry, and recipients. Every draw is checked before funds can move.</p>
-          </div>
-          <PolicyPreview />
-        </section>
-
-        <section className="landing-section product-section reveal" id="agent" aria-labelledby="agent-title">
-          <div className="feature-heading">
-            <h2 id="agent-title"><span className="feature-step">03</span> Agent spends</h2>
-            <p>Agents pay for approved tools and services autonomously without receiving unrestricted wallet access.</p>
-          </div>
-          <AgentSpendsPreview />
-        </section>
-
-        <section className="landing-section product-section reveal" id="verify" aria-labelledby="verify-title">
-          <div className="feature-heading">
-            <h2 id="verify-title"><span className="feature-step">04</span> Verify proof</h2>
-            <p>Each decision leaves an on-chain record with the amount, result, reason, and transaction proof.</p>
-          </div>
-          <VerifyProofPreview />
-          <button className="landing-button landing-button-primary product-cta" type="button" onClick={onOpenDashboard}>
-            <span>Open dashboard</span><ArrowRightRegular />
-          </button>
-        </section>
+        <ProductWalkthrough onOpenDashboard={onOpenDashboard} />
 
         <section className="landing-section feature-section reveal" id="features">
           <h2 id="features-title" className="features-title">Built for agentic workflows</h2>

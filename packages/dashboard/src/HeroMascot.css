@@ -1,12 +1,13 @@
+.hero-actions { position: relative; }
 .hero-baby {
   --baby-tilt: 0deg;
   --baby-eye-x: 0px;
   --baby-eye-y: 0px;
   position: absolute;
   z-index: 3;
-  right: clamp(24px, 5vw, 90px);
-  bottom: 14px;
-  width: 310px;
+  left: calc(100% + 20px);
+  top: -40px;
+  width: 240px;
   padding: 0;
   border: 0;
   border-radius: 40%;
@@ -31,16 +32,17 @@
 @keyframes babyBreathe { 0%,100% { transform: translateY(0) scale(1); } 48% { transform: translateY(-5px) scale(1.008,1.015); } }
 @keyframes babyBlink { 0%,75%,79%,87%,91%,100% { transform: translate(var(--baby-eye-x),var(--baby-eye-y)) scaleY(1); } 77%,89% { transform: translate(var(--baby-eye-x),var(--baby-eye-y)) scaleY(.08); } }
 @keyframes babyDelight { 0%,100% { transform: none; } 18% { transform: translateY(3px) scale(1.04,.93); } 45% { transform: translateY(-22px) scale(.97,1.03) rotate(-3deg); } 72% { transform: translateY(3px) scale(1.025,.96); } 88% { transform: translateY(-3px); } }
-/* Reserve a lower row when the viewport cannot safely fit the character beside the copy. */
-@media (max-width: 1199px), (max-height: 720px) {
-  .landing-hero { min-height: 760px; }
-  .landing-hero .hero-copy { align-self: start; padding-top: 64px; padding-bottom: 270px; min-height: 760px; }
-  .hero-baby { width: 250px; bottom: 10px; right: 28px; }
+@media (max-height: 720px) and (min-width: 900px) {
+  .landing-hero .hero-copy { padding-top: 64px; padding-bottom: 190px; }
+}
+/* Anchor to the buttons so the mascot stays nearby as the copy changes height. */
+@media (max-width: 899px) {
+  .landing-hero .hero-copy { padding-bottom: 250px; }
+  .hero-baby { width: 205px; left: calc(50% - 102.5px); top: calc(100% + 22px); }
 }
 @media (max-width: 700px) {
   .landing-hero { min-height: 0; }
   .landing-hero .hero-copy { min-height: 0; padding: 54px 20px 245px; }
-  .hero-baby { width: 205px; right: calc(50% - 102.5px); bottom: 4px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-baby .baby-arrival, .hero-baby .baby-breathe, .hero-baby .baby-eye { animation: none; }
