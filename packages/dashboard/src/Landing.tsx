@@ -797,6 +797,31 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
           <FeatureCards />
         </section>
 
+        <section className="landing-section sdk-features-section reveal" aria-labelledby="sdk-features-title">
+          <div className="sdk-features-heading">
+            <span className="section-eyebrow">SDK features</span>
+            <h2 id="sdk-features-title">The essentials, built in.</h2>
+            <p>Manage capital, define spending rules, and check each decision through the Zeta SDK.</p>
+          </div>
+          <div className="sdk-features-grid">
+            <article>
+              <span className="sdk-feature-icon" aria-hidden="true"><DatabaseRegular /></span>
+              <h3>Fund</h3>
+              <p>Use one shared USDC pool for approved agent lines.</p>
+            </article>
+            <article>
+              <span className="sdk-feature-icon" aria-hidden="true"><ShieldCheckmarkRegular /></span>
+              <h3>Control</h3>
+              <p>Set limits, expiry, and allowed recipients before an agent spends.</p>
+            </article>
+            <article>
+              <span className="sdk-feature-icon" aria-hidden="true"><DocumentBulletListRegular /></span>
+              <h3>Verify</h3>
+              <p>Read the decision and its transaction proof after each draw.</p>
+            </article>
+          </div>
+        </section>
+
         <section className="landing-section developer-section reveal" id="developers" aria-labelledby="developer-title">
           <div className="developer-lead">
             <div className="developer-intro">
@@ -835,32 +860,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
           </div>
         </section>
 
-        <section className="landing-section sdk-features-section reveal" aria-labelledby="sdk-features-title">
-          <div className="sdk-features-heading">
-            <span className="section-eyebrow">SDK features</span>
-            <h2 id="sdk-features-title">The essentials, built in.</h2>
-            <p>Manage capital, define spending rules, and check each decision through the Zeta SDK.</p>
-          </div>
-          <div className="sdk-features-grid">
-            <article>
-              <span className="sdk-feature-icon" aria-hidden="true"><DatabaseRegular /></span>
-              <h3>Fund</h3>
-              <p>Use one shared USDC pool for approved agent lines.</p>
-            </article>
-            <article>
-              <span className="sdk-feature-icon" aria-hidden="true"><ShieldCheckmarkRegular /></span>
-              <h3>Control</h3>
-              <p>Set limits, expiry, and allowed recipients before an agent spends.</p>
-            </article>
-            <article>
-              <span className="sdk-feature-icon" aria-hidden="true"><DocumentBulletListRegular /></span>
-              <h3>Verify</h3>
-              <p>Read the decision and its transaction proof after each draw.</p>
-            </article>
-          </div>
-        </section>
-
-        <FaqSection />
+<FaqSection />
         <CtaSection onOpenDashboard={onOpenDashboard} />
       </main>
 
