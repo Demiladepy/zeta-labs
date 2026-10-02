@@ -12,6 +12,7 @@ import {
 import { demoSnapshot, denialLabels, formatTime, formatUsdc } from "./data.js";
 import { VPrism } from "./VPrism.js";
 import { HeroMascot } from "./HeroMascot.js";
+import { FlipFadeHeroText } from "./FlipFadeText.js";
 
 type LandingProps = {
   onOpenDashboard: () => void;
@@ -665,7 +666,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
           <HeroMascot />
           <div className="hero-copy">
             <span className="hero-eyebrow">Programmable credit on Solana</span>
-            <h1 id="landing-title">Credit for agents.<br />Control for humans.</h1>
+            <FlipFadeHeroText />
             <p>Fund once, set the rules, and let autonomous software pay safely.</p>
             <div className="hero-actions">
               <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
@@ -777,16 +778,36 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
               </div>
             </div>
           </div>
-          <div className="developer-principles" aria-label="What the Zeta SDK provides">
-            <div><span>01</span><strong>Fund</strong><p>Use one shared USDC pool for approved agent lines.</p></div>
-            <div><span>02</span><strong>Control</strong><p>Set limits, expiry, and allowed recipients before an agent spends.</p></div>
-            <div><span>03</span><strong>Verify</strong><p>Read the decision and its transaction proof after each draw.</p></div>
-          </div>
           <div className="developer-actions">
             <button className="landing-button landing-button-primary" type="button" onClick={onOpenDashboard}>
               <span>Open dashboard</span><ArrowRightRegular />
             </button>
             <a href="/docs">Read the SDK guide</a>
+          </div>
+        </section>
+
+        <section className="landing-section sdk-features-section reveal" aria-labelledby="sdk-features-title">
+          <div className="sdk-features-heading">
+            <span className="section-eyebrow">SDK features</span>
+            <h2 id="sdk-features-title">The essentials, built in.</h2>
+            <p>Manage capital, define spending rules, and check each decision through the Zeta SDK.</p>
+          </div>
+          <div className="sdk-features-grid">
+            <article>
+              <span className="sdk-feature-icon" aria-hidden="true"><DatabaseRegular /></span>
+              <h3>Fund</h3>
+              <p>Use one shared USDC pool for approved agent lines.</p>
+            </article>
+            <article>
+              <span className="sdk-feature-icon" aria-hidden="true"><ShieldCheckmarkRegular /></span>
+              <h3>Control</h3>
+              <p>Set limits, expiry, and allowed recipients before an agent spends.</p>
+            </article>
+            <article>
+              <span className="sdk-feature-icon" aria-hidden="true"><DocumentBulletListRegular /></span>
+              <h3>Verify</h3>
+              <p>Read the decision and its transaction proof after each draw.</p>
+            </article>
           </div>
         </section>
 

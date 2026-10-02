@@ -15,8 +15,11 @@
     "@fluentui/react-icons": "^2.0.320",
     "@solana/web3.js": "^1.99.0",
     "@zetasdk/sdk": "file:../sdk",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.5.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
     "@types/react": "^19.1.16",

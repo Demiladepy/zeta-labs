@@ -647,13 +647,15 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
 .integration-journey-stages strong { color: var(--ink); font-size: 14px; }
 .integration-journey-stages small { color: #53725d; font-size: 11px; }
 @keyframes journey-pulse { 0% { left: 0; transform: translateX(-50%); } 100% { left: 100%; transform: translateX(-50%); } }
-.developer-principles { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #a6dec0; border-bottom: 1px solid #a6dec0; margin-left: -24px; margin-right: -24px; }
-.developer-principles > div { min-height: 160px; padding: 24px; display: grid; align-content: start; gap: 8px; transition: background-color 180ms ease; border-left: 1px solid transparent; }
-.developer-principles > div + div { border-left-color: #a6dec0; }
-.developer-principles > div:hover { background: rgba(7, 26, 18, .045); }
-.developer-principles span { color: #5a7d66; font: 650 10px/1 "Cascadia Code", monospace; transition: color 0.2s; }
-.developer-principles strong { margin-top: 12px; font-size: 16px; letter-spacing: -.02em; color: var(--ink); transition: color 0.2s; }
-.developer-principles p { max-width: 270px; margin: 0; color: #4b6a55; font-size: 12px; line-height: 1.5; transition: color 0.2s; }
+.sdk-features-section { background: var(--paper); }
+.sdk-features-heading { max-width: 760px; margin-bottom: 56px; }
+.sdk-features-heading h2 { margin: 0; color: var(--ink); font-size: clamp(36px, 4.2vw, 60px); font-weight: 600; line-height: 1.05; letter-spacing: -.055em; }
+.sdk-features-heading > p { max-width: 570px; margin: 22px 0 0; color: #5e675f; font-size: 17px; line-height: 1.6; }
+.sdk-features-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 4vw, 64px); }
+.sdk-features-grid article { border-top: 1px solid var(--paper-line); padding-top: 28px; }
+.sdk-feature-icon { display: inline-flex; color: #276943; font-size: 30px; margin-bottom: 22px; }
+.sdk-features-grid h3 { margin: 0; font-size: 25px; font-weight: 650; letter-spacing: -.03em; }
+.sdk-features-grid p { max-width: 340px; margin: 14px 0 0; color: #5e675f; font-size: 16px; line-height: 1.6; }
 .landing-footer-fat {
   background: var(--paper-strong);
   border-top: 1px solid var(--paper-line);
@@ -1063,12 +1065,8 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
   .preview-sidebar .landing-brand strong { display: none; }
   .agent-payment-story { grid-template-columns: 1fr 1fr; }
   .payment-story-route { display: none; }
-  .developer-principles { grid-template-columns: 1fr; margin-left: -20px; margin-right: -20px; }
   .developer-lead { grid-template-columns: 1fr; gap: 24px; }
   .zeta-prism { height: 420px; }
-  .developer-principles > div,
-  .developer-principles > div + div { min-height: auto; padding: 20px; border-left: 0; }
-  .developer-principles > div + div { border-top: 1px solid #a6dec0; }
   .zeta-character-footer { min-height: 900px; }
   .character-footer-nav { gap: 24px; }
   .character-footer-left { left: 24px; }
@@ -1127,6 +1125,10 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
   .integration-journey-track { display: none; }
   .integration-journey-stages { margin-top: 30px; grid-template-columns: repeat(2, 1fr); gap: 24px 14px; }
   .developer-intro { margin-bottom: 38px; }
+  .sdk-features-heading { margin-bottom: 36px; }
+  .sdk-features-grid { grid-template-columns: 1fr; gap: 32px; }
+  .sdk-features-grid article { padding-top: 24px; }
+  .sdk-feature-icon { margin-bottom: 16px; }
   .developer-lead { gap: 0; margin-bottom: 42px; }
   .zeta-prism { height: 280px; margin-inline: -16px; }
   .zeta-prism img { left: 17%; width: 72%; }
