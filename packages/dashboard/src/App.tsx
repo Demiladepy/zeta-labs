@@ -632,8 +632,16 @@ function DashboardApp({ onHome, onDocs }: { onHome: () => void; onDocs: () => vo
         <span className="sidebar-section-label">Workspace</span>
         <nav aria-label="Dashboard sections">
           {navItems.map((item) => (
-            <button key={item.id} className={view === item.id ? "nav-active" : ""} onClick={() => setView(item.id)}>
-              {item.icon}<span>{item.label}</span>
+            <button
+              key={item.id}
+              type="button"
+              className={view === item.id ? "nav-active" : ""}
+              aria-label={item.label}
+              aria-current={view === item.id ? "page" : undefined}
+              onClick={() => setView(item.id)}
+            >
+              <span aria-hidden="true">{item.icon}</span>
+              <span>{item.label}</span>
             </button>
           ))}
         </nav>

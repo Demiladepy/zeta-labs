@@ -17,6 +17,7 @@ const sections = [
   { id: "credit-flow", label: "Pool, policy, line", group: "Build with Zeta" },
   { id: "spend", label: "Agent spend", group: "Build with Zeta" },
   { id: "proof", label: "Proof and denials", group: "Build with Zeta" },
+  { id: "sequences", label: "Sequence enforcement", group: "Build with Zeta" },
   { id: "reference", label: "SDK reference", group: "Reference" },
 ] as const;
 
@@ -97,6 +98,39 @@ export default function Docs({ onHome, onOpenDashboard }: DocsProps) {
             <p>After a transaction, ask Zeta for proof using the transaction signature. It returns the decoded audit record, whether the last decision was allowed, and a Solana Explorer link. Policy failures have clear, typed reasons, so your app can explain what happened without guessing from an RPC message.</p>
             <div className="docs-denials" aria-label="Policy denial reasons"><span>Revoked</span><span>Expired</span><span>Per-call cap</span><span>Rolling cap</span><span>Total cap</span><span>Recipient or category not allowed</span></div>
             <button className="docs-text-button" type="button" onClick={onOpenDashboard}>Inspect live decisions in the dashboard <ArrowRightRegular aria-hidden="true" /></button>
+          </section>
+
+          <section className="docs-article-section" id="sequences" aria-labelledby="docs-sequences-title">
+            <p className="docs-section-label">Build with Zeta</p><h2 id="docs-sequences-title">Enforce the sequence, not just the call</h2>
+            <p>A per-call cap bounds one transaction. It does not bound a sequence. An agent with a 1.00 USDC per-call cap can still move 20.00 USDC in twenty individually legal calls &mdash; every request passes, and the drain is never checked. This is a known open problem in deployed agent-payment systems.</p>
+            <blockquote className="docs-quote">
+              &ldquo;Authorization policies constrain individual transactions. However, they do not capture the execution history, cumulative spend, or multi-step strategies. Sequences of valid transactions may violate intended spending boundaries through repetition, fragmentation, or timing manipulation.&rdquo;
+              <cite>SoK: Blockchain Agent-to-Agent Payments, arXiv:2604.03733 (2026)</cite>
+            </blockquote>
+            <p>Zeta answers it with a windowed accumulator that <code>evaluate</code> reads before any draw. Set <code>rollingCap</code> and <code>rollingWindowSecs</code> on the policy and the bound holds no matter how a caller fragments the request.</p>
+            <div className="docs-bound-table" role="table" aria-label="Enforcement bounds">
+              <div role="row"><span role="rowheader">Per-call cap only</span><span role="cell">Unbounded &mdash; a sequence can drain any multiple of the cap</span></div>
+              <div role="row"><span role="rowheader">Within one window</span><span role="cell">admitted &le; <code>rollingCap</code></span></div>
+              <div role="row"><span role="rowheader">Across a window boundary</span><span role="cell">admitted &le; 2 &times; <code>rollingCap</code></span></div>
+              <div role="row"><span role="rowheader">Over W windows</span><span role="cell">admitted &le; W &times; <code>rollingCap</code></span></div>
+              <div role="row"><span role="rowheader">Lifetime</span><span role="cell">admitted &le; <code>totalCap</code></span></div>
+            </div>
+            <p>The two-window figure is the honest limit of a tumbling window rather than a sliding one. We state it because knowing the exact bound of your own defence matters more than claiming it has none.</p>
+            <p><strong>Test a plan before you send it.</strong> <code>simulateSpendSequence</code> mirrors the frozen on-chain body offline, so you can ask what a whole sequence would actually spend without touching the network.</p>
+            <pre className="docs-code"><code>{`import { simulateSpendSequence, buildFragmentationAttack } from "@zetasdk/sdk";
+
+const attempts = buildFragmentationAttack({
+  perCallCap: 1_000_000n,   // 1.00 USDC
+  target: 20_000_000n,      // what a compromised agent would try
+  startAt: BigInt(Math.floor(Date.now() / 1000)),
+});
+
+const { admitted, deniedCount } = simulateSpendSequence(policyLimits, attempts);
+// admitted is bounded by rollingCap, however the caller fragments`}</code></pre>
+            <p>Run the same thing as a demo from the SDK package &mdash; read-only, no keypairs, no transactions:</p>
+            <pre className="docs-code"><code>{`npm run demo:fragmentation -- --undefended   # per-call cap only: the drain succeeds
+npm run demo:fragmentation                   # accumulator on: stopped at the ceiling`}</code></pre>
+            <div className="docs-resource-links"><ExternalLink href="https://github.com/Demiladepy/zeta-labs/blob/main/docs/WEDGE.md">The bound, with every test</ExternalLink><ExternalLink href="https://arxiv.org/abs/2604.03733">Read the SoK</ExternalLink></div>
           </section>
 
           <section className="docs-article-section" id="reference" aria-labelledby="docs-reference-title">

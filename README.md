@@ -16,22 +16,57 @@ evaluated before anything moves. Settlement rides the real Payment Channels
 
 ## Why this exists
 
-Autonomous agents are starting to buy APIs, inference, and services on their
-own. Today that usually means one of two bad options:
+Agents are starting to buy their own inference, APIs, and compute. Every
+payment standard shipped for them in the last year assumes the same thing:
+that you have a card that works internationally.
 
-1. **Give the agent a hot wallet** full of USDC — and hope prompts + off-chain
-   guards are enough when something goes wrong.
-2. **Keep a human in the loop** for every payment — which kills the point of
-   an agent.
+- **x402** (Coinbase/Cloudflare, May 2025) — per-request stablecoin payments
+- **AP2** (Google, Sept 2025) — a signed spending mandate, backed by Amex,
+  Mastercard, PayPal and 60+ organisations
+- **MPP** (Stripe/Tempo, Mar 2026) — session-based agent billing
 
-Zeta is the third path: **credit with teeth**. Capital stays in a program-owned
-pool. The agent can only draw what policy allows. Deny paths emit an audit
-record and **do not reserve**. A lender can revoke and stop the next draw
-immediately.
+AP2 and MPP settle on card rails. That is fine in San Francisco. It is not
+fine in Lagos.
 
-We are building this for Colosseum World's Fair on Solana because the settlement
-leg is not fake: Payment Channels + x402 `upto` already exist. Zeta supplies the
-missing **policy-bounded credit layer** in front of them.
+Nigerian banks suspended naira cards for international payments in 2020 and
+restored them only in **July 2025**, at roughly **$500/month — about $4,000 a
+year**, under one-tenth of the 2015 floor. Most naira debit cards still carry a
+**$0 international limit**. **Verve, Nigeria's most-used card network, is not
+accepted by AWS at all.** Two failed payments suspends a cloud account.
+
+A developer in Lagos cannot hand an autonomous agent a card that does not work.
+They are structurally excluded from agentic commerce at the exact moment it is
+being standardised.
+
+**Zeta is credit that needs no card, no bank, and no FX approval.** A lender
+deposits USDC into a program-owned pool. An agent draws against a policy-bounded
+credit line. Every spend is evaluated on-chain before anything moves.
+
+### Per-call caps are theatre
+
+And the enforcement has to be real, because at a $500 monthly ceiling an
+overrun is not a rounding error — it is 40% of the month.
+
+A 1.00 USDC per-call cap still lets an agent move 20.00 USDC in twenty
+individually legal calls. "SoK: Blockchain Agent-to-Agent Payments"
+(arXiv:2604.03733, 2026) names this as open:
+
+> "Authorization policies constrain individual transactions. However, they do
+> not capture the execution history, cumulative spend, or multi-step
+> strategies. Sequences of valid transactions may violate intended spending
+> boundaries through repetition, fragmentation, or timing manipulation."
+
+Zeta's windowed accumulator bounds the sequence. See it in 30 seconds:
+
+```bash
+cd packages/sdk
+npm run demo:fragmentation -- --undefended   # per-call cap only: 20.00 USDC drained
+npm run demo:fragmentation                   # accumulator on: stopped at 5.00 USDC
+```
+
+Read-only, no keypairs. The exact bounds and every test are in
+[`docs/WEDGE.md`](docs/WEDGE.md); market and business model in
+[`docs/POSITIONING.md`](docs/POSITIONING.md).
 
 ---
 

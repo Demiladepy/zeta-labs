@@ -70,7 +70,8 @@
     "devnet:swig-revoke-delegate": "tsx scripts/devnet-swig-revoke-delegate.ts",
     "devnet:swig-dashboard-config": "tsx scripts/print-swig-dashboard-config.ts",
     "clawpump:smoke": "tsx scripts/clawpump-smoke.ts",
-    "pyth:aapl-compare": "tsx scripts/pyth-aapl-compare.ts"
+    "pyth:aapl-compare": "tsx scripts/pyth-aapl-compare.ts",
+    "demo:fragmentation": "tsx scripts/fragmentation-attack.ts"
   },
   "devDependencies": {
     "@pythnetwork/hermes-client": "^3.1.0",
