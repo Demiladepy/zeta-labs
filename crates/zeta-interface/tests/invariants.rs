@@ -320,3 +320,129 @@ fn seven_step_deny_then_revoke() {
     p.revoked = true;
     assert_eq!(evaluate(&p, input(5, 1)), Denial::Revoked);
 }
+
+/// Fragmentation resistance.
+///
+/// "SoK: Blockchain Agent-to-Agent Payments" (arXiv:2604.03733) names this as
+/// an open problem in deployed agent-payment systems:
+///
+/// > "Authorization policies constrain individual transactions (e.g., amount,
+/// > recipient, rules). However, they do not capture the execution history,
+/// > cumulative spend, or multi-step strategies. Therefore, sequences of valid
+/// > transactions may violate intended spending boundaries through repetition,
+/// > fragmentation, or timing manipulation."
+///
+/// Zeta's windowed `LineUsage` accumulator is the answer. These tests state the
+/// exact bound it provides — and, honestly, where that bound stops.
+mod fragmentation {
+    use super::*;
+    use zeta_interface::{LineUsage, ACCOUNT_DISCRIMINATOR_LINE_USAGE};
+
+    fn fresh_usage() -> LineUsage {
+        LineUsage {
+            discriminator: ACCOUNT_DISCRIMINATOR_LINE_USAGE,
+            line: [4; 32],
+            window_start: 0,
+            rolling_spent: 0,
+            bump: 1,
+            _pad: [0; 7],
+        }
+    }
+
+    /// Replay an attacker-chosen decomposition against the real `evaluate`
+    /// body, applying `LineUsage::apply_draw` on every allow exactly as the
+    /// on-chain `draw` path does. Returns (total admitted, denial count).
+    fn run_sequence(p: &Policy, chunks: &[(u64, i64)]) -> (u64, usize) {
+        let mut usage = fresh_usage();
+        let mut admitted: u64 = 0;
+        let mut denied = 0usize;
+        for &(amount, now) in chunks {
+            let mut i = input(amount, now);
+            i.rolling_spent = usage.rolling_spent;
+            i.window_start = usage.window_start;
+            if evaluate(p, i) == Denial::Allow {
+                usage.apply_draw(amount, now, p.rolling_window_secs);
+                admitted = admitted.saturating_add(amount);
+            } else {
+                denied += 1;
+            }
+        }
+        (admitted, denied)
+    }
+
+    /// The attack the SoK describes, with only a per-call cap in place.
+    /// Every single call is individually valid; the sequence is not.
+    #[test]
+    fn per_call_cap_alone_does_not_bound_a_fragmented_drain() {
+        let p = policy(100, 0, false); // rolling_cap == 0 -> accumulator off
+        let seq: Vec<(u64, i64)> = (0..100).map(|k| (100u64, 1_000 + k as i64)).collect();
+        let (admitted, denied) = run_sequence(&p, &seq);
+        assert_eq!(denied, 0, "every fragmented call passes the per-call check");
+        assert_eq!(admitted, 10_000, "100x the per-call ceiling drained legally");
+    }
+
+    /// Same attacker, accumulator on. No decomposition beats the window cap.
+    #[test]
+    fn fragmentation_cannot_exceed_rolling_cap_within_one_window() {
+        let mut p = policy(1_000, 0, false);
+        p.rolling_cap = 500;
+        p.rolling_window_secs = 3_600;
+
+        // Sweep every chunk size the attacker could legally choose.
+        for chunk in 1..=p.per_call_cap {
+            let seq: Vec<(u64, i64)> =
+                (0..64).map(|k| (chunk, 1_000 + k as i64)).collect();
+            let (admitted, _) = run_sequence(&p, &seq);
+            assert!(
+                admitted <= p.rolling_cap,
+                "chunk {chunk}: admitted {admitted} exceeded rolling cap {}",
+                p.rolling_cap
+            );
+        }
+    }
+
+    /// Honest statement of the limit: a tumbling window is not a sliding
+    /// window. An attacker who times a burst at the end of one window and
+    /// again at the start of the next admits at most 2x rolling_cap across
+    /// that boundary — and never more.
+    #[test]
+    fn tumbling_window_boundary_burst_is_bounded_by_two_caps() {
+        let mut p = policy(1_000, 0, false);
+        p.rolling_cap = 500;
+        p.rolling_window_secs = 3_600;
+
+        let seq = vec![
+            (500, 1_000),         // fills window 1
+            (500, 1_000 + 3_599), // still inside window 1 -> denied
+            (500, 1_000 + 3_600), // boundary resets -> allowed
+        ];
+        let (admitted, denied) = run_sequence(&p, &seq);
+        assert_eq!(denied, 1);
+        assert_eq!(admitted, 2 * p.rolling_cap, "exactly two caps, not more");
+    }
+
+    /// General bound: sustained timing manipulation over W windows admits at
+    /// most W x rolling_cap, however the attacker fragments inside them.
+    #[test]
+    fn timing_manipulation_is_bounded_by_windows_elapsed() {
+        let mut p = policy(1_000, 0, false);
+        p.rolling_cap = 500;
+        p.rolling_window_secs = 600;
+
+        let windows = 10i64;
+        let mut seq = Vec::new();
+        for w in 0..windows {
+            let t = 1_000 + w * 600;
+            for _ in 0..8 {
+                seq.push((200u64, t)); // 1_600 attempted per window
+            }
+        }
+        let (admitted, denied) = run_sequence(&p, &seq);
+        assert!(
+            admitted <= (windows as u64) * p.rolling_cap,
+            "admitted {admitted} exceeded {windows} x {}",
+            p.rolling_cap
+        );
+        assert!(denied > 0, "the accumulator must actually bite");
+    }
+}

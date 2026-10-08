@@ -1856,3 +1856,73 @@ dd { margin: 0; text-align: right; font-weight: 560; font-variant-numeric: tabul
   .audit-detail { border-top-color: var(--line); }
 }
 
+
+/* ---- Why Zeta: the card wall ------------------------------------------- */
+.cardwall-section { display: flex; flex-direction: column; gap: 42px; }
+.cardwall-lede {
+  max-width: 62ch; margin: 14px auto 0; color: var(--muted);
+  font-size: 1.05rem; line-height: 1.65;
+}
+.cardwall-grid {
+  display: grid; gap: 1px; background: var(--line-soft);
+  border: 1px solid var(--line-soft); border-radius: var(--radius); overflow: hidden;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+.cardwall-stat {
+  background: var(--surface); padding: 30px 26px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.cardwall-stat strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(1.9rem, 3.6vw, 2.6rem); line-height: 1;
+  color: var(--accent); letter-spacing: -0.02em;
+}
+.cardwall-stat span { color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+.cardwall-close {
+  display: grid; gap: 18px; max-width: 72ch; margin: 0 auto; text-align: center;
+}
+.cardwall-close p { margin: 0; color: var(--muted); font-size: 1.02rem; line-height: 1.7; }
+.cardwall-close strong { color: var(--text); }
+.cardwall-answer {
+  padding-top: 18px; border-top: 1px solid var(--line-soft);
+  color: var(--text) !important; font-weight: 500;
+}
+@media (max-width: 640px) {
+  .cardwall-section { gap: 30px; }
+  .cardwall-stat { padding: 24px 20px; }
+}
+
+/* ---- Docs: sequence enforcement ---------------------------------------- */
+.docs-quote {
+  margin: 24px 0; padding: 20px 24px; border-left: 3px solid var(--accent);
+  background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--muted); font-size: 0.98rem; line-height: 1.7; font-style: italic;
+}
+.docs-quote cite {
+  display: block; margin-top: 12px; font-style: normal;
+  font-size: 0.84rem; color: var(--dim);
+}
+.docs-bound-table {
+  margin: 22px 0; border: 1px solid var(--line-soft);
+  border-radius: var(--radius); overflow: hidden;
+}
+.docs-bound-table > div {
+  display: grid; grid-template-columns: minmax(170px, 0.8fr) 1.2fr; gap: 16px;
+  padding: 14px 18px; background: var(--surface);
+  border-bottom: 1px solid var(--line-soft); align-items: baseline;
+}
+.docs-bound-table > div:last-child { border-bottom: 0; }
+.docs-bound-table [role="rowheader"] { color: var(--text); font-weight: 500; font-size: 0.92rem; }
+.docs-bound-table [role="cell"] { color: var(--muted); font-size: 0.92rem; }
+.docs-bound-table code, .docs-quote code { font-size: 0.88em; color: var(--accent); }
+.docs-code {
+  margin: 18px 0; padding: 18px 20px; overflow-x: auto;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem; line-height: 1.65; color: var(--text);
+}
+.docs-code code { background: none; padding: 0; color: inherit; white-space: pre; }
+@media (max-width: 640px) {
+  .docs-bound-table > div { grid-template-columns: 1fr; gap: 6px; }
+}

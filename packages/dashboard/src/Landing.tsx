@@ -481,8 +481,8 @@ function FlowSteps() {
             {step.icon}
             {active === index && index === 1 ? (
               <span className="policy-preview">
-                <span><small>Per-call cap</small><strong>1,000 USDC</strong></span>
-                <span><small>Expiry</small><strong>Apr 30</strong></span>
+                <span><small>Per-call cap</small><strong>1.00 USDC</strong></span>
+                <span><small>Expiry</small><strong>Oct 28, 2026</strong></span>
                 <span><small>Recipients</small><strong>Allowlist on</strong></span>
               </span>
             ) : null}
@@ -522,9 +522,9 @@ function Testimonial() {
     <div className="testimonial-card">
       <div className="testimonial-content">
         <blockquote className="testimonial-quote">
-          &ldquo;Before Zeta Labs, we wasted valuable time building custom wallets and monitoring agent spends manually. Now it&rsquo;s as simple as setting a policy and we&rsquo;re secure in seconds. The on-chain audits are outstanding.&rdquo;
+          &ldquo;Authorization policies constrain individual transactions. However, they do not capture the execution history, cumulative spend, or multi-step strategies. Sequences of valid transactions may violate intended spending boundaries through repetition, fragmentation, or timing manipulation.&rdquo;
         </blockquote>
-        <p className="testimonial-author">- Core developer, pilot team</p>
+        <p className="testimonial-author">SoK: Blockchain Agent-to-Agent Payments, arXiv:2604.03733 (2026) &mdash; the gap Zeta closes</p>
       </div>
       <div className="testimonial-art" aria-hidden="true">
         {pixels.map((p) => (
@@ -659,6 +659,48 @@ function HeroBackgroundVideo() {
   );
 }
 
+const CARD_WALL_STATS = [
+  { figure: "$0", label: "International limit on most Nigerian naira debit cards" },
+  { figure: "$500", label: "Monthly ceiling after cards were restored in July 2025" },
+  { figure: "1/10th", label: "Of the 2015 limit, after a 70% currency decline" },
+  { figure: "Verve", label: "Nigeria's most-used card network — not accepted by AWS" },
+] as const;
+
+function CardWallSection() {
+  return (
+    <section className="landing-section cardwall-section reveal" id="why" aria-labelledby="cardwall-title">
+      <div className="section-heading section-heading-centered">
+        <p className="landing-section-label">Why Zeta exists</p>
+        <h2 id="cardwall-title">Every agent payment standard<br />assumes you have a card.</h2>
+        <p className="cardwall-lede">
+          Google&rsquo;s AP2, Stripe&rsquo;s MPP, and the card-network mandates behind them all settle
+          on rails that a billion developers cannot reach.
+        </p>
+      </div>
+      <div className="cardwall-grid">
+        {CARD_WALL_STATS.map((stat) => (
+          <div className="cardwall-stat" key={stat.figure}>
+            <strong>{stat.figure}</strong>
+            <span>{stat.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="cardwall-close">
+        <p>
+          A developer in Lagos cannot hand an autonomous agent a card that does not work.
+          And when your entire monthly capacity is $500, a spend that leaks past a per-call
+          cap is not a rounding error &mdash; it is <strong>40% of your month</strong>, and the failed
+          payment afterwards can suspend the account you work from.
+        </p>
+        <p className="cardwall-answer">
+          Zeta is credit that needs no card, no bank, and no FX approval &mdash; with the
+          spending rules enforced on-chain, across the whole sequence, before funds move.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const faqs = [
@@ -743,7 +785,7 @@ function CtaSection({ onOpenDashboard }: { onOpenDashboard: () => void }) {
               <span>Documentation</span>
             </a>
           </div>
-          <p className="cta-subtext">Free 14-day trial included. No credit card required.</p>
+          <p className="cta-subtext">Live on Solana devnet. Open source. <code>npm i @zetasdk/sdk</code></p>
         </div>
         <div className="testimonial-art" aria-hidden="true">
           {pixels.map((p) => (
@@ -809,6 +851,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
       <header className="landing-nav">
         <Brand />
         <nav aria-label="Landing page sections">
+          <a href="#why">Why Zeta</a>
           <a href="#product">Product</a>
           <a href="#how-it-works">How it works</a>
           <a href="#features">Features</a>
@@ -838,24 +881,26 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
         </section>
 
         <div className="landing-trusted-section">
-          <p className="trusted-heading">Trusted by the dev teams at</p>
+          <p className="trusted-heading">Built on</p>
           <div className="landing-trusted-logos-wrapper">
             <div className="landing-trusted-logos">
-              <div className="trusted-logo">Axiom AI</div>
-              <div className="trusted-logo">Spectro Labs</div>
-              <div className="trusted-logo">ChainFlip</div>
-              <div className="trusted-logo">Neon DAO</div>
-              <div className="trusted-logo">Primer</div>
-              <div className="trusted-logo">Axiom AI</div>
-              <div className="trusted-logo">Spectro Labs</div>
-              <div className="trusted-logo">ChainFlip</div>
-              <div className="trusted-logo">Neon DAO</div>
-              <div className="trusted-logo">Primer</div>
+              <div className="trusted-logo">Solana</div>
+              <div className="trusted-logo">Payment Channels</div>
+              <div className="trusted-logo">x402</div>
+              <div className="trusted-logo">Swig</div>
+              <div className="trusted-logo">USDC</div>
+              <div className="trusted-logo">Solana</div>
+              <div className="trusted-logo">Payment Channels</div>
+              <div className="trusted-logo">x402</div>
+              <div className="trusted-logo">Swig</div>
+              <div className="trusted-logo">USDC</div>
             </div>
           </div>
         </div>
 
 
+
+        <CardWallSection />
 
         <section className="landing-section reveal" id="how-it-works" aria-labelledby="flow-title">
           <div className="section-heading section-heading-centered">

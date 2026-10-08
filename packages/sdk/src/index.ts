@@ -104,6 +104,19 @@ export type {
   ZetaClientConfig,
 } from "./client.js";
 
+export {
+  applyDraw,
+  buildFragmentationAttack,
+  effectiveSpent,
+  evaluateOffline,
+  simulateSpendSequence,
+  type AttemptOutcome,
+  type PolicyLimits,
+  type SequenceResult,
+  type SpendAttempt,
+  type UsageState,
+} from "./fragmentation.js";
+
 export * from "./paykit/index.js";
 export {
   DEFAULT_X402_ENDPOINT,
