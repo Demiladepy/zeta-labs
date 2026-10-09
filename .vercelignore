@@ -1,27 +1,27 @@
-# The web build only needs packages/sdk + packages/dashboard sources.
-# Everything below is irrelevant to it and must not be uploaded.
+# The web build needs packages/sdk + packages/dashboard in full.
+# Only exclude what is genuinely heavy and irrelevant to it.
+#
+# NOTE: use leading slashes for root-only directories. A bare `scripts`
+# also matches packages/sdk/scripts, which holds clean-dist.mjs that the
+# SDK build invokes.
 
 .git
-target
-**/target
 node_modules
 **/node_modules
+target
+**/target
 **/dist
 .keys
 *.so
 
 # Rust workspace — not part of the web build
-crates
-programs
-Cargo.toml
-Cargo.lock
+/crates
+/programs
+/Cargo.toml
+/Cargo.lock
 
 # Repo material the site does not serve
-brand-assets
-docs
-scripts
-packages/brand-video
-packages/sdk/scripts
-packages/sdk/test
-*.md
-!packages/sdk/README.md
+/brand-assets
+/docs
+/scripts
+/packages/brand-video
