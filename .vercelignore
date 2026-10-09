@@ -1,0 +1,27 @@
+# The web build only needs packages/sdk + packages/dashboard sources.
+# Everything below is irrelevant to it and must not be uploaded.
+
+.git
+target
+**/target
+node_modules
+**/node_modules
+**/dist
+.keys
+*.so
+
+# Rust workspace — not part of the web build
+crates
+programs
+Cargo.toml
+Cargo.lock
+
+# Repo material the site does not serve
+brand-assets
+docs
+scripts
+packages/brand-video
+packages/sdk/scripts
+packages/sdk/test
+*.md
+!packages/sdk/README.md
