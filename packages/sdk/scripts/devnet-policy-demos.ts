@@ -4,8 +4,9 @@
  *
  *   npm run devnet:policy-demos -- --submit
  */
-import { Connection, Transaction } from "@solana/web3.js";
+import { Connection, type Keypair, type TransactionInstruction, Transaction } from "@solana/web3.js";
 import { createResilientDevnetConnection } from "./devnet-connection.js";
+import { retryOn429 } from "../src/devnet-rpc.js";
 import { buildEvaluateInstruction, findPolicyPda } from "../src/instructions.js";
 import { ZetaClient } from "../src/client.js";
 import { loadKeypair } from "./spend-config.js";
@@ -32,24 +33,39 @@ function sleep(ms: number): Promise<void> {
 /** Send an expected-to-fail policy evaluate so it still lands on-chain for Explorer. */
 async function sendExpectedDeny(
   connection: Connection,
-  tx: Transaction,
-  signers: { publicKey: import("@solana/web3.js").PublicKey; secretKey: Uint8Array }[],
+  instructions: TransactionInstruction[],
+  payer: Keypair,
 ): Promise<string> {
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+  const { blockhash, lastValidBlockHeight } = await retryOn429(() =>
+    connection.getLatestBlockhash("confirmed"),
+  );
+  const tx = new Transaction().add(...instructions);
   tx.recentBlockhash = blockhash;
-  tx.feePayer = signers[0]!.publicKey;
-  tx.sign(...signers);
-  const signature = await connection.sendRawTransaction(tx.serialize(), {
-    skipPreflight: true,
-    maxRetries: 3,
-  });
-  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
-  const status = await connection.getSignatureStatus(signature);
-  const err = status?.value?.err;
-  if (!err) {
-    throw new Error(`expected on-chain deny, but tx succeeded: ${explorerUrl(signature)}`);
+  tx.feePayer = payer.publicKey;
+  tx.sign(payer);
+  const signature = await retryOn429(() =>
+    connection.sendRawTransaction(tx.serialize(), { skipPreflight: true, maxRetries: 5 }),
+  );
+
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    const { value } = await retryOn429(() => connection.getSignatureStatuses([signature]));
+    const status = value[0];
+    if (status?.err) {
+      return signature;
+    }
+    if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") {
+      throw new Error(`expected on-chain deny, but tx succeeded: ${explorerUrl(signature)}`);
+    }
+    const height = await retryOn429(() => connection.getBlockHeight("confirmed"));
+    if (height > lastValidBlockHeight) {
+      const late = await retryOn429(() => connection.getSignatureStatuses([signature]));
+      if (late.value[0]?.err) return signature;
+      throw new Error(`deny tx expired before landing: ${explorerUrl(signature)}`);
+    }
+    await sleep(1500);
   }
-  return signature;
+  throw new Error(`deny tx confirmation timeout: ${signature}`);
 }
 
 async function main() {
@@ -91,11 +107,7 @@ async function main() {
 
   console.log("1. Deny demo — evaluate above per-call cap (active line)");
   {
-    const denySig = await sendExpectedDeny(
-      connection,
-      new Transaction().add(denyEvaluate),
-      [resolved.lender],
-    );
+    const denySig = await sendExpectedDeny(connection, [denyEvaluate], resolved.lender);
     console.log(`   ✓ deny (PerCallCap on-chain): ${explorerUrl(denySig)}`);
   }
 
@@ -140,11 +152,7 @@ async function main() {
   console.log("");
   console.log("3. Post-revoke evaluate on disposable policy");
   {
-    const postSig = await sendExpectedDeny(
-      connection,
-      new Transaction().add(postRevokeEvaluate),
-      [resolved.lender],
-    );
+    const postSig = await sendExpectedDeny(connection, [postRevokeEvaluate], resolved.lender);
     console.log(`   ✓ post_revoke_deny: ${explorerUrl(postSig)}`);
   }
 

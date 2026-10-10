@@ -1,6 +1,6 @@
 # Fair proof set — Explorer paste sheet
 
-Pinned **2026-09-26** after Phase 3 hot-path harden Devnet upgrade.
+Pinned **2026-10-10** — policy deny/revoke refreshed for live dashboard (`npm run devnet:policy-demos -- --submit`).
 Cluster: **devnet**. Re-run the commands below if you need fresh txs for a recording.
 
 ## Programs
@@ -12,28 +12,32 @@ Cluster: **devnet**. Re-run the commands below if you need fresh txs for a recor
 
 ## Three txs (paste into Fair submit)
 
-1. **Happy path — draw / open channel**  
-   https://explorer.solana.com/tx/5Kn4tvShMYw7CrJFck8sycbJ1FQt8wxVZJKPEVKuiCzj2WFVwi647PXDgwndHw3x32unyJPB5cu4cehBUwEGKStG?cluster=devnet
+1. **Happy path — draw / open channel** (same pool as dashboard)  
+   https://explorer.solana.com/tx/2NkAUKyxBNqF7X7TkWvoGT9W1Jjex7TpEWHK6pk3DHMN5FRdw6QpfhSauJKGmAJaEj3o7ZTAJkfVFLMt3MVGofTs?cluster=devnet
 
 2. **Deny — evaluate over per-call cap** (custom `0x67` / PerCallCap)  
-   https://explorer.solana.com/tx/UZPKXpxLZiVaGVjk226Y2WJt2MkGL18ycctpBLPFDUqarHe1LSU1fYSLHYGtVMpacVukQXXPKXE39CKJWF6KhN8?cluster=devnet
+   https://explorer.solana.com/tx/VrNXHZykRmGR9bRPU3ma5yW395GniLhrXXs16nFURffSAapCyVkxV6vzacQhwSPUfRsKHz69ZvwP1vHkqFDrYJf?cluster=devnet
 
 3. **Revoke** (disposable policy seed 100)  
-   https://explorer.solana.com/tx/43JmhcPN4LED2wM2LoPe6tkddyfjz2c79rVqbS8E9AY1VSXEZcD1UiFF2agjGSwMyTmfMEs2TqLQCNSud2UJEXjG?cluster=devnet
+   https://explorer.solana.com/tx/3XLuS6VG7pQgL8yrqAoRXU3DPosD6qFudbZptc5ra2UeEaXWjcQAV8nZHLTqyELoWjgmVE3w38cGJiXFuS8Qz3k6?cluster=devnet
 
 Related (optional):
 
-- Allow evaluate: https://explorer.solana.com/tx/2oWSu3wVuGY1pMssdbQeAXD3tJ4rNUZGngzvnBKw5AfSmZcJWDLDH44x7VgBS8rJC4W4Z3G4qCTsTatEDEPxmR2S?cluster=devnet
-- Post-revoke deny: https://explorer.solana.com/tx/4LGfANkiHsPBPDnCXNW81Gad4K2dgq1KN21bKsDcWcz4SyiUnGgpk6eYQtpoXhzRnM1gcf3WnwcCSUZtD5LCsSYa?cluster=devnet
+- Allow evaluate: https://explorer.solana.com/tx/xL5XQr38XZYj4yGvgPn5QkdD5xU5GHMmZiAMHGEYsubyTB4jTU8d5SvrhTiHfuow58Rwm3qzWGnRRWqykegHkvj?cluster=devnet
+- Post-revoke deny: https://explorer.solana.com/tx/4KzvP8kPpsSMHDz6Rec6TK6tVD3ZTKiTrs4EVZacpXZnZH6vq6a5ismYRMtSCGFnfAsrRXQJ1brydeQxq2YwDKtJ?cluster=devnet
 
-## Accounts from this run
+## Accounts (live demo / dashboard)
 
 | Account | Pubkey |
 | --- | --- |
-| Pool | `G5nFWchW1GUJp85qS4YuLEtWo8dKh4NhmfXUcS9ByVZB` |
-| Policy (live spend) | `AenFgEANwEDZSSQMuHzK5TB7gXge7TYpd1DJXhCgiyTQ` |
-| Line | `AYP2yiFLn25QhHKv3hw4yS8xNLbcwKEVjDtabjQypsZ9` |
-| Lender / agent | `9qPcrwU5BL7kXMYQzndg1J1BguK7mhx1AvqD6ACmFABd` |
+| Pool | `4tPUrLPZpsBv2J6YnkdAthQGbXNG7moiNCHVCKFKcz2j` |
+| Policy (live spend, seed 2) | `A1MJPKPKnAraJY4gSp6cM1yRiEnWSfAH2zLJHjaKJgX7` |
+| Line (spend-agent) | `79EwonAo43CgfDWYFWudNJ2tEFjEycwBULvf5TVF6g4x` |
+| Lender | `qoGVDF9jB2xoCDmuSfVYBYgGoLyNVpDtxqzK8zkR1eZ` |
+| Agent (spend-agent) | `FumddriDZBEisrSq9fNNUDYySmB6yZV5aTWBvaio7uyH` |
+| Operator | `HfPBHCqZqcitttF7L2w9dRUTLTTa8TT93kY4N6QL2xCM` |
+
+Legacy Phase 1 pool (older proof txs): `G5nFWchW1GUJp85qS4YuLEtWo8dKh4NhmfXUcS9ByVZB`.
 
 ## Phase 2 — Swig Delegated Authority (On-Chain Proof Set)
 
