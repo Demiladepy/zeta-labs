@@ -42,8 +42,24 @@ export type DashboardSnapshot = {
   auditError?: string;
 };
 
+/**
+ * Public devnet RPC rate-limits hard, and a throttled read drops the dashboard
+ * to demo data. Set `VITE_SOLANA_RPC_URL` (or `VITE_HELIUS_API_KEY`) at build
+ * time to point at a dedicated endpoint instead.
+ *
+ * Note: Vite inlines `VITE_*` values into the client bundle, so anything set
+ * here is publicly readable. Use a devnet-only, rate-limit-scoped key.
+ */
+export function defaultRpcUrl(): string {
+  const explicit = import.meta.env?.VITE_SOLANA_RPC_URL?.trim();
+  if (explicit) return explicit;
+  const helius = import.meta.env?.VITE_HELIUS_API_KEY?.trim();
+  if (helius) return `https://devnet.helius-rpc.com/?api-key=${helius}`;
+  return "https://api.devnet.solana.com";
+}
+
 export const DEFAULT_CONFIG: DashboardConfig = {
-  rpcUrl: "https://api.devnet.solana.com",
+  rpcUrl: defaultRpcUrl(),
   poolAddress: "",
   lineAddress: "",
   policyAddress: "",

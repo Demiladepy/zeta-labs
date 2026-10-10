@@ -20,3 +20,20 @@ export {
 } from "./types.js";
 
 export type { AuditRecord, CreditLine, Policy, Pool } from "./types.js";
+
+/** Offline policy evaluation — no RPC, so it works even when devnet is down. */
+export {
+  applyDraw,
+  buildFragmentationAttack,
+  effectiveSpent,
+  evaluateOffline,
+  simulateSpendSequence,
+} from "./fragmentation.js";
+
+export type {
+  AttemptOutcome,
+  PolicyLimits,
+  SequenceResult,
+  SpendAttempt,
+  UsageState,
+} from "./fragmentation.js";

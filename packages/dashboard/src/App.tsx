@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Landing from "./Landing.js";
 import Docs from "./Docs.js";
+import SimulatorPanel from "./Simulator.js";
 import {
   Button,
   Dialog,
@@ -26,6 +27,7 @@ import {
   DocumentBulletListRegular,
   HomeRegular,
   OpenRegular,
+  PlayRegular,
   SettingsRegular,
   ShieldCheckmarkRegular,
 } from "@fluentui/react-icons";
@@ -46,7 +48,7 @@ import {
 } from "./data.js";
 import { loadSwigDevnetPreset } from "./presets.js";
 
-type View = "overview" | "lender" | "agent" | "policy" | "audit";
+type View = "overview" | "lender" | "agent" | "policy" | "audit" | "simulator";
 type AuditFilter = "all" | "allowed" | "denied";
 
 const STORAGE_KEY = "zeta-dashboard-config";
@@ -620,6 +622,7 @@ function DashboardApp({ onHome, onDocs }: { onHome: () => void; onDocs: () => vo
     { id: "agent", label: "Agent", icon: <BotRegular /> },
     { id: "policy", label: "Policies", icon: <ShieldCheckmarkRegular /> },
     { id: "audit", label: "Audit", icon: <ShieldCheckmarkRegular /> },
+    { id: "simulator", label: "Simulator", icon: <PlayRegular /> },
   ];
 
   return (
@@ -679,6 +682,7 @@ function DashboardApp({ onHome, onDocs }: { onHome: () => void; onDocs: () => vo
               {view === "agent" ? <AgentPanel snapshot={snapshot} /> : null}
               {view === "policy" ? <PolicyPanel snapshot={snapshot} /> : null}
               {view === "audit" ? <AuditPanel snapshot={snapshot} /> : null}
+              {view === "simulator" ? <SimulatorPanel /> : null}
             </>
           ) : (
             <div className="empty-state live-empty-state">

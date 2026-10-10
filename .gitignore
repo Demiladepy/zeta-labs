@@ -20,3 +20,4 @@ scripts/clawpump.env
 scripts/pyth.env
 .keys/
 .keys/*.json
+.vercel
