@@ -383,4 +383,143 @@ mod tests {
             Err(VaultError::UnderwritingDenied)
         ));
     }
+
+    /// Underwriting v1 states a thesis: **policy tightness is the collateral.**
+    ///
+    /// An autonomous agent has no credit history, no legal identity, and
+    /// nothing to pledge. What it *can* offer is constraint — it accepts a
+    /// tighter leash, and the tighter leash is what makes the loan safe. So
+    /// the price of credit is how much freedom the borrower gives up.
+    ///
+    /// These tests prove the model is well-formed rather than merely present:
+    /// monotone in tightness, bounded by liquidity, and never exceeding the
+    /// lender's own ceiling.
+    mod underwriting {
+        use super::*;
+
+        /// Every subset of policy controls, as (expiry, acl, total, rolling).
+        fn all_control_sets() -> Vec<(bool, bool, bool, bool)> {
+            let mut out = Vec::new();
+            for m in 0u8..16 {
+                out.push((m & 1 != 0, m & 2 != 0, m & 4 != 0, m & 8 != 0));
+            }
+            out
+        }
+
+        fn with_controls(base: &Policy, c: (bool, bool, bool, bool)) -> Policy {
+            let mut p = *base;
+            p.expires_at = if c.0 { 1_000 } else { 0 };
+            p.acl_version = if c.1 { 1 } else { 0 };
+            p.total_cap = if c.2 { u64::MAX } else { 0 };
+            p.rolling_cap = if c.3 { 5_000 } else { 0 };
+            p
+        }
+
+        fn tightness(c: (bool, bool, bool, bool)) -> u32 {
+            c.0 as u32 + c.1 as u32 + c.2 as u32 + c.3 as u32
+        }
+
+        /// Accepting another constraint must never cost the agent credit.
+        #[test]
+        fn ltv_is_monotone_in_tightness() {
+            let (_, base) = setup();
+            for a in all_control_sets() {
+                for b in all_control_sets() {
+                    // b is a superset of a's controls
+                    let superset = (a.0 <= b.0) && (a.1 <= b.1) && (a.2 <= b.2) && (a.3 <= b.3);
+                    if !superset {
+                        continue;
+                    }
+                    let la = policy_ltv_bps(&with_controls(&base, a));
+                    let lb = policy_ltv_bps(&with_controls(&base, b));
+                    assert!(
+                        lb >= la,
+                        "accepting more constraints lowered LTV: {a:?}={la} -> {b:?}={lb}"
+                    );
+                    if tightness(b) > tightness(a) {
+                        assert!(lb > la, "a strictly tighter policy earned no more credit");
+                    }
+                }
+            }
+        }
+
+        /// The loosest policy earns the 25% floor. The tightest earns 90% —
+        /// never 100%. Even a maximally constrained agent keeps a 10% haircut,
+        /// so the pool is never fully lent against a single line.
+        #[test]
+        fn ltv_is_bounded_by_floor_and_a_permanent_haircut() {
+            let (_, base) = setup();
+            for c in all_control_sets() {
+                let bps = policy_ltv_bps(&with_controls(&base, c));
+                assert!(bps >= 2_500, "{c:?} fell below the 25% floor: {bps}");
+                assert!(bps <= 9_000, "{c:?} exceeded the 90% ceiling: {bps}");
+            }
+            assert_eq!(policy_ltv_bps(&with_controls(&base, (false, false, false, false))), 2_500);
+            assert_eq!(
+                policy_ltv_bps(&with_controls(&base, (true, true, true, true))),
+                9_000,
+                "the tightest possible policy still keeps a 10% haircut"
+            );
+        }
+
+        /// A line can never be underwritten past the pool's free liquidity,
+        /// whatever the policy claims. Outstanding credit is not lendable.
+        #[test]
+        fn limit_never_exceeds_available_liquidity() {
+            let (mut pool, base) = setup();
+            for outstanding in [0u64, 1, 2_500, 9_999, 10_000] {
+                pool.outstanding = outstanding;
+                let available = pool.deposited.saturating_sub(outstanding);
+                for c in all_control_sets() {
+                    let p = with_controls(&base, c);
+                    let max = underwrite_limit(&p, &pool, 1).unwrap();
+                    assert!(
+                        max <= available,
+                        "{c:?} underwrote {max} against {available} available"
+                    );
+                }
+            }
+        }
+
+        /// The lender's own total cap is a hard ceiling on top of LTV.
+        #[test]
+        fn lender_total_cap_overrides_a_generous_ltv() {
+            let (pool, base) = setup();
+            let mut p = with_controls(&base, (true, true, true, true));
+            assert_eq!(policy_ltv_bps(&p), 9_000);
+            p.total_cap = 100;
+            assert_eq!(underwrite_limit(&p, &pool, 1).unwrap(), 100);
+        }
+
+        /// A dead policy underwrites nothing, however tight it looks.
+        #[test]
+        fn revoked_or_expired_policy_underwrites_nothing() {
+            let (pool, base) = setup();
+            let mut revoked = with_controls(&base, (true, true, true, true));
+            revoked.revoked = true;
+            assert!(matches!(
+                underwrite_limit(&revoked, &pool, 1),
+                Err(VaultError::UnderwritingDenied)
+            ));
+
+            let expired = with_controls(&base, (true, true, true, true));
+            assert!(matches!(
+                underwrite_limit(&expired, &pool, 1_000),
+                Err(VaultError::UnderwritingDenied)
+            ));
+            // One second before expiry it still underwrites.
+            assert!(underwrite_limit(&expired, &pool, 999).is_ok());
+        }
+
+        /// An empty pool lends nothing rather than underflowing.
+        #[test]
+        fn drained_pool_underwrites_zero() {
+            let (mut pool, base) = setup();
+            pool.outstanding = pool.deposited;
+            let p = with_controls(&base, (true, true, true, true));
+            assert_eq!(underwrite_limit(&p, &pool, 1).unwrap(), 0);
+            pool.outstanding = pool.deposited.saturating_add(1);
+            assert_eq!(underwrite_limit(&p, &pool, 1).unwrap(), 0);
+        }
+    }
 }

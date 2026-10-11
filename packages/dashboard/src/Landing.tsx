@@ -1211,7 +1211,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
 
         <div className="credit-guardian" aria-hidden="true">
           <div className="guardian-body">
-            <img src="/zeta-credit-guardian.png" alt="" />
+            <img src="/zeta-credit-guardian.webp" alt="" />
             <span className="guardian-visor">
               <i className="guardian-eye guardian-eye-left" />
               <i className="guardian-eye guardian-eye-right" />

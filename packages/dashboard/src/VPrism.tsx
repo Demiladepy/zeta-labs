@@ -150,7 +150,7 @@ export function VPrism() {
   return (
     <div className="zeta-prism" ref={frameRef} role="slider" tabIndex={0} aria-label="Aim the prism light beam" aria-valuemin={-45} aria-valuemax={45} aria-valuenow={0}>
       <canvas ref={canvasRef} aria-hidden="true" />
-      <img src="/zeta-prism-glass.png" alt="" loading="lazy" draggable={false} />
+      <img src="/zeta-prism-glass.webp" alt="" loading="lazy" draggable={false} />
     </div>
   );
 }

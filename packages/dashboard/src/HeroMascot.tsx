@@ -57,7 +57,7 @@ export function HeroMascot() {
       <span className="baby-arrival">
         <span className="baby-breathe">
           <span className="baby-look">
-            <img src="/zeta-baby-guardian.png" alt="" width="1024" height="1024" fetchPriority="high" draggable={false} />
+            <img src="/zeta-baby-guardian.webp" alt="" width="1024" height="1024" fetchPriority="high" draggable={false} />
             <span className="baby-visor" aria-hidden="true"><i className="baby-eye baby-eye-left" /><i className="baby-eye baby-eye-right" /></span>
           </span>
         </span>

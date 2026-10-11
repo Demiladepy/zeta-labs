@@ -64,6 +64,40 @@ npm run demo:fragmentation -- --undefended   # per-call cap only: 20.00 USDC dra
 npm run demo:fragmentation                   # accumulator on: stopped at 5.00 USDC
 ```
 
+### Underwriting v1: policy tightness is the collateral
+
+An autonomous agent has no credit history, no legal identity, and nothing to
+pledge. What it *can* offer is constraint. The tighter the leash it accepts, the
+safer the loan — so the price of credit is how much freedom the borrower gives
+up.
+
+| Control the agent accepts | LTV added |
+| --- | --- |
+| *(base)* | 25% |
+| Expiry | +20% |
+| Recipient / category allowlist | +15% |
+| Total cap | +15% |
+| Rolling cap | +15% |
+| **Maximum** | **90% — never 100%** |
+
+Proven in `programs/credit-vault/src/lib.rs::tests::underwriting`: monotone in
+tightness across all 16 control subsets, bounded by pool liquidity, overridden
+by the lender's own cap, denying on revoked or expired policies at the exact
+boundary, and never underflowing on a drained pool. Even a maximally
+constrained agent keeps a 10% haircut.
+
+The 2026 SoK that names sequence enforcement as open says **nothing** about
+extending credit to agents that hold no capital. That silence is the opening.
+
+### Where our claims come from
+
+Every external number in this repo — the SoK quote, the Nigerian card limits,
+the x402 volume figures, the AP2 and MPP comparisons — is sourced in
+[`docs/RESEARCH.md`](docs/RESEARCH.md), including what we deliberately did
+**not** verify and therefore do not claim.
+
+---
+
 Read-only, no keypairs. The exact bounds and every test are in
 [`docs/WEDGE.md`](docs/WEDGE.md); market and business model in
 [`docs/POSITIONING.md`](docs/POSITIONING.md).
