@@ -666,9 +666,70 @@ const CARD_WALL_STATS = [
   { figure: "Verve", label: "Nigeria's most-used card network — not accepted by AWS" },
 ] as const;
 
+function StatFigure({ figure, inView }: { figure: string; inView: boolean }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!inView || figure !== "$500") return;
+    let startTimestamp: number | null = null;
+    const duration = 1200;
+    const target = 500;
+
+    let frameId: number;
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(ease * target));
+      if (progress < 1) {
+        frameId = requestAnimationFrame(step);
+      }
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [inView, figure]);
+
+  if (figure === "$500") {
+    return (
+      <strong className="cardwall-figure">
+        <span className="cardwall-currency">$</span>{inView ? count : 0}
+      </strong>
+    );
+  }
+
+  if (figure === "$0") {
+    return (
+      <strong className="cardwall-figure cardwall-figure-zero">
+        <span className="cardwall-currency">$</span>0
+      </strong>
+    );
+  }
+
+  return <strong className="cardwall-figure">{figure}</strong>;
+}
+
 function CardWallSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section className="landing-section cardwall-section reveal" id="why" aria-labelledby="cardwall-title">
+    <section ref={sectionRef} className="landing-section cardwall-section reveal" id="why" aria-labelledby="cardwall-title">
       <div className="section-heading section-heading-centered">
         <p className="landing-section-label">Why Zeta exists</p>
         <h2 id="cardwall-title">Every agent payment standard<br />assumes you have a card.</h2>
@@ -680,7 +741,7 @@ function CardWallSection() {
       <div className="cardwall-grid">
         {CARD_WALL_STATS.map((stat) => (
           <div className="cardwall-stat" key={stat.figure}>
-            <strong>{stat.figure}</strong>
+            <StatFigure figure={stat.figure} inView={inView} />
             <span>{stat.label}</span>
           </div>
         ))}
