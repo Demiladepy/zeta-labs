@@ -660,17 +660,17 @@ function HeroBackgroundVideo() {
 }
 
 const CARD_WALL_STATS = [
-  { figure: "$0", label: "International limit on most Nigerian naira debit cards" },
-  { figure: "$500", label: "Monthly ceiling after cards were restored in July 2025" },
-  { figure: "1/10th", label: "Of the 2015 limit, after a 70% currency decline" },
-  { figure: "Verve", label: "Nigeria's most-used card network — not accepted by AWS" },
+  { tag: "DEBIT CEILING", figure: "$0", badge: "Blocked", label: "International limit on most Nigerian naira debit cards" },
+  { tag: "MONTHLY CAP", figure: "$500", label: "Monthly ceiling after cards were restored in July 2025" },
+  { tag: "PURCHASING POWER", figure: "1/10th", label: "Of the 2015 limit, after a 70% currency decline" },
+  { tag: "LOCAL RAILS", figure: "Verve", label: "Nigeria's most-used card network — not accepted by AWS" },
 ] as const;
 
-function StatFigure({ figure, inView }: { figure: string; inView: boolean }) {
+function StatFigure({ stat, inView }: { stat: typeof CARD_WALL_STATS[number]; inView: boolean }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    if (!inView || figure !== "$500") return;
+    if (!inView || stat.figure !== "$500") return;
     let startTimestamp: number | null = null;
     const duration = 1200;
     const target = 500;
@@ -688,25 +688,36 @@ function StatFigure({ figure, inView }: { figure: string; inView: boolean }) {
 
     frameId = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frameId);
-  }, [inView, figure]);
+  }, [inView, stat.figure]);
 
-  if (figure === "$500") {
+  if (stat.figure === "$500") {
     return (
-      <strong className="cardwall-figure">
-        <span className="cardwall-currency">$</span>{inView ? count : 0}
-      </strong>
+      <div className="cardwall-figure-wrap">
+        <strong className="cardwall-figure">
+          <span className="cardwall-currency">$</span>{inView ? count : 0}
+        </strong>
+      </div>
     );
   }
 
-  if (figure === "$0") {
+  if (stat.figure === "$0") {
     return (
-      <strong className="cardwall-figure cardwall-figure-zero">
-        <span className="cardwall-currency">$</span>0
-      </strong>
+      <div className="cardwall-figure-wrap">
+        <strong className="cardwall-figure cardwall-figure-zero">
+          <span className="cardwall-currency">$</span>0
+        </strong>
+        {"badge" in stat && stat.badge ? (
+          <span className="cardwall-figure-badge">{stat.badge}</span>
+        ) : null}
+      </div>
     );
   }
 
-  return <strong className="cardwall-figure">{figure}</strong>;
+  return (
+    <div className="cardwall-figure-wrap">
+      <strong className="cardwall-figure">{stat.figure}</strong>
+    </div>
+  );
 }
 
 function CardWallSection() {
@@ -730,33 +741,43 @@ function CardWallSection() {
 
   return (
     <section ref={sectionRef} className="landing-section cardwall-section reveal" id="why" aria-labelledby="cardwall-title">
-      <div className="section-heading section-heading-centered">
-        <p className="landing-section-label">Why Zeta exists</p>
-        <h2 id="cardwall-title">Every agent payment standard<br />assumes you have a card.</h2>
+      <div className="section-heading section-heading-centered cardwall-heading-wrap">
+        <span className="cardwall-eyebrow">Why Zeta exists</span>
+        <h2 id="cardwall-title" className="cardwall-title">
+          Every agent payment standard<br />assumes you have a card.
+        </h2>
         <p className="cardwall-lede">
           Google&rsquo;s AP2, Stripe&rsquo;s MPP, and the card-network mandates behind them all settle
           on rails that a billion developers cannot reach.
         </p>
       </div>
+
       <div className="cardwall-grid">
         {CARD_WALL_STATS.map((stat) => (
           <div className="cardwall-stat" key={stat.figure}>
-            <StatFigure figure={stat.figure} inView={inView} />
-            <span>{stat.label}</span>
+            <span className="cardwall-tag">{stat.tag}</span>
+            <StatFigure stat={stat} inView={inView} />
+            <span className="cardwall-label">{stat.label}</span>
           </div>
         ))}
       </div>
-      <div className="cardwall-close">
-        <p>
-          A developer in Lagos cannot hand an autonomous agent a card that does not work.
-          And when your entire monthly capacity is $500, a spend that leaks past a per-call
-          cap is not a rounding error &mdash; it is <strong>40% of your month</strong>, and the failed
-          payment afterwards can suspend the account you work from.
-        </p>
-        <p className="cardwall-answer">
-          Zeta is credit that needs no card, no bank, and no FX approval &mdash; with the
-          spending rules enforced on-chain, across the whole sequence, before funds move.
-        </p>
+
+      <div className="cardwall-manifesto">
+        <div className="cardwall-manifesto-body">
+          <p>
+            A developer in Lagos cannot hand an autonomous agent a card that does not work.
+            And when your entire monthly capacity is $500, a spend that leaks past a per-call
+            cap is not a rounding error &mdash; it is <strong>40% of your month</strong>, and the failed
+            payment afterwards can suspend the account you work from.
+          </p>
+        </div>
+        <div className="cardwall-manifesto-resolution">
+          <span className="cardwall-manifesto-badge">The Zeta standard</span>
+          <p>
+            Credit that needs no card, no bank, and no FX approval &mdash; with spending
+            rules enforced on-chain, across the whole sequence, before funds move.
+          </p>
+        </div>
       </div>
     </section>
   );
