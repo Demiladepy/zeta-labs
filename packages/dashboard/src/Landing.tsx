@@ -961,38 +961,38 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
         <section className="landing-hero" aria-labelledby="landing-title">
           <HeroBackgroundVideo />
 
-          {/* Crafts-style floating notes (6-pill depth system) */}
-          <div className="hero-floating-notes" aria-hidden="true">
-            {/* Left Column */}
-            <div className="hero-floating-note hero-note-tl">
-              <span className="hero-note-icon"><FlashRegular /></span>
-              <span>Instant x402 settlement</span>
-            </div>
-            <div className="hero-floating-note hero-note-ml">
-              <span className="hero-note-icon"><ShieldCheckmarkRegular /></span>
-              <span>Zero wallet exposure</span>
-            </div>
-            <div className="hero-floating-note hero-note-bl hero-note-blurred">
-              <span className="hero-note-icon"><LockClosedRegular /></span>
-              <span>Policy-bounded lines</span>
-            </div>
-
-            {/* Right Column */}
-            <div className="hero-floating-note hero-note-tr">
-              <span className="hero-note-icon"><DataBarVerticalRegular /></span>
-              <span>Cumulative cap bounds</span>
-            </div>
-            <div className="hero-floating-note hero-note-mr">
-              <span className="hero-note-icon"><CheckmarkCircleRegular /></span>
-              <span>Permanent Solana audit</span>
-            </div>
-            <div className="hero-floating-note hero-note-br hero-note-blurred">
-              <span className="hero-note-icon"><LinkRegular /></span>
-              <span>Payment channels CPI</span>
-            </div>
-          </div>
-
           <div className="hero-copy">
+            {/* Crafts-style floating notes (overlapping & tucked to headline) */}
+            <div className="hero-floating-notes" aria-hidden="true">
+              {/* Left Column */}
+              <div className="hero-floating-note hero-note-tl">
+                <span className="hero-note-icon"><FlashRegular /></span>
+                <span>Instant x402 settlement</span>
+              </div>
+              <div className="hero-floating-note hero-note-ml">
+                <span className="hero-note-icon"><ShieldCheckmarkRegular /></span>
+                <span>Zero wallet exposure</span>
+              </div>
+              <div className="hero-floating-note hero-note-bl hero-note-blurred">
+                <span className="hero-note-icon"><LockClosedRegular /></span>
+                <span>Policy-bounded lines</span>
+              </div>
+
+              {/* Right Column */}
+              <div className="hero-floating-note hero-note-tr">
+                <span className="hero-note-icon"><DataBarVerticalRegular /></span>
+                <span>Cumulative cap bounds</span>
+              </div>
+              <div className="hero-floating-note hero-note-mr">
+                <span className="hero-note-icon"><CheckmarkCircleRegular /></span>
+                <span>Permanent Solana audit</span>
+              </div>
+              <div className="hero-floating-note hero-note-br hero-note-blurred">
+                <span className="hero-note-icon"><LinkRegular /></span>
+                <span>Payment channels CPI</span>
+              </div>
+            </div>
+
             <span className="hero-eyebrow">Programmable credit on Solana</span>
             <FlipFadeHeroText />
             <p>Fund once, set the rules, and let autonomous software pay safely.</p>
