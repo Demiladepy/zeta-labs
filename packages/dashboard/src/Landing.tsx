@@ -8,6 +8,10 @@ import {
   DocumentBulletListRegular,
   ShieldCheckmarkRegular,
   ChevronDownRegular,
+  FlashRegular,
+  LockClosedRegular,
+  DataBarVerticalRegular,
+  LinkRegular,
 } from "@fluentui/react-icons";
 import { demoSnapshot, denialLabels, formatTime, formatUsdc } from "./data.js";
 import { VPrism } from "./VPrism.js";
@@ -762,20 +766,28 @@ function CardWallSection() {
         ))}
       </div>
 
-      <div className="cardwall-manifesto">
-        <div className="cardwall-manifesto-body">
+      <div className="cardwall-contrast-strip">
+        <div className="cardwall-contrast-col cardwall-contrast-problem">
+          <div className="contrast-eyebrow">
+            <span className="contrast-dot contrast-dot-red" />
+            <span>The Structural Trap</span>
+          </div>
+          <h4>Per-call caps are theatre.</h4>
           <p>
-            A developer in Lagos cannot hand an autonomous agent a card that does not work.
-            And when your entire monthly capacity is $500, a spend that leaks past a per-call
-            cap is not a rounding error &mdash; it is <strong>40% of your month</strong>, and the failed
-            payment afterwards can suspend the account you work from.
+            An agent with a $1 cap can drain $20 in twenty legal calls. At a $500 monthly ceiling, an overrun is not a rounding error &mdash; <strong>it is 40% of your month</strong>, and a failed payment suspends the developer&rsquo;s cloud account.
           </p>
         </div>
-        <div className="cardwall-manifesto-resolution">
-          <span className="cardwall-manifesto-badge">The Zeta standard</span>
+
+        <div className="cardwall-contrast-divider" aria-hidden="true" />
+
+        <div className="cardwall-contrast-col cardwall-contrast-solution">
+          <div className="contrast-eyebrow">
+            <span className="contrast-dot contrast-dot-mint" />
+            <span>The Zeta Standard</span>
+          </div>
+          <h4>We bound the sequence.</h4>
           <p>
-            Credit that needs no card, no bank, and no FX approval &mdash; with spending
-            rules enforced on-chain, across the whole sequence, before funds move.
+            Credit that needs no card, no bank, and no FX approval. An on-chain windowed accumulator evaluates every spend across the whole sequence before a single USDC moves.
           </p>
         </div>
       </div>
@@ -948,6 +960,27 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
       <main className="landing-main">
         <section className="landing-hero" aria-labelledby="landing-title">
           <HeroBackgroundVideo />
+
+          {/* Floating feature notes */}
+          <div className="hero-floating-notes" aria-hidden="true">
+            <div className="hero-floating-note hero-note-tl">
+              <span className="hero-note-icon"><FlashRegular /></span>
+              <span>Instant x402 settlement</span>
+            </div>
+            <div className="hero-floating-note hero-note-bl">
+              <span className="hero-note-icon"><LockClosedRegular /></span>
+              <span>Zero wallet exposure</span>
+            </div>
+            <div className="hero-floating-note hero-note-tr">
+              <span className="hero-note-icon"><DataBarVerticalRegular /></span>
+              <span>Cumulative cap bounds</span>
+            </div>
+            <div className="hero-floating-note hero-note-br">
+              <span className="hero-note-icon"><LinkRegular /></span>
+              <span>Permanent Solana audit</span>
+            </div>
+          </div>
+
           <div className="hero-copy">
             <span className="hero-eyebrow">Programmable credit on Solana</span>
             <FlipFadeHeroText />
@@ -1020,7 +1053,7 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
           <div className="sdk-features-grid">
             <article className="sdk-feature-card">
               <div className="sdk-feature-card-header">
-                <span className="sdk-step-pill">STEP 01</span>
+                <span className="sdk-step-pill">01</span>
                 <span className="sdk-live-status">
                   <span className="sdk-live-dot" />
                   USDC Vault
@@ -1031,18 +1064,11 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
               </div>
               <h3>Fund</h3>
               <p>Use one shared USDC pool for approved agent lines.</p>
-              <div className="sdk-feature-code-preview">
-                <div className="sdk-code-bar">
-                  <span className="sdk-code-dot" />
-                  <span>deposit.ts</span>
-                </div>
-                <code>await zeta.deposit({"{ amount: 10_000 }"})</code>
-              </div>
             </article>
 
             <article className="sdk-feature-card">
               <div className="sdk-feature-card-header">
-                <span className="sdk-step-pill">STEP 02</span>
+                <span className="sdk-step-pill">02</span>
                 <span className="sdk-live-status">
                   <span className="sdk-live-dot" />
                   Policy Engine
@@ -1053,18 +1079,11 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
               </div>
               <h3>Control</h3>
               <p>Set limits, expiry, and allowed recipients before an agent spends.</p>
-              <div className="sdk-feature-code-preview">
-                <div className="sdk-code-bar">
-                  <span className="sdk-code-dot" />
-                  <span>policy.ts</span>
-                </div>
-                <code>await zeta.setPolicy({"{ cap: 50, expiry }"})</code>
-              </div>
             </article>
 
             <article className="sdk-feature-card">
               <div className="sdk-feature-card-header">
-                <span className="sdk-step-pill">STEP 03</span>
+                <span className="sdk-step-pill">03</span>
                 <span className="sdk-live-status">
                   <span className="sdk-live-dot" />
                   On-Chain Proof
@@ -1075,13 +1094,6 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
               </div>
               <h3>Verify</h3>
               <p>Read the decision and its transaction proof after each draw.</p>
-              <div className="sdk-feature-code-preview">
-                <div className="sdk-code-bar">
-                  <span className="sdk-code-dot" />
-                  <span>verify.ts</span>
-                </div>
-                <code>const proof = await zeta.verify(signature)</code>
-              </div>
             </article>
           </div>
         </section>
