@@ -1010,21 +1010,78 @@ export default function Landing({ onOpenDashboard }: LandingProps) {
             <h2 id="sdk-features-title">The essentials, built in.</h2>
             <p>Manage capital, define spending rules, and check each decision through the Zeta SDK.</p>
           </div>
+
+          <div className="sdk-pipeline-track" aria-hidden="true">
+            <div className="sdk-pipeline-line">
+              <span className="sdk-pipeline-glow-packet" />
+            </div>
+          </div>
+
           <div className="sdk-features-grid">
-            <article>
-              <span className="sdk-feature-icon" aria-hidden="true"><DatabaseRegular /></span>
+            <article className="sdk-feature-card">
+              <div className="sdk-feature-card-header">
+                <span className="sdk-step-pill">STEP 01</span>
+                <span className="sdk-live-status">
+                  <span className="sdk-live-dot" />
+                  USDC Vault
+                </span>
+              </div>
+              <div className="sdk-feature-icon-wrap">
+                <span className="sdk-feature-icon" aria-hidden="true"><DatabaseRegular /></span>
+              </div>
               <h3>Fund</h3>
               <p>Use one shared USDC pool for approved agent lines.</p>
+              <div className="sdk-feature-code-preview">
+                <div className="sdk-code-bar">
+                  <span className="sdk-code-dot" />
+                  <span>deposit.ts</span>
+                </div>
+                <code>await zeta.deposit({"{ amount: 10_000 }"})</code>
+              </div>
             </article>
-            <article>
-              <span className="sdk-feature-icon" aria-hidden="true"><ShieldCheckmarkRegular /></span>
+
+            <article className="sdk-feature-card">
+              <div className="sdk-feature-card-header">
+                <span className="sdk-step-pill">STEP 02</span>
+                <span className="sdk-live-status">
+                  <span className="sdk-live-dot" />
+                  Policy Engine
+                </span>
+              </div>
+              <div className="sdk-feature-icon-wrap">
+                <span className="sdk-feature-icon" aria-hidden="true"><ShieldCheckmarkRegular /></span>
+              </div>
               <h3>Control</h3>
               <p>Set limits, expiry, and allowed recipients before an agent spends.</p>
+              <div className="sdk-feature-code-preview">
+                <div className="sdk-code-bar">
+                  <span className="sdk-code-dot" />
+                  <span>policy.ts</span>
+                </div>
+                <code>await zeta.setPolicy({"{ cap: 50, expiry }"})</code>
+              </div>
             </article>
-            <article>
-              <span className="sdk-feature-icon" aria-hidden="true"><DocumentBulletListRegular /></span>
+
+            <article className="sdk-feature-card">
+              <div className="sdk-feature-card-header">
+                <span className="sdk-step-pill">STEP 03</span>
+                <span className="sdk-live-status">
+                  <span className="sdk-live-dot" />
+                  On-Chain Proof
+                </span>
+              </div>
+              <div className="sdk-feature-icon-wrap">
+                <span className="sdk-feature-icon" aria-hidden="true"><DocumentBulletListRegular /></span>
+              </div>
               <h3>Verify</h3>
               <p>Read the decision and its transaction proof after each draw.</p>
+              <div className="sdk-feature-code-preview">
+                <div className="sdk-code-bar">
+                  <span className="sdk-code-dot" />
+                  <span>verify.ts</span>
+                </div>
+                <code>const proof = await zeta.verify(signature)</code>
+              </div>
             </article>
           </div>
         </section>
